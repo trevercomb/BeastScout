@@ -190,7 +190,7 @@ def build(contributions=DEFAULT_CONTRIBUTIONS, handbook_path=DEFAULT_HANDBOOK, o
     community = merge_contributions(paths)
     write_table(Path(out_dir) / "Community.lua", "COMMUNITY", [
         "PetScout's own beast data, merged from players' shared observations.",
-        "Checked before the Hunter's Handbook fallback. Sources: tame > lore > seen.",
+        "Checked before the Hunter's Handbook fallback. Sources: tame > lore.",
     ], community)
 
     handbook = parse_handbook(handbook_path)
