@@ -26,21 +26,24 @@ local function SourceLabel(layer, record, field)
     return GREY .. " (" .. text .. ")|r"
 end
 
--- Per field, first hit wins: your notes, then community data, then the
--- Hunter's Handbook fallback.
+local TRUST = { seen = 1, lore = 2, tame = 3 }
+
+-- Per field: our data (accepted community data, plus your unshared notes
+-- when they're at least as trustworthy), else the Hunter's Handbook fallback.
 local function Lookup(npcId, field)
     if not npcId then return nil end
-    local layers = {
-        { "mine", PetScoutDB.npcs[npcId] },
-        { "community", ns.COMMUNITY[npcId] },
-        { "handbook", ns.HANDBOOK[npcId] },
-    }
-    for _, layer in ipairs(layers) do
-        local record = layer[2]
-        if record and record[field] then
-            return record[field], SourceLabel(layer[1], record, field)
-        end
+    local mine, community = PetScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
+    mine = mine and mine[field] and mine or nil
+    community = community and community[field] and community or nil
+    if mine and community then
+        local mineTrust = TRUST[mine[field .. "Source"] or "seen"] or 1
+        local communityTrust = TRUST[community[field .. "Source"] or "seen"] or 1
+        if communityTrust > mineTrust then mine = nil end
     end
+    if mine then return mine[field], SourceLabel("mine", mine, field) end
+    if community then return community[field], SourceLabel("community", community, field) end
+    local handbook = ns.HANDBOOK[npcId]
+    if handbook and handbook[field] then return handbook[field], SourceLabel("handbook", handbook, field) end
 end
 
 local function AddLines(tooltip, unit)

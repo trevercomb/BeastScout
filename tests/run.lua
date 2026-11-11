@@ -210,6 +210,11 @@ resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
 check("your notes beat community", text:find("1.3|cff9d9d9d (you, tamed)|r", 1, true), text)
+PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = 1.9, "seen"
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("community tame beats your unshared sighting", text:find("1.4|cff9d9d9d (players, tamed x3)|r", 1, true), text)
 ns.COMMUNITY[2958] = nil
 
 local out = io.open("tests/export_sample.lua", "w")

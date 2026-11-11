@@ -11,13 +11,13 @@ The extra lines only show up for hunters. No other addon is needed.
 
 ## Where the data comes from
 
-For each value, PetScout uses the first source that has it, and the tooltip says which one, e.g. `1.5 (players, tamed x3)`:
+PetScout's own data comes first; Hunter's Handbook only fills in what we haven't tracked yet. The tooltip says where each value came from, e.g. `1.5 (players, tamed x3)`.
 
-1. **You:** what PetScout recorded on your account while you played. Shown as `(you)`, `(you, tamed)` or `(you, Beast Lore)`.
+1. **You:** what PetScout recorded on your account but you haven't shared yet. It's used over the community data only when it's at least as reliable (a tame beats Beast Lore, which beats a sighting). Shown as `(you)`, `(you, tamed)` or `(you, Beast Lore)`.
    - **Taming:** right after Tame Beast, it reads your new pet's abilities and swing timer. This is the most reliable source.
    - **Beast Lore:** it reads ability ranks from the beast's tooltip after you cast Beast Lore.
    - **Targeting:** it reads a wild beast's swing timer when you target it out of combat.
-2. **Players:** PetScout's own data in `Community.lua`, built from observations players shared. Shown with how it was observed and how many reports agree, e.g. `(players, tamed x3)`.
+2. **Players:** PetScout's own data in `Community.lua`: every observation we've accepted, including yours once shared. Shown with how it was observed and how many reports agree, e.g. `(players, tamed x3)`.
 3. **Hunter's Handbook:** the fallback in `Handbook.lua`, 660 beasts converted from [Hunter's Handbook](https://www.curseforge.com/wow/addons/hunters-handbook) by Wood (GPLv3). Thanks to them for the research. Shown as `(Handbook)`.
 
 As players share more, the community data fills in and the fallback is needed less.
