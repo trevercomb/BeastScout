@@ -30,15 +30,32 @@ Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\PetScout`, so 
 - `/petscout export`: opens a window with your observations, ready to copy.
 - `/petscout reset`: forgets your observations.
 
-## Contributing observations
+## Share your observations
 
-Run `/petscout export`, copy the text and save it as a `.lua` file in `contributions/`. Then rebuild the bestiary:
+Your observations improve everyone's tooltips once they're merged into a release.
 
-```
-python tools/build_bestiary.py --handbook path/to/HuntersHandbook/BestiaryData.lua --extra "contributions/*.lua"
-```
+1. In game, type `/petscout export`. The text is already selected: press Ctrl+C.
+2. Open [Share beast observations](https://github.com/trevercomb/PetScout/issues/new?template=observations.yml) (needs a free GitHub account), paste, and submit.
 
-Contributions override the Hunter's Handbook data for the same beast.
+## Maintainer: merging shared observations
+
+1. Pull submitted issues into `contributions/`. Each line is checked: known family and abilities, ranks 1–10, speed 0.8–3.5, sane levels. Bad lines are rejected and listed.
+
+   ```
+   python tools/pull_contributions.py
+   ```
+
+2. Rebuild the bestiary. Contributions override the Hunter's Handbook data for the same beast, and level ranges only widen.
+
+   ```
+   python tools/build_bestiary.py --extra "contributions/*.lua"
+   ```
+
+   It reads Hunter's Handbook's data from `vendor/HuntersHandbook/`.
+
+3. Review the `Bestiary.lua` diff, commit, release, and close the issues (the pull script prints the commands).
+
+Run the offline tests with `lua tests/run.lua` before releasing.
 
 ## License
 

@@ -1,13 +1,13 @@
 """Build PetScout's Bestiary.lua.
 
 Sources, later ones win per beast:
-  1. Hunter's Handbook's BestiaryData.lua (GPLv3, by Wood), passed with --handbook.
+  1. Hunter's Handbook's BestiaryData.lua (GPLv3, by Wood); defaults to the
+     copy in vendor/HuntersHandbook/, or pass another with --handbook.
   2. PetScout exports (from /petscout export), passed with --extra. Each file
      holds lines in the same format this script writes.
 
 Usage:
-  python tools/build_bestiary.py --handbook path/to/HuntersHandbook/BestiaryData.lua \
-      [--extra contributions/*.lua] [--out Bestiary.lua]
+  python tools/build_bestiary.py [--extra "contributions/*.lua"] [--handbook path] [--out Bestiary.lua]
 """
 
 import argparse
@@ -51,8 +51,12 @@ def parse_handbook(path):
 
 
 def parse_ours(path):
+    return parse_ours_text(Path(path).read_text(encoding="utf-8"))
+
+
+def parse_ours_text(text):
     beasts = {}
-    for npc_id, body in OURS.findall(Path(path).read_text(encoding="utf-8")):
+    for npc_id, body in OURS.findall(text):
         teaches = OURS_TEACH.findall(field(body, "teaches", r'\{(.*)\}') or "")
         beasts[int(npc_id)] = {
             "name": field(body, "name"),
@@ -100,7 +104,8 @@ def to_line(npc_id, b):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--handbook", required=True)
+    ap.add_argument("--handbook", default=str(Path(__file__).resolve().parent.parent
+                                              / "vendor" / "HuntersHandbook" / "BestiaryData.lua"))
     ap.add_argument("--extra", nargs="*", default=[])
     ap.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "Bestiary.lua"))
     args = ap.parse_args()

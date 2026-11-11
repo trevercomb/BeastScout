@@ -29,7 +29,9 @@ ns.FAMILIES = {
 -- Every ability a wild beast can teach, for spotting them in Beast Lore
 -- tooltips and a fresh pet's spellbook. Longest names first so
 -- "Demoralizing Screech" wins over a shorter name inside it.
-ns.TAME_ABILITIES = { "Faster Attack", "Slower Attack", "Cower" }
+-- "Screech" isn't a Forever family ability per Seemeta, but three bats in the
+-- bundled data teach it; keep it so real sightings aren't dropped.
+ns.TAME_ABILITIES = { "Faster Attack", "Slower Attack", "Cower", "Screech" }
 do
     local seen = {}
     for _, name in ipairs(ns.TAME_ABILITIES) do seen[name] = true end

@@ -96,6 +96,7 @@ local function HookTooltip()
 end
 
 local exportFrame
+local SHARE_URL = "github.com/trevercomb/PetScout/issues/new?template=observations.yml"
 
 local function ShowExport()
     local lines = ns.ExportLines()
@@ -105,7 +106,7 @@ local function ShowExport()
     end
     if not exportFrame then
         local f = CreateFrame("Frame", "PetScoutExportFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-        f:SetSize(560, 360)
+        f:SetSize(560, 380)
         f:SetPoint("CENTER")
         f:SetFrameStrata("DIALOG")
         local bg = f:CreateTexture(nil, "BACKGROUND")
@@ -113,11 +114,22 @@ local function ShowExport()
         bg:SetColorTexture(0, 0, 0, 0.85)
         local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         title:SetPoint("TOPLEFT", 12, -10)
-        title:SetText("PetScout export: Ctrl+A, Ctrl+C, then paste into a file")
+        title:SetText("PetScout export: press Ctrl+C to copy, then share it at")
+        -- Edit box so the address can be selected and copied too.
+        local url = CreateFrame("EditBox", nil, f)
+        url:SetPoint("TOPLEFT", 12, -28)
+        url:SetSize(500, 20)
+        url:SetFontObject(ChatFontNormal)
+        url:SetAutoFocus(false)
+        url:SetText(SHARE_URL)
+        url:SetScript("OnTextChanged", function(self, userInput)
+            if userInput then self:SetText(SHARE_URL) end
+        end)
+        url:SetScript("OnEscapePressed", function() f:Hide() end)
         local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
         close:SetPoint("TOPRIGHT", 2, 2)
         local scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
-        scroll:SetPoint("TOPLEFT", 12, -32)
+        scroll:SetPoint("TOPLEFT", 12, -52)
         scroll:SetPoint("BOTTOMRIGHT", -32, 12)
         local edit = CreateFrame("EditBox", nil, scroll)
         edit:SetMultiLine(true)
