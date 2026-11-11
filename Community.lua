@@ -5,4 +5,5 @@ local _, ns = ...
 -- Checked before the Hunter's Handbook fallback. Sources: tame > lore.
 ns.COMMUNITY = {
     [1201] = { name="Snow Leopard", family="Cat", levelMin=7, levelMax=8, speed=2, speedSource="tame", speedReports=1 },
+    [251707] = { name="Ornery Galestrider", family="Tallstrider", levelMin=8, levelMax=9, speed=1.3, speedSource="tame", speedReports=1, teaches={ {"Faster Attack", 5} }, teachesSource="tame", teachesReports=1 },
 }
