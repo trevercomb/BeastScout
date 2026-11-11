@@ -4,4 +4,5 @@ local _, ns = ...
 -- PetScout's own beast data, merged from players' shared observations.
 -- Checked before the Hunter's Handbook fallback. Sources: tame > lore.
 ns.COMMUNITY = {
+    [1201] = { name="Snow Leopard", family="Cat", levelMin=7, levelMax=8, speed=2, speedSource="tame", speedReports=1 },
 }

@@ -90,9 +90,27 @@ def parse_ours_text(text):
         b["speedSource"] = field(body, "speedSource")
         if b["speedSource"] != "tame":
             b["speed"], b["speedSource"] = None, None
+        else:
+            b["speed"] = snap_speed(b["speed"])
         b["teachesSource"] = field(body, "teachesSource") or ("lore" if b["teaches"] else None)
         beasts[int(npc_id)] = b
     return beasts
+
+
+def known_speeds():
+    """Pet speeds from ns.PASSIVE_SPEED in Data.lua, plus 2.0 for no passive."""
+    data = (ROOT / "Data.lua").read_text(encoding="utf-8")
+    block = re.search(r"ns\.PASSIVE_SPEED = \{(.*?)\n\}", data, re.S).group(1)
+    return {2.0} | {float(v) for v in re.findall(r"(?<![\[\w])(\d+\.\d+)", block)}
+
+
+def snap_speed(speed):
+    """Same as Collect.lua's Snap: a live pet reads slightly off (2.0 showed
+    as 1.961 in game), so snap readings within 0.06 of a known speed."""
+    if speed is None:
+        return None
+    best = min(known_speeds(), key=lambda s: abs(s - speed))
+    return best if abs(best - speed) <= 0.06 else round(speed, 2)
 
 
 def parse_ours(path):
