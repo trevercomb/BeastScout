@@ -98,6 +98,8 @@ PetScoutDB = { npcs = {} }
 
 check("handbook data loaded", ns.HANDBOOK[2958] and ns.HANDBOOK[2958].speed == 1.5)
 check("community data loaded", type(ns.COMMUNITY) == "table")
+-- Tests set their own community data; real tames would change the answers.
+wipe(ns.COMMUNITY)
 check("tame ability list longest first", #ns.TAME_ABILITIES[1] >= #ns.TAME_ABILITIES[#ns.TAME_ABILITIES])
 
 check("IsOwnLine: plain text is not ours", ns.IsOwnLine("Bite (Rank 2)") == false)
@@ -135,8 +137,8 @@ check("tooltip hook installed", hooked ~= nil)
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("speed from passive, labelled", text:find("Attack speed | 1.5|cff9d9d9d (Faster Attack III, Handbook)|r", 1, true), text)
-check("teaches on one labelled line", text:find("Teaches | Bite 1, Faster Attack 3|cff9d9d9d (Handbook)|r", 1, true), text)
+check("speed from passive, labelled", text:find("|cff9d9d9d (Faster Attack III, Handbook)|r | 1.5", 1, true), text)
+check("teaches on one labelled line", text:find("|cff9d9d9d (Handbook)|r | Bite 1, Faster Attack 3", 1, true), text)
 check("wild swing timer not recorded", PetScoutDB.npcs[2958].speed == nil)
 check("our own lines not learned as lore", PetScoutDB.npcs[2958].teaches == nil)
 
@@ -159,8 +161,8 @@ check("lore: Bite 2 and Prowl 1 on one line", taught.Bite == 2 and taught.Prowl 
 check("lore: nothing else learned", (function() local n = 0 for _ in pairs(taught) do n = n + 1 end return n end)() == 4)
 check("no speed from the wild swing timer", r and r.speed == nil)
 text = tooltipText()
-check("own Beast Lore data labelled", text:find("Prowl 1|cff9d9d9d (you, Beast Lore)|r", 1, true), text)
-check("speed from Beast Lore passive", text:find("1.4|cff9d9d9d (Faster Attack IV, you, Beast Lore)|r", 1, true), text)
+check("own Beast Lore data labelled", text:find("|cff9d9d9d (you, Beast Lore)|r | Bite 2, Claw 3, Faster Attack 4, Prowl 1", 1, true), text)
+check("speed from Beast Lore passive", text:find("|cff9d9d9d (Faster Attack IV, you, Beast Lore)|r | 1.4", 1, true), text)
 
 -- Taming: spellbook + pet swing timer override lore and seen data.
 units.target = units.mouseover
@@ -196,19 +198,19 @@ units.mouseover = { name = "Prairie Wolf", family = "Wolf", level = 6, speed = 9
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("community speed beats Handbook", text:find("1.4|cff9d9d9d (players, tamed x3)|r", 1, true), text)
-check("teaches still fall back per field", text:find("Faster Attack 3|cff9d9d9d (Handbook)|r", 1, true), text)
+check("community speed beats Handbook", text:find("|cff9d9d9d (players, tamed x3)|r | 1.4", 1, true), text)
+check("teaches still fall back per field", text:find("|cff9d9d9d (Handbook)|r | Bite 1, Faster Attack 3", 1, true), text)
 PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = 1.3, "tame"
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("your notes beat community", text:find("1.3|cff9d9d9d (you, tamed)|r", 1, true), text)
+check("your notes beat community", text:find("|cff9d9d9d (you, tamed)|r | 1.3", 1, true), text)
 PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = nil, nil
 PetScoutDB.npcs[2958].teaches, PetScoutDB.npcs[2958].teachesSource = { { "Faster Attack", 2 } }, "lore"
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("community tame beats your Beast Lore", text:find("1.4|cff9d9d9d (players, tamed x3)|r", 1, true), text)
+check("community tame beats your Beast Lore", text:find("|cff9d9d9d (players, tamed x3)|r | 1.4", 1, true), text)
 ns.COMMUNITY[2958] = nil
 
 -- Ornery Galestrider: Handbook lists its passive only under known abilities.
@@ -217,7 +219,7 @@ units.mouseover = { name = "Ornery Galestrider", family = "Tallstrider", level =
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("Galestrider 1.3 from Faster Attack V", text:find("1.3|cff9d9d9d (Faster Attack V, Handbook)|r", 1, true), text)
+check("Galestrider 1.3 from Faster Attack V", text:find("|cff9d9d9d (Faster Attack V, Handbook)|r | 1.3", 1, true), text)
 
 -- Tame seen only at SENT, with the target already gone: use the last wild target.
 units.target = { name = "Snow Leopard", family = "Cat", level = 9, guid = "Creature-0-1-2-3-1201-0000ABCD" }

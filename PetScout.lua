@@ -6,7 +6,7 @@ local GREY = "|cff9d9d9d"
 -- Lines we add, so Beast Lore reading can skip them.
 function ns.IsOwnLine(text)
     if type(text) ~= "string" then return false end
-    return text == "Attack speed" or text == "Teaches"
+    return text:find("^Attack speed") ~= nil or text:find("^Teaches") ~= nil
         or text:find("^|cffabd473PetScout") ~= nil or text:find("^|cff9d9d9d") ~= nil
 end
 
@@ -80,7 +80,8 @@ local function AddLines(tooltip, unit)
 
     local speed, speedFrom = Lookup(npcId, SpeedOf)
     if speed then
-        tooltip:AddDoubleLine("Attack speed", string.format("%.1f", speed) .. speedFrom, 1, 1, 1, 1, 1, 1)
+        -- Source goes on the left: long right-hand text got clipped in game.
+        tooltip:AddDoubleLine("Attack speed" .. speedFrom, string.format("%.1f", speed), 1, 1, 1, 1, 1, 1)
     else
         tooltip:AddLine(GREY .. "Attack speed: unknown, cast Beast Lore to check|r")
     end
@@ -89,7 +90,7 @@ local function AddLines(tooltip, unit)
     if teaches and #teaches > 0 then
         local parts = {}
         for _, t in ipairs(teaches) do parts[#parts + 1] = t[1] .. " " .. t[2] end
-        tooltip:AddDoubleLine("Teaches", table.concat(parts, ", ") .. teachesFrom, 1, 1, 1, 0.4, 1, 0.4)
+        tooltip:AddDoubleLine("Teaches" .. teachesFrom, table.concat(parts, ", "), 1, 1, 1, 0.4, 1, 0.4)
     end
 
     local info = ns.FAMILIES[family]
