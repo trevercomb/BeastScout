@@ -18,7 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from build_bestiary import parse_ours_text, to_line  # noqa: E402
+from build_bestiary import TRUST, parse_ours_text, to_line  # noqa: E402
 
 CONTRIB = ROOT / "contributions"
 
@@ -46,6 +46,9 @@ def problems(npc_id, b, families, abilities):
     for key in ("levelMin", "levelMax"):
         if b.get(key) is not None and not 1 <= b[key] <= 70:
             found.append(f"{key} {b[key]} out of range")
+    for key in ("speedSource", "teachesSource"):
+        if b.get(key) is not None and b[key] not in TRUST:
+            found.append(f"unknown {key} {b[key]!r}")
     for ability, rank in b.get("teaches", []):
         if ability not in abilities:
             found.append(f"unknown ability {ability!r}")
@@ -90,8 +93,8 @@ def main():
         print("Nothing new to pull.")
         return
     print("\nNext:")
-    print('  python tools/build_bestiary.py --extra "contributions/*.lua"')
-    print("  review the Bestiary.lua diff, commit, then close: "
+    print("  python tools/build_bestiary.py")
+    print("  review the Community.lua diff, commit, then close: "
           + " ".join(f"gh issue close {n} -c \"Merged, thanks!\"" for n in pulled))
 
 

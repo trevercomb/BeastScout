@@ -229,8 +229,8 @@ function ns.OnCollectEvent(event, unit, _, spellId)
 end
 
 -- Export ------------------------------------------------------------------------
--- Same line format as Bestiary.lua, so tools/build_bestiary.py --extra can
--- merge exports straight in.
+-- Same line format as Community.lua, so tools/build_bestiary.py can merge
+-- exports saved in contributions/ straight in.
 
 local function LuaString(s)
     return '"' .. s:gsub("\\", "\\\\"):gsub('"', '\\"') .. '"'
@@ -249,11 +249,15 @@ function ns.ExportLines()
         local parts = { "name=" .. LuaString(r.name), "family=" .. LuaString(r.family) }
         if r.levelMin then table.insert(parts, "levelMin=" .. r.levelMin) end
         if r.levelMax then table.insert(parts, "levelMax=" .. r.levelMax) end
-        if r.speed then table.insert(parts, "speed=" .. r.speed) end
+        if r.speed then
+            table.insert(parts, "speed=" .. r.speed)
+            table.insert(parts, 'speedSource="' .. (r.speedSource or "seen") .. '"')
+        end
         if r.teaches then
             local t = {}
             for _, a in ipairs(r.teaches) do table.insert(t, "{" .. LuaString(a[1]) .. ", " .. a[2] .. "}") end
             table.insert(parts, "teaches={ " .. table.concat(t, ", ") .. " }")
+            table.insert(parts, 'teachesSource="' .. (r.teachesSource or "lore") .. '"')
         end
         table.insert(lines, "    [" .. npcId .. "] = { " .. table.concat(parts, ", ") .. " },")
     end

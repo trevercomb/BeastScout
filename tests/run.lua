@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Bestiary.lua", "Collect.lua", "PetScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Community.lua", "Handbook.lua", "Collect.lua", "PetScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("PetScout", ns)
 end
@@ -96,7 +96,8 @@ PetScoutDB = { npcs = {} }
 
 -- Tests ----------------------------------------------------------------------------
 
-check("bestiary loaded", ns.BESTIARY[2958] and ns.BESTIARY[2958].speed == 1.5)
+check("handbook data loaded", ns.HANDBOOK[2958] and ns.HANDBOOK[2958].speed == 1.5)
+check("community data loaded", type(ns.COMMUNITY) == "table")
 check("tame ability list longest first", #ns.TAME_ABILITIES[1] >= #ns.TAME_ABILITIES[#ns.TAME_ABILITIES])
 
 check("IsOwnLine: plain text is not ours", ns.IsOwnLine("Bite (Rank 2)") == false)
@@ -137,7 +138,8 @@ text = tooltipText()
 check("tooltip shows speed 1.5", text:find("Attack speed | 1.5", 1, true), text)
 check("tooltip shows Bite 1", text:find("Teaches | Bite 1", 1, true), text)
 check("tooltip shows Faster Attack 3", text:find("Teaches | Faster Attack 3", 1, true), text)
-check("no (yours) when matching bundled", not text:find("yours", 1, true), text)
+check("speed you just saw is labelled you", text:find("1.5|cff9d9d9d (you)|r", 1, true), text)
+check("teaches fall back to Handbook", text:find("Faster Attack 3|cff9d9d9d (Handbook)|r", 1, true), text)
 check("our own lines not learned as lore", PetScoutDB.npcs[2958].teaches == nil)
 
 -- Unknown beast with Beast Lore lines in several formats.
@@ -159,7 +161,7 @@ check("lore: Bite 2 and Prowl 1 on one line", taught.Bite == 2 and taught.Prowl 
 check("lore: nothing else learned", (function() local n = 0 for _ in pairs(taught) do n = n + 1 end return n end)() == 4)
 check("seen speed recorded", r and r.speed == 1.3 and r.speedSource == "seen")
 text = tooltipText()
-check("tooltip marks unknown beast data as yours", text:find("Claw 3" .. "|cff9d9d9d (yours)|r", 1, true), text)
+check("own Beast Lore data labelled", text:find("Prowl 1|cff9d9d9d (you, Beast Lore)|r", 1, true), text)
 
 -- In combat, the swing timer isn't trusted.
 units.mouseover.speed, units.mouseover.combat = 3.0, true
@@ -192,7 +194,23 @@ check("lore can't override tame", PetScoutDB.npcs[999001].teachesSource == "tame
 local lines = ns.ExportLines()
 check("export has the observed beasts", #lines == 2, #lines)
 check("export line format", lines[2] == '    [999001] = { name="Test Cat", family="Cat", levelMin=20, levelMax=20, '
-    .. 'speed=1.2, teaches={ {"Claw", 3}, {"Faster Attack", 5} } },', lines[2])
+    .. 'speed=1.2, speedSource="tame", teaches={ {"Claw", 3}, {"Faster Attack", 5} }, teachesSource="tame" },', lines[2])
+
+ns.COMMUNITY[2958] = { name = "Prairie Wolf", family = "Wolf", speed = 1.4, speedSource = "tame", speedReports = 3 }
+PetScoutDB.npcs[2958] = nil
+units.mouseover = { name = "Prairie Wolf", family = "Wolf", level = 6, speed = 9, combat = true,
+    guid = "Creature-0-1-2-3-2958-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("community speed beats Handbook", text:find("1.4|cff9d9d9d (players, tamed x3)|r", 1, true), text)
+check("teaches still fall back per field", text:find("Faster Attack 3|cff9d9d9d (Handbook)|r", 1, true), text)
+PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = 1.3, "tame"
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("your notes beat community", text:find("1.3|cff9d9d9d (you, tamed)|r", 1, true), text)
+ns.COMMUNITY[2958] = nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

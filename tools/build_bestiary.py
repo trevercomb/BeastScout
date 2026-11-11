@@ -1,19 +1,28 @@
-"""Build PetScout's Bestiary.lua.
+"""Build PetScout's two data files.
 
-Sources, later ones win per beast:
-  1. Hunter's Handbook's BestiaryData.lua (GPLv3, by Wood); defaults to the
-     copy in vendor/HuntersHandbook/, or pass another with --handbook.
-  2. PetScout exports (from /petscout export), passed with --extra. Each file
-     holds lines in the same format this script writes.
+  Community.lua  ns.COMMUNITY: our own data, merged from contributions/*.lua
+                 (lines from /petscout export). PetScout checks this first.
+  Handbook.lua   ns.HANDBOOK: fallback converted from Hunter's Handbook's
+                 BestiaryData.lua (GPLv3, by Wood), vendored in vendor/HuntersHandbook/.
+
+Merging contributions, per beast and per field (speed, teaches):
+  - the most trusted source wins: tame > lore > seen
+  - among reports from that source, the most common value wins (ties: newest file)
+  - <field>Reports counts the reports that agree with the winner
+  - level ranges only widen
 
 Usage:
-  python tools/build_bestiary.py [--extra "contributions/*.lua"] [--handbook path] [--out Bestiary.lua]
+  python tools/build_bestiary.py [--contributions "contributions/*.lua"] [--handbook path]
 """
 
 import argparse
 import glob
 import re
+from collections import Counter
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+TRUST = {"seen": 1, "lore": 2, "tame": 3}
 
 FAMILY_HELPER = re.compile(r'local function (Add\w+)\(id, data\)\s*data\.family = "([^"]+)"')
 RECORD = re.compile(r'^(Add\w+)\((\d+), \{(.*?)^\}\)', re.M | re.S)
@@ -38,7 +47,6 @@ def parse_handbook(path):
     families = dict(FAMILY_HELPER.findall(text))
     beasts = {}
     for helper, npc_id, body in RECORD.findall(text):
-        # Only the top-level fields; nested location tables come after teaches.
         beasts[int(npc_id)] = {
             "name": field(body, "name"),
             "family": families[helper],
@@ -50,15 +58,13 @@ def parse_handbook(path):
     return beasts
 
 
-def parse_ours(path):
-    return parse_ours_text(Path(path).read_text(encoding="utf-8"))
-
-
 def parse_ours_text(text):
+    """Lines in our format. Exports from before sources were tracked count as
+    'seen' for speed and 'lore' for teaches, the least trusted that fits."""
     beasts = {}
     for npc_id, body in OURS.findall(text):
-        teaches = OURS_TEACH.findall(field(body, "teaches", r'\{(.*)\}') or "")
-        beasts[int(npc_id)] = {
+        teaches = OURS_TEACH.findall(field(body, "teaches", r'\{(.*?) \}') or "")
+        b = {
             "name": field(body, "name"),
             "family": field(body, "family"),
             "levelMin": number(body, "levelMin"),
@@ -66,21 +72,55 @@ def parse_ours_text(text):
             "speed": number(body, "speed"),
             "teaches": [(a, int(r)) for a, r in teaches],
         }
+        b["speedSource"] = field(body, "speedSource") or ("seen" if b["speed"] is not None else None)
+        b["teachesSource"] = field(body, "teachesSource") or ("lore" if b["teaches"] else None)
+        beasts[int(npc_id)] = b
     return beasts
 
 
-def merge(base, extra):
-    for npc_id, new in extra.items():
-        old = base.setdefault(npc_id, {})
-        for key, value in new.items():
-            if value in (None, []):
-                continue
-            # One sighting shouldn't narrow a known level range.
-            if key == "levelMin" and old.get(key) is not None:
-                value = min(value, old[key])
-            elif key == "levelMax" and old.get(key) is not None:
-                value = max(value, old[key])
-            old[key] = value
+def parse_ours(path):
+    return parse_ours_text(Path(path).read_text(encoding="utf-8"))
+
+
+def pick(reports):
+    """reports: [(order, source, value)] -> (value, source, agreeing count)."""
+    best = max(TRUST[s] for _, s, _ in reports)
+    top = [(o, s, v) for o, s, v in reports if TRUST[s] == best]
+    counts = Counter(v for _, _, v in top)
+    newest = {v: o for o, _, v in sorted(top)}
+    value = max(counts, key=lambda v: (counts[v], newest[v]))
+    return value, top[0][1], counts[value]
+
+
+def merge_contributions(paths):
+    reports = {}
+    for order, path in enumerate(paths):
+        for npc_id, b in parse_ours(path).items():
+            reports.setdefault(npc_id, []).append((order, b))
+
+    merged = {}
+    for npc_id, rows in reports.items():
+        latest = rows[-1][1]
+        out = {"name": latest["name"], "family": latest["family"]}
+        lows = [b["levelMin"] for _, b in rows if b["levelMin"] is not None]
+        highs = [b["levelMax"] for _, b in rows if b["levelMax"] is not None]
+        if lows:
+            out["levelMin"] = min(lows)
+        if highs:
+            out["levelMax"] = max(highs)
+
+        speeds = [(o, b["speedSource"], b["speed"]) for o, b in rows
+                  if b["speed"] is not None and b["speedSource"] in TRUST]
+        if speeds:
+            out["speed"], out["speedSource"], out["speedReports"] = pick(speeds)
+
+        teaches = [(o, b["teachesSource"], tuple(sorted(b["teaches"]))) for o, b in rows
+                   if b["teaches"] and b["teachesSource"] in TRUST]
+        if teaches:
+            value, out["teachesSource"], out["teachesReports"] = pick(teaches)
+            out["teaches"] = list(value)
+        merged[npc_id] = out
+    return merged
 
 
 def lua_str(s):
@@ -96,39 +136,54 @@ def to_line(npc_id, b):
     for key in ("levelMin", "levelMax", "speed"):
         if b.get(key) is not None:
             parts.append(f"{key}={fmt_num(b[key])}")
+    if b.get("speedSource"):
+        parts.append(f'speedSource="{b["speedSource"]}"')
+    if b.get("speedReports"):
+        parts.append(f"speedReports={b['speedReports']}")
     if b.get("teaches"):
         inner = ", ".join(f"{{{lua_str(a)}, {r}}}" for a, r in b["teaches"])
         parts.append(f"teaches={{ {inner} }}")
+    if b.get("teachesSource"):
+        parts.append(f'teachesSource="{b["teachesSource"]}"')
+    if b.get("teachesReports"):
+        parts.append(f"teachesReports={b['teachesReports']}")
     return f"    [{npc_id}] = {{ {', '.join(parts)} }},"
+
+
+def write_table(path, table_name, comment, beasts):
+    header = ["local _, ns = ...", "", "-- GENERATED by tools/build_bestiary.py. Do not edit by hand."]
+    header += ["-- " + line for line in comment] + [f"ns.{table_name} = {{"]
+    body = [to_line(i, beasts[i]) for i in sorted(beasts)]
+    Path(path).write_text("\n".join(header + body + ["}", ""]), encoding="utf-8", newline="\n")
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--handbook", default=str(Path(__file__).resolve().parent.parent
-                                              / "vendor" / "HuntersHandbook" / "BestiaryData.lua"))
-    ap.add_argument("--extra", nargs="*", default=[])
-    ap.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "Bestiary.lua"))
+    ap.add_argument("--contributions", default=str(ROOT / "contributions" / "*.lua"))
+    ap.add_argument("--handbook", default=str(ROOT / "vendor" / "HuntersHandbook" / "BestiaryData.lua"))
+    ap.add_argument("--out-dir", default=str(ROOT))
     args = ap.parse_args()
 
-    beasts = parse_handbook(args.handbook)
-    from_handbook = len(beasts)
-    for pattern in args.extra:
-        for path in glob.glob(pattern):
-            merge(beasts, parse_ours(path))
+    # Sorted by issue number so "newest" means the latest submission.
+    def order_key(p):
+        m = re.search(r"(\d+)", Path(p).stem)
+        return (int(m.group(1)) if m else 0, p)
+    paths = sorted(glob.glob(args.contributions), key=order_key)
 
-    header = [
-        "local _, ns = ...",
-        "",
-        "-- GENERATED by tools/build_bestiary.py. Do not edit by hand.",
-        "-- Beast data from Hunter's Handbook by Wood (GPLv3):",
-        "--   https://www.curseforge.com/wow/addons/hunters-handbook",
-        "-- merged with PetScout players' own observations.",
-        "-- [npcId] = { name, family, levelMin, levelMax, speed, teaches = { {ability, rank} } }",
-        "ns.BESTIARY = {",
-    ]
-    body = [to_line(i, beasts[i]) for i in sorted(beasts)]
-    Path(args.out).write_text("\n".join(header + body + ["}", ""]), encoding="utf-8", newline="\n")
-    print(f"{len(beasts)} beasts ({from_handbook} from Hunter's Handbook) -> {args.out}")
+    community = merge_contributions(paths)
+    write_table(Path(args.out_dir) / "Community.lua", "COMMUNITY", [
+        "PetScout's own beast data, merged from players' shared observations.",
+        "Checked before the Hunter's Handbook fallback. Sources: tame > lore > seen.",
+    ], community)
+
+    handbook = parse_handbook(args.handbook)
+    write_table(Path(args.out_dir) / "Handbook.lua", "HANDBOOK", [
+        "Fallback data from Hunter's Handbook by Wood (GPLv3):",
+        "  https://www.curseforge.com/wow/addons/hunters-handbook",
+    ], handbook)
+
+    print(f"Community.lua: {len(community)} beasts from {len(paths)} contribution files")
+    print(f"Handbook.lua:  {len(handbook)} beasts")
 
 
 if __name__ == "__main__":

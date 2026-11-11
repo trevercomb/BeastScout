@@ -2,7 +2,6 @@ local ADDON, ns = ...
 
 local HEADER = "|cffabd473PetScout|r"
 local GREY = "|cff9d9d9d"
-local YOURS = GREY .. " (yours)|r"
 
 -- Lines we add, so Beast Lore reading can skip them.
 function ns.IsOwnLine(text)
@@ -11,32 +10,57 @@ function ns.IsOwnLine(text)
         or text:find("^|cffabd473PetScout") ~= nil or text:find("^|cff9d9d9d") ~= nil
 end
 
+local SOURCE_WORDS = { tame = "tamed", lore = "Beast Lore", seen = "seen" }
+
+-- Where a value came from, e.g. "(you, tamed)", "(players, tamed x3)", "(Handbook)".
+local function SourceLabel(layer, record, field)
+    local how = SOURCE_WORDS[record[field .. "Source"] or ""]
+    local text
+    if layer == "mine" then
+        text = how and how ~= "seen" and ("you, " .. how) or "you"
+    elseif layer == "community" then
+        text = "players" .. (how and (", " .. how .. " x" .. (record[field .. "Reports"] or 1)) or "")
+    else
+        text = "Handbook"
+    end
+    return GREY .. " (" .. text .. ")|r"
+end
+
+-- Per field, first hit wins: your notes, then community data, then the
+-- Hunter's Handbook fallback.
+local function Lookup(npcId, field)
+    if not npcId then return nil end
+    local layers = {
+        { "mine", PetScoutDB.npcs[npcId] },
+        { "community", ns.COMMUNITY[npcId] },
+        { "handbook", ns.HANDBOOK[npcId] },
+    }
+    for _, layer in ipairs(layers) do
+        local record = layer[2]
+        if record and record[field] then
+            return record[field], SourceLabel(layer[1], record, field)
+        end
+    end
+end
+
 local function AddLines(tooltip, unit)
     local ok, family = ns.IsWildBeast(unit)
     if not ok then return end
     local npcId = ns.NpcIdFromGUID(UnitGUID(unit))
-    local mine = npcId and PetScoutDB.npcs[npcId]
-    local known = npcId and ns.BESTIARY[npcId]
 
     tooltip:AddLine(HEADER .. " " .. family)
 
-    -- Your own observation wins: it's newer than the bundled data.
-    local speed, speedYours = mine and mine.speed, true
-    if not speed then speed, speedYours = known and known.speed, false end
+    local speed, speedFrom = Lookup(npcId, "speed")
     if speed then
-        local text = string.format("%.1f", speed)
-        if speedYours and known and known.speed and math.abs(known.speed - speed) >= 0.05 then
-            text = text .. YOURS
-        end
-        tooltip:AddDoubleLine("Attack speed", text, 1, 1, 1, 1, 1, 1)
+        tooltip:AddDoubleLine("Attack speed", string.format("%.1f", speed) .. speedFrom, 1, 1, 1, 1, 1, 1)
     else
         tooltip:AddLine(GREY .. "Attack speed: target it out of combat to read|r")
     end
 
-    local teaches, teachesYours = mine and mine.teaches, true
-    if not teaches then teaches, teachesYours = known and known.teaches, false end
-    for _, t in ipairs(teaches or {}) do
-        tooltip:AddDoubleLine("Teaches", t[1] .. " " .. t[2] .. (teachesYours and not known and YOURS or ""),
+    local teaches, teachesFrom = Lookup(npcId, "teaches")
+    for i, t in ipairs(teaches or {}) do
+        -- Label only the last line to keep the tooltip short.
+        tooltip:AddDoubleLine("Teaches", t[1] .. " " .. t[2] .. (i == #teaches and teachesFrom or ""),
             1, 1, 1, 0.4, 1, 0.4)
     end
 
@@ -175,10 +199,9 @@ SlashCmdList.PETSCOUT = function(msg)
         print(HEADER .. ": cleared your recorded beasts.")
         return
     end
-    local mine, bundled = 0, 0
-    for _ in pairs(PetScoutDB.npcs) do mine = mine + 1 end
-    for _ in pairs(ns.BESTIARY) do bundled = bundled + 1 end
-    print(HEADER .. ": " .. bundled .. " beasts built in, " .. mine .. " recorded by you. Client interface: "
+    local function Count(t) local n = 0 for _ in pairs(t) do n = n + 1 end return n end
+    print(HEADER .. ": " .. Count(PetScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
+        .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
     print("  /petscout export - copy your observations   /petscout reset - forget them")
     if UnitExists("target") then
