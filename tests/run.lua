@@ -219,6 +219,36 @@ hooked(tooltip)
 text = tooltipText()
 check("Galestrider 1.3 from Faster Attack V", text:find("1.3|cff9d9d9d (Faster Attack V, Handbook)|r", 1, true), text)
 
+-- Tame seen only at SENT, with the target already gone: use the last wild target.
+units.target = { name = "Snow Leopard", family = "Cat", level = 9, guid = "Creature-0-1-2-3-1201-0000ABCD" }
+ns.OnCollectEvent("PLAYER_TARGET_CHANGED")
+units.target = nil
+units.pet = nil
+ns.OnCollectEvent("UNIT_SPELLCAST_SENT", "player", "Snow Leopard", "cast-guid-2", 1515)
+-- New pet whose spellbook reads empty: still recorded on the final try.
+units.pet = { name = "Snow Leopard", family = "Cat", level = 9, speed = 2.0, guid = "Pet-0-1-2-3-1201-LEO" }
+petSpells = {}
+ns.OnCollectEvent("UNIT_PET", "player")
+runTimers()
+local leo = PetScoutDB.npcs[1201]
+check("tame via last wild target, empty spellbook", leo and leo.speed == 2 and leo.speedSource == "tame",
+    leo and leo.speed)
+check("tame announced for leopard", printed[#printed]:find("recorded tame of Snow Leopard", 1, true), printed[#printed])
+
+-- Commands run without errors.
+PetScoutDB.debug = false
+SlashCmdList.PETSCOUT("debug")
+check("debug toggles on", PetScoutDB.debug == true)
+ns.Debug("hello")
+check("debug prints", printed[#printed]:find("PetScout debug", 1, true), printed[#printed])
+SlashCmdList.PETSCOUT("debug")
+petSpells = { { "Bite", "Rank 1" }, { "Growl", "Rank 1" } }
+SlashCmdList.PETSCOUT("pet")
+check("/petscout pet lists spellbook", printed[#printed]:find("Bite Rank 1, Growl Rank 1", 1, true), printed[#printed])
+units.pet = nil
+SlashCmdList.PETSCOUT("pet")
+check("/petscout pet with no pet", printed[#printed]:find("no pet out", 1, true), printed[#printed])
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

@@ -222,6 +222,22 @@ SlashCmdList.PETSCOUT = function(msg)
     if msg == "export" then
         ShowExport()
         return
+    elseif msg == "debug" then
+        PetScoutDB.debug = not PetScoutDB.debug
+        print(HEADER .. ": debug " .. (PetScoutDB.debug and "on" or "off") .. ".")
+        return
+    elseif msg == "pet" then
+        -- What PetScout can read from your current pet, for checking tames.
+        if not UnitExists("pet") then
+            print(HEADER .. ": no pet out.")
+            return
+        end
+        local spells = ns.PetSpellbook()
+        print(HEADER .. ": pet " .. tostring(UnitName("pet")) .. ", " .. tostring(UnitCreatureFamily("pet"))
+            .. ", level " .. tostring(UnitLevel("pet")) .. ", swing " .. tostring(UnitAttackSpeed("pet")))
+        print("  GUID: " .. tostring(UnitGUID("pet")))
+        print("  spellbook: " .. (#spells > 0 and table.concat(spells, ", ") or "(empty)"))
+        return
     elseif msg == "reset" then
         wipe(PetScoutDB.npcs)
         print(HEADER .. ": cleared your recorded beasts.")
@@ -232,4 +248,5 @@ SlashCmdList.PETSCOUT = function(msg)
         .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
     print("  /petscout export - copy your observations   /petscout reset - forget them")
+    print("  /petscout pet - what PetScout reads from your pet   /petscout debug - narrate tames in chat")
 end

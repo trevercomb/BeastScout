@@ -140,7 +140,25 @@ end
 
 -- Taming --------------------------------------------------------------------
 
-local pending -- the wild beast a Tame Beast cast is working on
+-- /petscout debug: narrate the tame capture in chat.
+function ns.Debug(...)
+    if not (PetScoutDB and PetScoutDB.debug) then return end
+    local parts = {}
+    for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+    print("|cffabd473PetScout debug|r: " .. table.concat(parts, " "))
+end
+local Debug = ns.Debug
+
+local pending      -- the wild beast a Tame Beast cast is working on
+local lastWild     -- the last wild beast you targeted, in case the target changes as the tame lands
+
+local function Snapshot(unit)
+    local ok, family = ns.IsWildBeast(unit)
+    if not ok then return nil end
+    local npcId = ns.NpcIdFromGUID(UnitGUID(unit))
+    if not npcId then return nil end
+    return { npcId = npcId, name = UnitName(unit), family = family, level = UnitLevel(unit), at = GetTime() }
+end
 
 local function IsTameSpell(spellId)
     if spellId == TAME_BEAST_SPELL_ID then return true end
@@ -149,19 +167,23 @@ local function IsTameSpell(spellId)
     return name == "Tame Beast"
 end
 
-local function OnTameStart(spellId)
-    if not IsTameSpell(spellId) then
-        local channel = UnitChannelInfo and UnitChannelInfo("player")
-        if channel ~= "Tame Beast" then return end
+local function OnTameSpell(event, spellId)
+    local channel = UnitChannelInfo and UnitChannelInfo("player")
+    local isTame = IsTameSpell(spellId) or channel == "Tame Beast"
+    Debug(event, "spell", spellId, "channel", channel, "tame:", isTame)
+    if not isTame then return end
+    -- A new cast starts over; later events of the same cast keep its target.
+    if event ~= "UNIT_SPELLCAST_SENT" and pending and GetTime() - pending.at < 30 then return end
+
+    local beast = Snapshot("target")
+    if not beast and lastWild and GetTime() - lastWild.at < 30 then beast = lastWild end
+    if not beast then
+        Debug("tame cast seen, but no wild beast targeted")
+        return
     end
-    local ok, family = ns.IsWildBeast("target")
-    if not ok then return end
-    local npcId = ns.NpcIdFromGUID(UnitGUID("target"))
-    if not npcId then return end
-    pending = {
-        npcId = npcId, name = UnitName("target"), family = family,
-        level = UnitLevel("target"), oldPet = UnitGUID("pet"), at = GetTime(),
-    }
+    beast.oldPet, beast.at = UnitGUID("pet"), GetTime()
+    pending = beast
+    Debug("taming", beast.name, beast.npcId, beast.family)
 end
 
 local function PetSpellbook()
@@ -179,16 +201,25 @@ local function PetSpellbook()
     end
     return spells
 end
+ns.PetSpellbook = PetSpellbook
 
--- The pet and its spellbook show up a moment after the tame lands.
-local function TryCaptureTame()
-    if not pending or GetTime() - pending.at > 30 then pending = nil return true end
-    if not UnitExists("pet") or UnitGUID("pet") == pending.oldPet then return false end
-    if UnitCreatureFamily("pet") ~= pending.family then return false end
+-- The pet and its spellbook show up a moment after the tame lands. On the
+-- last try, record the tame even if no ability was readable.
+local function TryCaptureTame(final)
+    if not pending or GetTime() - pending.at > 60 then pending = nil return true end
+    if not UnitExists("pet") then Debug("no pet yet") return false end
+    if UnitGUID("pet") == pending.oldPet then Debug("still the old pet") return false end
+    local petFamily = UnitCreatureFamily("pet")
+    if petFamily ~= pending.family then
+        Debug("pet family", petFamily, "isn't", pending.family)
+        return false
+    end
 
+    local spells = PetSpellbook()
+    Debug("pet spellbook:", #spells > 0 and table.concat(spells, ", ") or "(empty)")
     local found = {}
-    for _, spell in ipairs(PetSpellbook()) do FindAbilities(spell, found) end
-    if not next(found) then return false end
+    for _, spell in ipairs(spells) do FindAbilities(spell, found) end
+    if not next(found) and not final then return false end
 
     local r = Record(pending.npcId, pending.name, pending.family, pending.level)
     SetTeaches(r, found, "tame")
@@ -199,10 +230,12 @@ local function TryCaptureTame()
 end
 
 local function ScheduleTameCapture()
+    Debug("UNIT_PET, pet:", UnitGUID("pet"), "waiting for tame:", pending and pending.name)
     if not pending then return end
     local function Try(attempt)
-        local ok, done = pcall(TryCaptureTame)
-        if (not ok or not done) and attempt < 4 then
+        local ok, done = pcall(TryCaptureTame, attempt == 5)
+        if not ok then Debug("capture error:", done) end
+        if (not ok or not done) and attempt < 5 then
             C_Timer.After(attempt * 0.75, function() Try(attempt + 1) end)
         end
     end
@@ -211,16 +244,20 @@ end
 
 function ns.StartCollecting(frame)
     frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
-    frame:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
-    frame:RegisterUnitEvent("UNIT_PET", "player")
+    for _, event in ipairs({ "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START",
+        "UNIT_SPELLCAST_SUCCEEDED", "UNIT_PET" }) do
+        frame:RegisterUnitEvent(event, "player")
+    end
 end
 
-function ns.OnCollectEvent(event, unit, _, spellId)
+function ns.OnCollectEvent(event, ...)
     if event == "PLAYER_TARGET_CHANGED" then
         ns.Observe("target")
-    elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_START" then
-        OnTameStart(spellId)
+        lastWild = Snapshot("target") or lastWild
+    elseif event == "UNIT_SPELLCAST_SENT" then
+        OnTameSpell(event, select(4, ...)) -- unit, target, castGUID, spellID
+    elseif event:find("^UNIT_SPELLCAST_") then
+        OnTameSpell(event, select(3, ...)) -- unit, castGUID, spellID
     elseif event == "UNIT_PET" then
         ScheduleTameCapture()
     end
