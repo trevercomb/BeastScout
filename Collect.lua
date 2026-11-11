@@ -48,9 +48,21 @@ local function Record(npcId, name, family, level)
     return r
 end
 
+-- Small haste effects show up on a live pet (a fresh 2.0 pet read 1.961 in
+-- game), so snap readings close to a known passive speed onto it.
+local function Snap(speed)
+    local best = 2.0
+    for _, ranks in pairs(ns.PASSIVE_SPEED) do
+        for _, s in pairs(ranks) do
+            if math.abs(s - speed) < math.abs(best - speed) then best = s end
+        end
+    end
+    return math.abs(best - speed) <= 0.06 and best or Round(speed)
+end
+
 local function SetSpeed(r, speed, source)
     if not speed or IsSecret(speed) or speed <= 0 then return end
-    r.speed, r.speedSource = Round(speed), source
+    r.speed, r.speedSource = Snap(speed), source
 end
 
 local function SetTeaches(r, found, source)

@@ -226,13 +226,14 @@ units.target = nil
 units.pet = nil
 ns.OnCollectEvent("UNIT_SPELLCAST_SENT", "player", "Snow Leopard", "cast-guid-2", 1515)
 -- New pet whose spellbook reads empty: still recorded on the final try.
-units.pet = { name = "Snow Leopard", family = "Cat", level = 9, speed = 2.0, guid = "Pet-0-1-2-3-1201-LEO" }
+units.pet = { name = "Cat", family = "Cat", level = 8, speed = 1.961000084877, guid = "Pet-0-6824-0-8-165189-60C1ECBE96" }
 petSpells = {}
 ns.OnCollectEvent("UNIT_PET", "player")
 runTimers()
 local leo = PetScoutDB.npcs[1201]
 check("tame via last wild target, empty spellbook", leo and leo.speed == 2 and leo.speedSource == "tame",
     leo and leo.speed)
+check("raw 1.961 snapped to 2.0", leo and leo.speed == 2.0, leo and leo.speed)
 check("tame announced for leopard", printed[#printed]:find("recorded tame of Snow Leopard", 1, true), printed[#printed])
 
 -- Commands run without errors.
