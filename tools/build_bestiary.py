@@ -157,33 +157,40 @@ def write_table(path, table_name, comment, beasts):
     Path(path).write_text("\n".join(header + body + ["}", ""]), encoding="utf-8", newline="\n")
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--contributions", default=str(ROOT / "contributions" / "*.lua"))
-    ap.add_argument("--handbook", default=str(ROOT / "vendor" / "HuntersHandbook" / "BestiaryData.lua"))
-    ap.add_argument("--out-dir", default=str(ROOT))
-    args = ap.parse_args()
+DEFAULT_CONTRIBUTIONS = str(ROOT / "contributions" / "*.lua")
+DEFAULT_HANDBOOK = str(ROOT / "vendor" / "HuntersHandbook" / "BestiaryData.lua")
 
+
+def build(contributions=DEFAULT_CONTRIBUTIONS, handbook_path=DEFAULT_HANDBOOK, out_dir=ROOT):
     # Sorted by issue number so "newest" means the latest submission.
     def order_key(p):
         m = re.search(r"(\d+)", Path(p).stem)
         return (int(m.group(1)) if m else 0, p)
-    paths = sorted(glob.glob(args.contributions), key=order_key)
+    paths = sorted(glob.glob(contributions), key=order_key)
 
     community = merge_contributions(paths)
-    write_table(Path(args.out_dir) / "Community.lua", "COMMUNITY", [
+    write_table(Path(out_dir) / "Community.lua", "COMMUNITY", [
         "PetScout's own beast data, merged from players' shared observations.",
         "Checked before the Hunter's Handbook fallback. Sources: tame > lore > seen.",
     ], community)
 
-    handbook = parse_handbook(args.handbook)
-    write_table(Path(args.out_dir) / "Handbook.lua", "HANDBOOK", [
+    handbook = parse_handbook(handbook_path)
+    write_table(Path(out_dir) / "Handbook.lua", "HANDBOOK", [
         "Fallback data from Hunter's Handbook by Wood (GPLv3):",
         "  https://www.curseforge.com/wow/addons/hunters-handbook",
     ], handbook)
 
     print(f"Community.lua: {len(community)} beasts from {len(paths)} contribution files")
     print(f"Handbook.lua:  {len(handbook)} beasts")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--contributions", default=DEFAULT_CONTRIBUTIONS)
+    ap.add_argument("--handbook", default=DEFAULT_HANDBOOK)
+    ap.add_argument("--out-dir", default=str(ROOT))
+    args = ap.parse_args()
+    build(args.contributions, args.handbook, args.out_dir)
 
 
 if __name__ == "__main__":

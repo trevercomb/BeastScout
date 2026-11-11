@@ -59,7 +59,18 @@ Your observations improve everyone's tooltips once they're merged into a release
 
 3. Review the `Community.lua` diff, commit, release, and close the issues (the pull script prints the commands).
 
-Run the tests before releasing: `lua tests/run.lua` and `python tests/test_build.py`.
+Run the tests before releasing: `lua tests/run.lua`, `python tests/test_build.py` and `python tests/test_sync.py`.
+
+### Your own observations, without the form
+
+If you play with the addon folder linked to this repo, `tools/sync_local.py` reads PetScout's saved data straight from your WoW folder, writes it to `contributions/local.lua` and rebuilds `Community.lua`. The game saves on `/reload` and logout, so a second `/reload` shows the result.
+
+```
+python tools/sync_local.py --wtf "<WoW>/_forever_/WTF"   # first time; remembered in tools/local.json (not committed)
+python tools/sync_local.py --watch                       # keep running while you play
+```
+
+Your observations go through the same checks and merge rules as shared ones, and `contributions/local.lua` gets committed like any other contribution.
 
 ## License
 

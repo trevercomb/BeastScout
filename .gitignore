@@ -1,2 +1,4 @@
 tests/export_sample.lua
 __pycache__/
+# Maintainer machine settings (sync_local.py)
+tools/local.json
