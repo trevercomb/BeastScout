@@ -228,8 +228,18 @@ ns.OnCollectEvent("UNIT_SPELLCAST_SENT", "player", "Snow Leopard", "cast-guid-2"
 -- New pet whose spellbook reads empty: still recorded on the final try.
 units.pet = { name = "Cat", family = "Cat", level = 8, speed = 1.961000084877, guid = "Pet-0-6824-0-8-165189-60C1ECBE96" }
 petSpells = {}
+-- In game UNIT_PET fired twice for one tame; only one capture should run.
+local before = #printed
+PetScoutDB.debug = true
+ns.OnCollectEvent("UNIT_PET", "player")
 ns.OnCollectEvent("UNIT_PET", "player")
 runTimers()
+PetScoutDB.debug = false
+local reads = 0
+for i = before + 1, #printed do
+    if printed[i]:find("pet spellbook:", 1, true) then reads = reads + 1 end
+end
+check("double UNIT_PET runs one capture", reads == 5, reads)
 local leo = PetScoutDB.npcs[1201]
 check("tame via last wild target, empty spellbook", leo and leo.speed == 2 and leo.speedSource == "tame",
     leo and leo.speed)

@@ -241,14 +241,19 @@ local function TryCaptureTame(final)
     return true
 end
 
+local capturing -- UNIT_PET can fire more than once per tame; run one retry chain
+
 local function ScheduleTameCapture()
     Debug("UNIT_PET, pet:", UnitGUID("pet"), "waiting for tame:", pending and pending.name)
-    if not pending then return end
+    if not pending or capturing then return end
+    capturing = true
     local function Try(attempt)
         local ok, done = pcall(TryCaptureTame, attempt == 5)
         if not ok then Debug("capture error:", done) end
         if (not ok or not done) and attempt < 5 then
             C_Timer.After(attempt * 0.75, function() Try(attempt + 1) end)
+        else
+            capturing = false
         end
     end
     C_Timer.After(0.35, function() Try(1) end)
