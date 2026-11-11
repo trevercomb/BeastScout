@@ -10,40 +10,65 @@ function ns.IsOwnLine(text)
         or text:find("^|cffabd473PetScout") ~= nil or text:find("^|cff9d9d9d") ~= nil
 end
 
-local SOURCE_WORDS = { tame = "tamed", lore = "Beast Lore", seen = "seen" }
+local SOURCE_WORDS = { tame = "tamed", lore = "Beast Lore" }
+local TRUST = { lore = 2, tame = 3 }
+local ROMAN = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" }
 
--- Where a value came from, e.g. "(you, tamed)", "(players, tamed x3)", "(Handbook)".
-local function SourceLabel(layer, record, field)
-    local how = SOURCE_WORDS[record[field .. "Source"] or ""]
+-- Where a value came from, e.g. "(you, tamed)", "(Faster Attack V, players, tamed x3)".
+local function SourceLabel(layer, record, sourceField, note)
+    local how = sourceField and SOURCE_WORDS[record[sourceField] or ""]
     local text
     if layer == "mine" then
-        text = how and how ~= "seen" and ("you, " .. how) or "you"
+        text = how and ("you, " .. how) or "you"
     elseif layer == "community" then
-        text = "players" .. (how and (", " .. how .. " x" .. (record[field .. "Reports"] or 1)) or "")
+        local reports = record[(sourceField or ""):gsub("Source$", "Reports")]
+        text = "players" .. (how and (", " .. how .. " x" .. (reports or 1)) or "")
     else
         text = "Handbook"
     end
-    return GREY .. " (" .. text .. ")|r"
+    return GREY .. " (" .. (note and (note .. ", ") or "") .. text .. ")|r"
 end
 
-local TRUST = { seen = 1, lore = 2, tame = 3 }
+-- Each getter returns value, trust, source field, note.
+local function TeachesOf(r)
+    if r.teaches then return r.teaches, TRUST[r.teachesSource] or 2, "teachesSource" end
+end
 
--- Per field: our data (accepted community data, plus your unshared notes
--- when they're at least as trustworthy), else the Hunter's Handbook fallback.
-local function Lookup(npcId, field)
+-- A pet's swing timer comes from its Faster/Slower Attack passive, so the
+-- passive (from a tame, Beast Lore or the Handbook) gives the speed. A wild
+-- beast's own swing timer doesn't, which is why we never read it.
+local function PassiveOf(r)
+    if r.passive then return r.passive[1], r.passive[2] end
+    for _, t in ipairs(r.teaches or {}) do
+        if ns.PASSIVE_SPEED[t[1]] then return t[1], t[2] end
+    end
+end
+
+local function SpeedOf(r)
+    if r.speed and r.speedSource == "tame" then return r.speed, 3, "speedSource" end
+    local name, rank = PassiveOf(r)
+    local speed = name and ns.PASSIVE_SPEED[name][rank]
+    if speed then
+        return speed, TRUST[r.teachesSource] or 2, "teachesSource", name .. " " .. (ROMAN[rank] or rank)
+    end
+    if r.speed and r.speedSource ~= "seen" then return r.speed, 2, "speedSource" end
+end
+
+-- Our data first (accepted community data, plus your unshared notes when
+-- they're at least as trustworthy), else the Hunter's Handbook fallback.
+local function Lookup(npcId, getter)
     if not npcId then return nil end
     local mine, community = PetScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
-    mine = mine and mine[field] and mine or nil
-    community = community and community[field] and community or nil
-    if mine and community then
-        local mineTrust = TRUST[mine[field .. "Source"] or "seen"] or 1
-        local communityTrust = TRUST[community[field .. "Source"] or "seen"] or 1
-        if communityTrust > mineTrust then mine = nil end
-    end
-    if mine then return mine[field], SourceLabel("mine", mine, field) end
-    if community then return community[field], SourceLabel("community", community, field) end
+    local mv, mt, msf, mnote, cv, ct, csf, cnote
+    if mine then mv, mt, msf, mnote = getter(mine) end
+    if community then cv, ct, csf, cnote = getter(community) end
+    if mv and (not cv or mt >= ct) then return mv, SourceLabel("mine", mine, msf, mnote) end
+    if cv then return cv, SourceLabel("community", community, csf, cnote) end
     local handbook = ns.HANDBOOK[npcId]
-    if handbook and handbook[field] then return handbook[field], SourceLabel("handbook", handbook, field) end
+    if handbook then
+        local hv, _, _, hnote = getter(handbook)
+        if hv then return hv, SourceLabel("handbook", handbook, nil, hnote) end
+    end
 end
 
 local function AddLines(tooltip, unit)
@@ -53,18 +78,18 @@ local function AddLines(tooltip, unit)
 
     tooltip:AddLine(HEADER .. " " .. family)
 
-    local speed, speedFrom = Lookup(npcId, "speed")
+    local speed, speedFrom = Lookup(npcId, SpeedOf)
     if speed then
         tooltip:AddDoubleLine("Attack speed", string.format("%.1f", speed) .. speedFrom, 1, 1, 1, 1, 1, 1)
     else
-        tooltip:AddLine(GREY .. "Attack speed: target it out of combat to read|r")
+        tooltip:AddLine(GREY .. "Attack speed: unknown, cast Beast Lore to check|r")
     end
 
-    local teaches, teachesFrom = Lookup(npcId, "teaches")
-    for i, t in ipairs(teaches or {}) do
-        -- Label only the last line to keep the tooltip short.
-        tooltip:AddDoubleLine("Teaches", t[1] .. " " .. t[2] .. (i == #teaches and teachesFrom or ""),
-            1, 1, 1, 0.4, 1, 0.4)
+    local teaches, teachesFrom = Lookup(npcId, TeachesOf)
+    if teaches and #teaches > 0 then
+        local parts = {}
+        for _, t in ipairs(teaches) do parts[#parts + 1] = t[1] .. " " .. t[2] end
+        tooltip:AddDoubleLine("Teaches", table.concat(parts, ", ") .. teachesFrom, 1, 1, 1, 0.4, 1, 0.4)
     end
 
     local info = ns.FAMILIES[family]
@@ -207,7 +232,4 @@ SlashCmdList.PETSCOUT = function(msg)
         .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
     print("  /petscout export - copy your observations   /petscout reset - forget them")
-    if UnitExists("target") then
-        print("  target speed (live): " .. tostring(UnitAttackSpeed("target")))
-    end
 end

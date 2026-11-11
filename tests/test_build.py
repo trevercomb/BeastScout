@@ -38,7 +38,8 @@ def main():
         "tame teaches beat lore": m[1]["teaches"] == [("Bite", 1), ("Faster Attack", 3)]
                                   and m[1]["teachesSource"] == "tame" and m[1]["teachesReports"] == 1,
         "level range widens": m[1]["levelMin"] == 5 and m[1]["levelMax"] == 6,
-        "majority wins among seen": m[2]["speed"] == 1.5 and m[2]["speedReports"] == 2,
+        "only tame speeds counted": m[1]["speedReports"] == 2,
+        "wild swing timers dropped": "speed" not in m[2],
         "legacy teaches treated as lore": m[2]["teachesSource"] == "lore",
     }
     # What we write, we can read back.

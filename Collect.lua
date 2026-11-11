@@ -1,15 +1,16 @@
 local _, ns = ...
 
 -- Our own observations, so PetScout can eventually stand on its own data.
--- Three sources, most trusted first:
+-- Two sources, most trusted first:
 --   tame: your new pet's spellbook and swing timer right after Tame Beast
 --   lore: ability ranks read from the beast's tooltip after Beast Lore
---   seen: the wild beast's swing timer when targeted out of combat
+-- A wild beast's own swing timer isn't recorded: the pet's comes from its
+-- Faster/Slower Attack passive instead (see ns.PASSIVE_SPEED).
 -- Stored in PetScoutDB.npcs[npcId] = { name, family, levelMin, levelMax,
 --   speed, speedSource, teaches = { {ability, rank} }, teachesSource }.
 
 local TAME_BEAST_SPELL_ID = 1515
-local TRUST = { seen = 1, lore = 2, tame = 3 }
+local TRUST = { lore = 2, tame = 3 }
 
 local function IsSecret(v)
     return issecretvalue and issecretvalue(v) or false
@@ -49,7 +50,6 @@ end
 
 local function SetSpeed(r, speed, source)
     if not speed or IsSecret(speed) or speed <= 0 then return end
-    if TRUST[source] < TRUST[r.speedSource or "seen"] then return end
     r.speed, r.speedSource = Round(speed), source
 end
 
@@ -83,10 +83,8 @@ function ns.Observe(unit)
     if not npcId then return end
     local level = UnitLevel(unit)
     local r = Record(npcId, UnitName(unit), family, not IsSecret(level) and level or nil)
-    -- Out of combat only, so slows and enrage-style buffs don't skew it.
-    if not UnitAffectingCombat(unit) then
-        SetSpeed(r, UnitAttackSpeed(unit), "seen")
-    end
+    -- Older versions saved the wild swing timer; it's misleading, so drop it.
+    if r.speedSource ~= "tame" then r.speed, r.speedSource = nil, nil end
 end
 
 -- "Bite 2", "Bite (Rank 2)", "Faster Attack III" -> rank number.
@@ -239,7 +237,8 @@ end
 function ns.ExportLines()
     local ids = {}
     for npcId, r in pairs(PetScoutDB.npcs) do
-        if r.name and r.family and (r.speed or r.teaches) then table.insert(ids, npcId) end
+        local speed = r.speedSource == "tame" and r.speed
+        if r.name and r.family and (speed or r.teaches) then table.insert(ids, npcId) end
     end
     table.sort(ids)
 
@@ -249,9 +248,9 @@ function ns.ExportLines()
         local parts = { "name=" .. LuaString(r.name), "family=" .. LuaString(r.family) }
         if r.levelMin then table.insert(parts, "levelMin=" .. r.levelMin) end
         if r.levelMax then table.insert(parts, "levelMax=" .. r.levelMax) end
-        if r.speed then
+        if r.speed and r.speedSource == "tame" then
             table.insert(parts, "speed=" .. r.speed)
-            table.insert(parts, 'speedSource="' .. (r.speedSource or "seen") .. '"')
+            table.insert(parts, 'speedSource="tame"')
         end
         if r.teaches then
             local t = {}

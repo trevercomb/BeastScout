@@ -27,6 +27,8 @@ TRUST = {"seen": 1, "lore": 2, "tame": 3}
 FAMILY_HELPER = re.compile(r'local function (Add\w+)\(id, data\)\s*data\.family = "([^"]+)"')
 RECORD = re.compile(r'^(Add\w+)\((\d+), \{(.*?)^\}\)', re.M | re.S)
 TEACH = re.compile(r'\{ability="([^"]+)", rank=(\d+)\}')
+KNOWN = re.compile(r'knownAbilities=\{([^}]*)\}')
+PASSIVES = ("Faster Attack", "Slower Attack")
 # One line of our own format: [id] = { name="..", family="..", ... },
 OURS = re.compile(r'^\s*\[(\d+)\] = \{(.*)\},\s*$', re.M)
 OURS_TEACH = re.compile(r'\{"([^"]+)", (\d+)\}')
@@ -54,13 +56,24 @@ def parse_handbook(path):
             "levelMax": number(body, "levelMax"),
             "speed": number(body, "attackSpeed"),
             "teaches": [(a, int(r)) for a, r in TEACH.findall(body)],
+            "passive": passive_of(body),
         }
     return beasts
 
 
+def passive_of(body):
+    """The Faster/Slower Attack a beast comes with. It sets the pet's swing
+    timer, and some beasts list it only under knownAbilities."""
+    known = KNOWN.search(body)
+    for ability, rank in re.findall(r'\["([^"]+)"\]=(\d+)', known.group(1) if known else ""):
+        if ability in PASSIVES:
+            return (ability, int(rank))
+    return None
+
+
 def parse_ours_text(text):
-    """Lines in our format. Exports from before sources were tracked count as
-    'seen' for speed and 'lore' for teaches, the least trusted that fits."""
+    """Lines in our format. Teaches without a source count as 'lore'; speeds
+    count only when measured on a fresh tame."""
     beasts = {}
     for npc_id, body in OURS.findall(text):
         teaches = OURS_TEACH.findall(field(body, "teaches", r'\{(.*?) \}') or "")
@@ -72,7 +85,11 @@ def parse_ours_text(text):
             "speed": number(body, "speed"),
             "teaches": [(a, int(r)) for a, r in teaches],
         }
-        b["speedSource"] = field(body, "speedSource") or ("seen" if b["speed"] is not None else None)
+        # A wild beast's own swing timer says nothing about the pet's, so
+        # 'seen' speeds (and old exports without a source) are dropped.
+        b["speedSource"] = field(body, "speedSource")
+        if b["speedSource"] != "tame":
+            b["speed"], b["speedSource"] = None, None
         b["teachesSource"] = field(body, "teachesSource") or ("lore" if b["teaches"] else None)
         beasts[int(npc_id)] = b
     return beasts
@@ -145,6 +162,8 @@ def to_line(npc_id, b):
         parts.append(f"teaches={{ {inner} }}")
     if b.get("teachesSource"):
         parts.append(f'teachesSource="{b["teachesSource"]}"')
+    if b.get("passive"):
+        parts.append(f'passive={{{lua_str(b["passive"][0])}, {b["passive"][1]}}}')
     if b.get("teachesReports"):
         parts.append(f"teachesReports={b['teachesReports']}")
     return f"    [{npc_id}] = {{ {', '.join(parts)} }},"

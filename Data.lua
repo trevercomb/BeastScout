@@ -1,6 +1,14 @@
 local _, ns = ...
 
 -- WoW Forever pet families (game version 1.60.1), from seemeta.com/en/wow-forever/pets.
+-- Pet swing timer by passive rank. Every Hunter's Handbook beast with a known
+-- passive fits this exactly (2026-11-11); beasts without one swing at 2.0.
+-- Slower Attack I and III aren't confirmed yet.
+ns.PASSIVE_SPEED = {
+    ["Faster Attack"] = { 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.0 },
+    ["Slower Attack"] = { [2] = 2.5 },
+}
+
 -- What each family can learn, by pet level. Ranks a specific beast teaches
 -- come from Hunter's Handbook. Keyed by the English name UnitCreatureFamily() returns.
 -- Each ability is { name, level the first rank is learned }.

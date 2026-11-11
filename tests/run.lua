@@ -135,11 +135,9 @@ check("tooltip hook installed", hooked ~= nil)
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("tooltip shows speed 1.5", text:find("Attack speed | 1.5", 1, true), text)
-check("tooltip shows Bite 1", text:find("Teaches | Bite 1", 1, true), text)
-check("tooltip shows Faster Attack 3", text:find("Teaches | Faster Attack 3", 1, true), text)
-check("speed you just saw is labelled you", text:find("1.5|cff9d9d9d (you)|r", 1, true), text)
-check("teaches fall back to Handbook", text:find("Faster Attack 3|cff9d9d9d (Handbook)|r", 1, true), text)
+check("speed from passive, labelled", text:find("Attack speed | 1.5|cff9d9d9d (Faster Attack III, Handbook)|r", 1, true), text)
+check("teaches on one labelled line", text:find("Teaches | Bite 1, Faster Attack 3|cff9d9d9d (Handbook)|r", 1, true), text)
+check("wild swing timer not recorded", PetScoutDB.npcs[2958].speed == nil)
 check("our own lines not learned as lore", PetScoutDB.npcs[2958].teaches == nil)
 
 -- Unknown beast with Beast Lore lines in several formats.
@@ -159,15 +157,10 @@ check("lore: Claw rank 3", taught.Claw == 3, taught.Claw)
 check("lore: Faster Attack IV = 4", taught["Faster Attack"] == 4, taught["Faster Attack"])
 check("lore: Bite 2 and Prowl 1 on one line", taught.Bite == 2 and taught.Prowl == 1)
 check("lore: nothing else learned", (function() local n = 0 for _ in pairs(taught) do n = n + 1 end return n end)() == 4)
-check("seen speed recorded", r and r.speed == 1.3 and r.speedSource == "seen")
+check("no speed from the wild swing timer", r and r.speed == nil)
 text = tooltipText()
 check("own Beast Lore data labelled", text:find("Prowl 1|cff9d9d9d (you, Beast Lore)|r", 1, true), text)
-
--- In combat, the swing timer isn't trusted.
-units.mouseover.speed, units.mouseover.combat = 3.0, true
-ns.Observe("mouseover")
-check("combat speed ignored", PetScoutDB.npcs[999001].speed == 1.3)
-units.mouseover.combat = false
+check("speed from Beast Lore passive", text:find("1.4|cff9d9d9d (Faster Attack IV, you, Beast Lore)|r", 1, true), text)
 
 -- Taming: spellbook + pet swing timer override lore and seen data.
 units.target = units.mouseover
@@ -192,9 +185,9 @@ check("lore can't override tame", PetScoutDB.npcs[999001].teachesSource == "tame
 
 -- Export: same format the build script reads.
 local lines = ns.ExportLines()
-check("export has the observed beasts", #lines == 2, #lines)
-check("export line format", lines[2] == '    [999001] = { name="Test Cat", family="Cat", levelMin=20, levelMax=20, '
-    .. 'speed=1.2, speedSource="tame", teaches={ {"Claw", 3}, {"Faster Attack", 5} }, teachesSource="tame" },', lines[2])
+check("export skips beasts with nothing useful", #lines == 1, #lines)
+check("export line format", lines[1] == '    [999001] = { name="Test Cat", family="Cat", levelMin=20, levelMax=20, '
+    .. 'speed=1.2, speedSource="tame", teaches={ {"Claw", 3}, {"Faster Attack", 5} }, teachesSource="tame" },', lines[1])
 
 ns.COMMUNITY[2958] = { name = "Prairie Wolf", family = "Wolf", speed = 1.4, speedSource = "tame", speedReports = 3 }
 PetScoutDB.npcs[2958] = nil
@@ -210,12 +203,21 @@ resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
 check("your notes beat community", text:find("1.3|cff9d9d9d (you, tamed)|r", 1, true), text)
-PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = 1.9, "seen"
+PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = nil, nil
+PetScoutDB.npcs[2958].teaches, PetScoutDB.npcs[2958].teachesSource = { { "Faster Attack", 2 } }, "lore"
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("community tame beats your unshared sighting", text:find("1.4|cff9d9d9d (players, tamed x3)|r", 1, true), text)
+check("community tame beats your Beast Lore", text:find("1.4|cff9d9d9d (players, tamed x3)|r", 1, true), text)
 ns.COMMUNITY[2958] = nil
+
+-- Ornery Galestrider: Handbook lists its passive only under known abilities.
+units.mouseover = { name = "Ornery Galestrider", family = "Tallstrider", level = 9, speed = 1.8,
+    guid = "Creature-0-1-2-3-251707-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("Galestrider 1.3 from Faster Attack V", text:find("1.3|cff9d9d9d (Faster Attack V, Handbook)|r", 1, true), text)
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
