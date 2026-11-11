@@ -19,7 +19,7 @@ Family abilities and diets are from [Seemeta](https://seemeta.com/en/wow-forever
 
 ## Install
 
-Copy this folder into your WoW: Forever `Interface\AddOns` directory as `AddOns\PetScout`, so that `PetScout.toc` sits directly inside it.
+Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\PetScout`, so that `PetScout.toc` sits directly inside it.
 
 ## Commands
 
