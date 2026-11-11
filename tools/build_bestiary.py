@@ -69,8 +69,14 @@ def merge(base, extra):
     for npc_id, new in extra.items():
         old = base.setdefault(npc_id, {})
         for key, value in new.items():
-            if value not in (None, []):
-                old[key] = value
+            if value in (None, []):
+                continue
+            # One sighting shouldn't narrow a known level range.
+            if key == "levelMin" and old.get(key) is not None:
+                value = min(value, old[key])
+            elif key == "levelMax" and old.get(key) is not None:
+                value = max(value, old[key])
+            old[key] = value
 
 
 def lua_str(s):
