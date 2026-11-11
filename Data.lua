@@ -25,3 +25,21 @@ ns.FAMILIES = {
     ["Wind Serpent"] = { diet = "Fish, Cheese, Bread", abilities = { { "Bite", 1 }, { "Lightning Breath", 1 }, { "Dive", 30 } } },
     ["Wolf"]         = { diet = "Meat", abilities = { { "Bite", 1 }, { "Furious Howl", 10 }, { "Dash", 30 } } },
 }
+
+-- Every ability a wild beast can teach, for spotting them in Beast Lore
+-- tooltips and a fresh pet's spellbook. Longest names first so
+-- "Demoralizing Screech" wins over a shorter name inside it.
+ns.TAME_ABILITIES = { "Faster Attack", "Slower Attack", "Cower" }
+do
+    local seen = {}
+    for _, name in ipairs(ns.TAME_ABILITIES) do seen[name] = true end
+    for _, info in pairs(ns.FAMILIES) do
+        for _, a in ipairs(info.abilities) do
+            if not seen[a[1]] then
+                seen[a[1]] = true
+                table.insert(ns.TAME_ABILITIES, a[1])
+            end
+        end
+    end
+    table.sort(ns.TAME_ABILITIES, function(a, b) return #a > #b end)
+end
