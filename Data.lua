@@ -12,6 +12,32 @@ ns.PASSIVE_SPEED = {
     ["Slower Attack"] = { [2] = 2.5 },
 }
 
+-- Family stat modifiers in CLASSIC (1.x), from Highground Gaming's table,
+-- matching Icy Veins where both list a family. Not confirmed for Forever,
+-- which adds Fox, Bird of Prey and Core Hound (unknown here); PetScout
+-- measures pets in game (PetScoutDB.petStats) to check them.
+ns.CLASSIC_FAMILY_MODS = {
+    ["Bat"]          = { health = 1.00, armor = 1.00, damage = 1.07 },
+    ["Bear"]         = { health = 1.08, armor = 1.05, damage = 0.91 },
+    ["Boar"]         = { health = 1.04, armor = 1.09, damage = 0.90 },
+    ["Carrion Bird"] = { health = 1.00, armor = 1.05, damage = 1.00 },
+    ["Cat"]          = { health = 0.98, armor = 1.00, damage = 1.10 },
+    ["Crab"]         = { health = 0.96, armor = 1.13, damage = 0.95 },
+    ["Crocolisk"]    = { health = 0.95, armor = 1.10, damage = 1.00 },
+    ["Gorilla"]      = { health = 1.04, armor = 1.00, damage = 1.02 },
+    ["Hyena"]        = { health = 1.00, armor = 1.05, damage = 1.00 },
+    ["Raptor"]       = { health = 0.95, armor = 1.03, damage = 1.10 },
+    ["Scorpid"]      = { health = 1.00, armor = 1.10, damage = 0.94 },
+    ["Spider"]       = { health = 1.00, armor = 1.00, damage = 1.07 },
+    ["Tallstrider"]  = { health = 1.05, armor = 1.00, damage = 1.00 },
+    ["Turtle"]       = { health = 1.00, armor = 1.13, damage = 0.90 },
+    ["Wind Serpent"] = { health = 1.00, armor = 1.00, damage = 1.07 },
+    ["Wolf"]         = { health = 1.00, armor = 1.05, damage = 1.00 },
+}
+
+-- Family abilities that help a pet hold aggro or survive.
+ns.TANK_SKILLS = { ["Bear"] = "Swipe", ["Boar"] = "Charge", ["Turtle"] = "Shell Shield", ["Gorilla"] = "Thunderstomp" }
+
 -- What each family can learn, by pet level. Ranks a specific beast teaches
 -- come from Hunter's Handbook. Keyed by the English name UnitCreatureFamily() returns.
 -- Each ability is { name, level the first rank is learned }.

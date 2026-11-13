@@ -34,6 +34,8 @@ Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\PetScout`, so 
 
 - `/petscout`: shows how many beasts each source covers, plus the client's interface version.
 - `/petscout find cat` (or `wolves`, `birds of prey`, ...): lists beasts of a family with their attack speed, closest first, with waypoints like below. `/petscout find fast cat` sorts by speed instead, and plain `/petscout find fast` lists the fastest beasts of any family.
+- `/petscout find tank`: tank families ranked by health and armor bonus (Bear, Boar, Turtle, ...), each with the closest beast you can tame. The bonuses are Classic's ([Highground Gaming](https://www.highgroundgaming.com/best-hunter-pets-in-wow-classic/)); Forever's aren't published yet.
+- `/petscout stats`: your pets' health and armor as PetScout measured them, by family and level. These are being collected to check the Classic bonuses against Forever.
 - Find hides beasts above your level (and says how many). If none are tameable yet, it shows the lowest-level ones greyed out.
 - `/petscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/petscout way 2` to put a waypoint on the map.
 - `/petscout export`: opens a window with your observations, ready to copy.

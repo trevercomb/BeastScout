@@ -301,12 +301,39 @@ local function ScheduleTameCapture()
     C_Timer.After(0.35, function() Try(1) end)
 end
 
+-- Pet stats ----------------------------------------------------------------------
+-- Family health/armor bonuses aren't published for Forever, so measure them:
+-- PetScoutDB.petStats[family][petLevel] = { health, armor, name }. Keep the
+-- lowest reading, since buffs only ever add.
+
+function ns.MeasurePet()
+    if not UnitExists("pet") or UnitAffectingCombat("pet") then return end
+    local family, level = UnitCreatureFamily("pet"), UnitLevel("pet")
+    local health = UnitHealthMax("pet")
+    local armor = UnitArmor and UnitArmor("pet") -- first value is base armor, without buffs
+    for _, v in ipairs({ family, level, health, armor or 0 }) do
+        if IsSecret(v) then return end
+    end
+    if not family or not level or level < 1 or not health or health < 1 then return end
+
+    PetScoutDB.petStats = PetScoutDB.petStats or {}
+    local byLevel = PetScoutDB.petStats[family] or {}
+    PetScoutDB.petStats[family] = byLevel
+    local s = byLevel[level] or {}
+    byLevel[level] = s
+    if not s.health or health < s.health then s.health = health end
+    if armor and armor > 0 and (not s.armor or armor < s.armor) then s.armor = armor end
+    s.name = UnitName("pet")
+end
+
 function ns.StartCollecting(frame)
     frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     for _, event in ipairs({ "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START",
         "UNIT_SPELLCAST_SUCCEEDED", "UNIT_PET" }) do
         frame:RegisterUnitEvent(event, "player")
     end
+    frame:RegisterUnitEvent("UNIT_LEVEL", "pet")
 end
 
 function ns.OnCollectEvent(event, ...)
@@ -319,6 +346,9 @@ function ns.OnCollectEvent(event, ...)
         OnTameSpell(event, select(3, ...)) -- unit, castGUID, spellID
     elseif event == "UNIT_PET" then
         ScheduleTameCapture()
+        C_Timer.After(1.5, function() pcall(ns.MeasurePet) end)
+    elseif event == "PLAYER_REGEN_ENABLED" or event == "UNIT_LEVEL" then
+        pcall(ns.MeasurePet)
     end
 end
 

@@ -234,6 +234,9 @@ SlashCmdList.PETSCOUT = function(msg)
     if msg == "export" then
         ShowExport()
         return
+    elseif msg == "stats" then
+        ns.ShowPetStats()
+        return
     elseif msg:find("^way") then
         ns.Waypoint(msg:match("%d+"))
         return
@@ -267,5 +270,6 @@ SlashCmdList.PETSCOUT = function(msg)
         .. select(4, GetBuildInfo()))
     print("  /petscout export - copy your observations   /petscout reset - forget them")
     print("  /petscout find bite 2 - beasts that teach a skill, closest first   /petscout way 1 - waypoint to one")
+    print("  /petscout find tank - best tank families   /petscout stats - your pets' measured health and armor")
     print("  /petscout pet - what PetScout reads from your pet   /petscout debug - narrate tames in chat")
 end

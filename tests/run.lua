@@ -448,6 +448,38 @@ check("unknown level after tameable, shown as ?", found:find("Nightsaber Guardia
     and printed[mark + 2]:find("Young Nightsaber", 1, true), found)
 units.player = { level = 12 }
 
+-- find tank: families ranked by health x armor, closest beast you can tame from each.
+units.player = { level = 12 }
+mark = #printed
+SlashCmdList.PETSCOUT("find tank")
+found = table.concat(printed, "\n", mark + 1)
+check("tank: Bear first", printed[mark + 2]:find("1. Bear (+8% health, +5% armor, Swipe)", 1, true), found)
+check("tank: Boar second", printed[mark + 3]:find("2. Boar (+4% health, +9% armor, Charge)", 1, true), found)
+check("tank: names a bear you can tame", printed[mark + 2]:find("): ", 1, true), printed[mark + 2])
+check("tank: Cat isn't a tank", not found:find(". Cat (", 1, true), found)
+check("tank: notes the unknown Forever families", found:find("Fox, Bird of Prey and Core Hound", 1, true), found)
+
+-- Pet measurements: lowest reading per family and level.
+units.pet = { name = "Shal'ma", family = "Cat", level = 10, guid = "Pet-0-1-2-3-165189-SHAL" }
+local petHealth, petArmor = 500, 300
+function UnitHealthMax() return petHealth end
+function UnitArmor() return petArmor end
+ns.MeasurePet()
+petHealth, petArmor = 560, 300 -- a buff
+ns.MeasurePet()
+local s = PetScoutDB.petStats.Cat[10]
+check("pet stats: buffs don't raise the reading", s.health == 500 and s.armor == 300, s.health)
+units.pet.combat = true
+petHealth = 400
+ns.MeasurePet()
+check("pet stats: not measured in combat", PetScoutDB.petStats.Cat[10].health == 500)
+units.pet.combat = false
+mark = #printed
+SlashCmdList.PETSCOUT("stats")
+check("/petscout stats prints it", printed[mark + 2]:find("Cat level 10: 500 health, 300 armor (Shal'ma)", 1, true),
+    printed[mark + 2])
+UnitHealthMax, UnitArmor, units.pet = nil, nil, nil
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

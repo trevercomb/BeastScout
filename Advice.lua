@@ -239,6 +239,7 @@ end
 
 function ns.Find(query)
     query = query or ""
+    if query:lower():match("^%s*tanks?%s*$") then return ns.FindTank() end
     -- "fast cat" / "fastest wolves": sort by attack speed. ("faster attack" stays a skill.)
     local fast = query:lower():match("^%s*fast%s+") or query:lower():match("^%s*fastest%s+")
         or query:lower():match("^%s*fast%s*$") or query:lower():match("^%s*fastest%s*$")
@@ -348,6 +349,98 @@ function ns.Find(query)
         print("  " .. i .. ". " .. color .. label .. where .. far .. (color ~= "" and "|r" or "") .. link)
     end
     print(GREY .. "  Click [Waypoint] or type /petscout way <number>.|r")
+end
+
+-- /petscout find tank ----------------------------------------------------------
+-- Tankiness is a family trait (health and armor bonuses), so rank families
+-- and show the closest beast you can tame from each.
+
+local function Percent(mult)
+    local p = math.floor((mult - 1) * 100 + 0.5)
+    return (p > 0 and "+" or "") .. p .. "%"
+end
+
+function ns.FindTank()
+    local level = UnitLevel("player") or 0
+    local continent, wx, wy = PlayerWorldPos()
+    local here = continent and { continent, wx, wy }
+
+    -- Closest tameable beast per family.
+    local best = {}
+    for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, PetScoutDB.npcs }) do
+        for npcId in pairs(layer) do
+            local family = Field(npcId, "family")
+            local low = LevelRange(npcId)
+            if family and low > 0 and low <= level then
+                local spot, dist = Nearest(Spots(npcId), here)
+                local cur = best[family]
+                local better = not cur or (dist and (not cur.dist or dist < cur.dist))
+                    or (not dist and not cur.dist and low > cur.levelMin)
+                if better then
+                    local _, high = LevelRange(npcId)
+                    best[family] = { npcId = npcId, name = Field(npcId, "name") or "?", levelMin = low, levelMax = high,
+                        spot = spot, dist = dist, where = spot and spot[1] }
+                end
+            end
+        end
+    end
+
+    -- Effective toughness: health x armor bonus.
+    local ranked = {}
+    for family, mods in pairs(ns.CLASSIC_FAMILY_MODS) do
+        if mods.health * mods.armor > 1.001 then
+            ranked[#ranked + 1] = { family = family, mods = mods, score = mods.health * mods.armor, beast = best[family] }
+        end
+    end
+    table.sort(ranked, function(a, b)
+        if a.score ~= b.score then return a.score > b.score end
+        return a.family < b.family
+    end)
+
+    wipe(results)
+    print(HEADER .. ": tank families, toughest first (Classic numbers, not yet confirmed for Forever):")
+    for i, r in ipairs(ranked) do
+        local bonus = {}
+        if r.mods.health ~= 1 then bonus[#bonus + 1] = Percent(r.mods.health) .. " health" end
+        if r.mods.armor ~= 1 then bonus[#bonus + 1] = Percent(r.mods.armor) .. " armor" end
+        local skill = ns.TANK_SKILLS[r.family] and (", " .. ns.TANK_SKILLS[r.family]) or ""
+        local b = r.beast
+        local line = "  " .. i .. ". " .. r.family .. " (" .. table.concat(bonus, ", ") .. skill .. ")"
+        if b then
+            results[i] = b
+            local levels = b.levelMin .. ((b.levelMax and b.levelMax ~= b.levelMin) and ("-" .. b.levelMax) or "")
+            line = line .. ": " .. b.name .. " (" .. levels .. ")" .. (b.where and (", " .. b.where) or "")
+                .. (b.dist and (" " .. Yards(b.dist)) or "")
+                .. (b.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or "")
+        else
+            line = GREY .. line .. ": none at your level|r"
+        end
+        print(line)
+    end
+    print(GREY .. "  Fox, Bird of Prey and Core Hound are new in Forever; their bonuses are unknown.|r")
+end
+
+-- /petscout stats: what PetScout has measured from your pets.
+function ns.ShowPetStats()
+    local stats = PetScoutDB.petStats or {}
+    local families = {}
+    for family in pairs(stats) do families[#families + 1] = family end
+    table.sort(families)
+    if #families == 0 then
+        print(HEADER .. ": no pet measurements yet. They're taken whenever your pet is out of combat.")
+        return
+    end
+    print(HEADER .. ": measured pet stats (lowest seen, so buffs don't count):")
+    for _, family in ipairs(families) do
+        local levels = {}
+        for lvl in pairs(stats[family]) do levels[#levels + 1] = lvl end
+        table.sort(levels)
+        for _, lvl in ipairs(levels) do
+            local s = stats[family][lvl]
+            print("  " .. family .. " level " .. lvl .. ": " .. (s.health or "?") .. " health, "
+                .. (s.armor or "?") .. " armor" .. (s.name and (" (" .. s.name .. ")") or ""))
+        end
+    end
 end
 
 -- Your pet's status ----------------------------------------------------------
