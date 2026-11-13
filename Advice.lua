@@ -608,6 +608,14 @@ local function SearchUpgrades(limit)
         }
     end
 
+    -- Within a skill: rows you can act on now first, greyed ones after.
+    local function UsableFirst(rows)
+        local out = {}
+        for _, row in ipairs(rows) do if not row.grey then out[#out + 1] = row end end
+        for _, row in ipairs(rows) do if row.grey then out[#out + 1] = row end end
+        return out
+    end
+
     local groups = {}
     for ability, t in pairs(train) do
         if not offers[ability] then
@@ -640,7 +648,7 @@ local function SearchUpgrades(limit)
             for i = #t.rows, 1, -1 do table.insert(rows, 1, t.rows[i]) end
             if t.now then first = -1 end
         end
-        groups[#groups + 1] = { ability = ability, rows = rows, now = best > 0 or (t and t.now), first = first }
+        groups[#groups + 1] = { ability = ability, rows = UsableFirst(rows), now = best > 0 or (t and t.now), first = first }
     end
     table.sort(groups, function(a, b)
         if a.now ~= b.now then return a.now end

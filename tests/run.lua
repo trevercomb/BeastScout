@@ -666,6 +666,12 @@ check("trainer cost read", tr and tr.Claw[2].cost == 3)
 check("upgrades: no beast suggested for Bite 2", not ut:find("Bite 2 (new", 1, true), ut)
 check("upgrades: Cower still from a beast", ut:find("Cower 1 (new, 8 TP): ", 1, true), ut)
 check("upgrades: Bite 1 still from a beast (not trainable)", ut:find("Bite 1 (new, 1 TP): ", 1, true), ut)
+local bite1, bite2
+for i, row in ipairs(ur.rows) do
+    if row.text:find("^Bite 1 %(new") and not bite1 then bite1 = i end
+    if row.text:find("^Bite 2 %(train at") then bite2 = i end
+end
+check("upgrades: usable Bite 1 rows before the greyed Bite 2 row", bite1 and bite2 and bite1 < bite2, ut)
 
 -- At pet level 8 Bite 2 becomes "train it" and comes first.
 units.pet.level = 8
