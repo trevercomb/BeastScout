@@ -606,6 +606,14 @@ SlashCmdList.PETSCOUT("trainer")
 local probe = table.concat(printed, "\n", mark + 1)
 check("trainer probe lists crafts", probe:find("Beast Training", 1, true) and probe:find("1: Bite | Rank 2 | available | 0 | nil | 4 | 8", 1, true), probe)
 GetNumCrafts, GetCraftDisplaySkillLine, GetCraftInfo, units.pet, units.mouseover = nil, nil, nil, nil, nil
+-- The client-wide search finds training-ish functions and namespaces.
+function GetPetTrainingSkills() return {} end
+C_PetTrain = { GetSkills = function() end }
+mark = #printed
+SlashCmdList.PETSCOUT("trainer")
+probe = table.concat(printed, "\n", mark + 1)
+check("probe finds training functions", probe:find("GetPetTrainingSkills", 1, true) and probe:find("C_PetTrain.GetSkills", 1, true), probe)
+GetPetTrainingSkills, C_PetTrain = nil, nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

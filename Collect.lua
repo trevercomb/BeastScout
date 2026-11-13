@@ -384,6 +384,50 @@ function ns.ProbeTrainer()
             print("  " .. i .. ": " .. Show(select(2, pcall(GetTrainerServiceInfo, i))))
         end
     end
+
+    -- Forever's Beast Training is its own window, so search for it: global
+    -- functions and C_ namespaces with "train"/"beast" in a name, and
+    -- visible frames whose name suggests pet training.
+    local hits, spaces = {}, {}
+    for key, value in pairs(_G) do
+        if type(key) == "string" then
+            local k = key:lower()
+            if type(value) == "function" and (k:find("train") or k:find("beast")) then
+                hits[#hits + 1] = key
+            elseif type(value) == "table" and key:find("^C_") then
+                for fn in pairs(value) do
+                    local f = tostring(fn):lower()
+                    if f:find("train") or f:find("beast") or k:find("train") or k:find("beast")
+                        or (k:find("pet") and f:find("spell")) then
+                        spaces[#spaces + 1] = key .. "." .. tostring(fn)
+                    end
+                end
+            end
+        end
+    end
+    table.sort(hits)
+    table.sort(spaces)
+    print("  functions named train/beast: " .. (#hits > 0 and table.concat(hits, ", ") or "none"))
+    print("  in C_ namespaces: " .. (#spaces > 0 and table.concat(spaces, ", ") or "none"))
+
+    local frames = {}
+    if EnumerateFrames then
+        local f = EnumerateFrames()
+        while f do
+            local ok, name = pcall(f.GetName, f)
+            local okShown, isShown = pcall(f.IsShown, f)
+            if ok and type(name) == "string" and okShown and isShown then
+                local n = name:lower()
+                if n:find("train") or n:find("beast") or (n:find("pet") and not n:find("petscout")) then
+                    frames[#frames + 1] = name
+                end
+            end
+            f = EnumerateFrames(f)
+            if #frames >= 15 then break end
+        end
+    end
+    table.sort(frames)
+    print("  visible frames named train/beast/pet: " .. (#frames > 0 and table.concat(frames, ", ") or "none"))
 end
 
 function ns.OnCollectEvent(event, ...)
