@@ -188,7 +188,7 @@ local function Nearest(spots, here)
     for _, spot in ipairs(spots) do
         local continent, wx, wy = WorldPos(MapID(spot[1]), spot[2], spot[3])
         local dist
-        if here and continent == here[1] then
+        if here and continent and here[1] and continent == here[1] then
             dist = math.sqrt((wx - here[2]) ^ 2 + (wy - here[3]) ^ 2)
         end
         if not best or (dist and (not bestDist or dist < bestDist)) then best, bestDist = spot, dist end
@@ -302,7 +302,12 @@ local function AllIds()
     return ids
 end
 
--- Name, levels, nearest spot and distance for one beast.
+-- Without coordinates, a beast in your own zone is still close: sort it as
+-- if about this far away (the ~yd shown only ever comes from coordinates).
+local SAME_ZONE_GUESS = 1500
+
+-- Name, levels, nearest spot and distance for one beast. sortDist is what
+-- lists sort by: the real distance, or the same-zone guess.
 local function Describe(npcId, here, m)
     m = m or {}
     local low, high = LevelRange(npcId)
@@ -311,12 +316,21 @@ local function Describe(npcId, here, m)
     m.name, m.family = Field(npcId, "name") or "?", Field(npcId, "family") or "?"
     m.levelMin, m.levelMax, m.spot, m.dist = low, high, spot, dist
     m.where = spot and spot[1] or (zones and table.concat(zones, ", "))
+    m.sortDist = dist
+    if not dist and here and here.zone then
+        local inZone = spot and spot[1] == here.zone
+        for _, z in ipairs(zones or {}) do inZone = inZone or z == here.zone end
+        if inZone then m.sortDist = SAME_ZONE_GUESS end
+    end
     return m
 end
 
 local function Here()
     local continent, wx, wy = PlayerWorldPos()
-    return continent and { continent, wx, wy }
+    local zone = GetRealZoneText and GetRealZoneText()
+    if zone and (zone == "" or ns.IsSecret(zone)) then zone = nil end
+    if not continent and not zone then return nil end
+    return { continent, wx, wy, zone = zone }
 end
 
 -- 1: you can tame it now, 2: level unknown, 3: above your level.
@@ -346,8 +360,8 @@ local function Rank(matches, fast)
             if not a.speed or not b.speed then return a.speed ~= nil end
             return a.speed < b.speed
         end
-        if (a.dist ~= nil) ~= (b.dist ~= nil) then return a.dist ~= nil end
-        if a.dist and b.dist and a.dist ~= b.dist then return a.dist < b.dist end
+        if (a.sortDist ~= nil) ~= (b.sortDist ~= nil) then return a.sortDist ~= nil end
+        if a.sortDist and b.sortDist and a.sortDist ~= b.sortDist then return a.sortDist < b.sortDist end
         if (a.rank or 0) ~= (b.rank or 0) then return (a.rank or 0) > (b.rank or 0) end
         if a.levelMin ~= b.levelMin then return a.levelMin < b.levelMin end
         return a.name < b.name
@@ -440,8 +454,8 @@ local function SearchTank()
         if family and low > 0 and low <= level then
             local m = Describe(npcId, here)
             local cur = best[family]
-            if not cur or (m.dist and (not cur.dist or m.dist < cur.dist))
-                or (not m.dist and not cur.dist and m.levelMin > cur.levelMin) then
+            if not cur or (m.sortDist and (not cur.sortDist or m.sortDist < cur.sortDist))
+                or (not m.sortDist and not cur.sortDist and m.levelMin > cur.levelMin) then
                 best[family] = m
             end
         end
@@ -515,7 +529,7 @@ local function SearchUpgrades(limit)
         beasts[npcId] = beasts[npcId] or Describe(npcId, here)
         return beasts[npcId]
     end
-    local function Far(e) return Beast(e.npcId).dist or math.huge end
+    local function Far(e) return Beast(e.npcId).sortDist or math.huge end
 
     -- The n closest offers that pass keep().
     local function Closest(list, keep, n)

@@ -578,6 +578,14 @@ check("upgrades: never Slower Attack", not all:find("Slower Attack", 1, true), a
 units.pet, units.mouseover = nil, nil
 check("upgrades: needs a pet", ns.Search("upgrades").error:find("summon your pet", 1, true))
 
+-- No coordinates, but in your zone: sorts as close.
+GetRealZoneText = function() return "Zephras Isle" end
+units.player = { level = 12 }
+local zr = ns.Search("bite 1", 8)
+check("same-zone beast without coordinates comes first", zr.rows[1].text:find("Zephras Isle", 1, true)
+    and not zr.rows[1].text:find(" yd", 1, true), zr.rows[1].text)
+GetRealZoneText = nil
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()
