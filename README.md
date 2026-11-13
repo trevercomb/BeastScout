@@ -88,7 +88,7 @@ Your observations improve everyone's tooltips once they're merged into a release
 
 ## Maintainer: merging shared observations
 
-1. Pull submitted issues into `contributions/`. Each line is checked: known family and abilities, ranks 1–10, speed 0.8–3.5, sane levels. Bad lines are rejected and listed.
+1. Pull submitted issues into `contributions/`. Each line is checked: known family and abilities, ranks 1–10, speed 0.8–3.5, sane levels. Bad lines are rejected and listed. Files don't name anyone: each player's author is a salted hash (the salt stays in `tools/local.json`, which isn't committed), and files are named by date, not issue number. Add `--delete-merged` to delete the issues once pulled, so the public issue goes too.
 
    ```
    python tools/pull_contributions.py
@@ -104,7 +104,7 @@ Your observations improve everyone's tooltips once they're merged into a release
 
 3. Review the `Community.lua` diff, commit, release, and close the issues (the pull script prints the commands).
 
-Run the tests before releasing: `lua tests/run.lua`, `python tests/test_build.py` and `python tests/test_sync.py`.
+Run the tests before releasing: `lua tests/run.lua`, `python tests/test_build.py`, `python tests/test_sync.py` and `python tests/test_pull.py`.
 
 ### Your own observations, without the form
 
