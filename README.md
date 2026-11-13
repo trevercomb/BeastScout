@@ -127,7 +127,7 @@ One-time setup:
 2. Add `## X-Curse-Project-ID: <id>` to `BeastScout.toc`.
 3. Create a CurseForge API token (account settings, API tokens) and save it in this repo as the secret `CF_API_KEY` (Settings, Secrets and variables, Actions).
 
-Then each release is: bump `## Version` in `BeastScout.toc`, commit, and push a tag:
+Then each release is: bump `## Version` in `BeastScout.toc`, add the version's notes at the top of `CHANGELOG.md` (that file is the release notes), commit, and push a tag:
 
 ```
 git tag v0.11.0
