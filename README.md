@@ -117,6 +117,25 @@ python tools/sync_local.py --watch                       # keep running while yo
 
 Your observations go through the same checks and merge rules as shared ones, and `contributions/local.lua` gets committed like any other contribution.
 
+### Releasing
+
+Releases are built by `.github/workflows/release.yml` with the [BigWigs packager](https://github.com/BigWigsMods/packager); `.pkgmeta` keeps tests, tools and data sources out of the zip.
+
+One-time setup:
+
+1. Create the project on CurseForge (WoW Forever) and note its **Project ID**.
+2. Add `## X-Curse-Project-ID: <id>` to `PetScout.toc`.
+3. Create a CurseForge API token (account settings, API tokens) and save it in this repo as the secret `CF_API_KEY` (Settings, Secrets and variables, Actions).
+
+Then each release is: bump `## Version` in `PetScout.toc`, commit, and push a tag:
+
+```
+git tag v0.11.0
+git push origin v0.11.0
+```
+
+The workflow runs the tests, builds the zip, makes a GitHub release and uploads to CurseForge.
+
 ## License
 
 GPLv3, since PetScout includes data from Hunter's Handbook. See `LICENSE`.
