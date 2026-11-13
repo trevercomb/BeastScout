@@ -244,6 +244,9 @@ SlashCmdList.PETSCOUT = function(msg)
     elseif msg == "trainer" then
         ns.ProbeTrainer()
         return
+    elseif msg:find("^forget") then
+        ns.ForgetRow(msg:match("%d+"))
+        return
     elseif msg == "stats" then
         ns.ShowPetStats()
         return
@@ -284,5 +287,6 @@ SlashCmdList.PETSCOUT = function(msg)
     print("  /petscout export - copy your observations   /petscout reset - forget them")
     print("  /petscout find bite 2 - beasts that teach a skill, closest first   /petscout way 1 - waypoint to one")
     print("  /petscout find tank - best tank families   /petscout stats - your pets' measured health and armor")
+    print("  /petscout forget 2 - remove row 2 of the stats list (e.g. a pet you abandoned)")
     print("  /petscout pet - what PetScout reads from your pet   /petscout debug - narrate tames in chat")
 end

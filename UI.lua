@@ -44,7 +44,11 @@ local function Show(result)
         else
             row.text:SetTextColor(1, 1, 1)
         end
-        row.way:SetShown(data.spot ~= nil)
+        -- One button per row: Remove for pet stats, Go for a known spot.
+        row.data = data
+        row.way:SetText(data.remove and "Remove" or "Go")
+        row.way:SetWidth(data.remove and 70 or 40)
+        row.way:SetShown(data.remove ~= nil or data.spot ~= nil)
         row:Show()
     end
     f.note:SetText(result.note or "")
@@ -149,16 +153,26 @@ local function Make()
         local way = Button(row, "Go", 40)
         way:SetHeight(18)
         way:SetPoint("RIGHT")
-        way:SetScript("OnClick", function() ns.Waypoint(i) end)
+        way:SetScript("OnClick", function()
+            local data = row.data
+            if data and data.remove then
+                ns.ForgetPetStat(data.remove.family, data.remove.level)
+                Run("stats")
+            else
+                ns.Waypoint(i)
+            end
+        end)
         way:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText("Set a map waypoint")
+            GameTooltip:SetText(row.data and row.data.remove and "Forget this measurement" or "Set a map waypoint")
             GameTooltip:Show()
         end)
         way:SetScript("OnLeave", function() GameTooltip:Hide() end)
         row.way = way
+        -- Full text on hover, only when the row is cut off.
         row:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+            if not (self.text.IsTruncated and self.text:IsTruncated()) then return end
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
             GameTooltip:SetText(self.full or "", 1, 1, 1, 1, true)
             GameTooltip:Show()
         end)

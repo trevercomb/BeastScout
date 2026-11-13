@@ -683,6 +683,39 @@ trainNow = table.concat(trainNow, "\n")
 check("Claw 2 costs 3 TP, from Beast Training (Handbook says 4)", trainNow:find("Claw 2 (train it, 3 TP)", 1, true), trainNow)
 GetNumTrainerServices, GetTrainerServiceInfo, GetTrainerServiceCost, units.pet = nil, nil, nil, nil
 
+-- Removing a pet measurement (old River, abandoned).
+PetScoutDB.petStats = {
+    Bear = { [7] = { health = 250, armor = 397, name = "River" }, [8] = { health = 268, armor = 478, name = "River" } },
+    Cat = { [10] = { health = 289, armor = 708, name = "Shalma" } },
+}
+local sw = _G.PetScoutFrame
+ns.ToggleUI("stats")
+local bear8
+for _, row in ipairs(sw.rows) do
+    if row._shown and row.text._text and row.text._text:find("Bear level 8", 1, true) then bear8 = row end
+end
+check("stats rows get a Remove button", bear8 and bear8.way._shown and bear8.way._text == "Remove")
+bear8.way._scripts.OnClick(bear8.way)
+check("Remove forgets that measurement", PetScoutDB.petStats.Bear[8] == nil and PetScoutDB.petStats.Bear[7] ~= nil)
+local stillThere = false
+for _, row in ipairs(sw.rows) do
+    if row._shown and row.text._text:find("Bear level 8", 1, true) then stillThere = true end
+end
+check("the list refreshes without it", not stillThere)
+
+-- Same from chat.
+SlashCmdList.PETSCOUT("stats")
+SlashCmdList.PETSCOUT("forget 1") -- Bear level 7 is now first
+check("/petscout forget N", PetScoutDB.petStats.Bear == nil and printed[#printed]:find("forgot Bear level 7", 1, true),
+    printed[#printed])
+SlashCmdList.PETSCOUT("find fast")
+SlashCmdList.PETSCOUT("forget 1")
+check("forget only works on stats rows", printed[#printed]:find("run /petscout stats first", 1, true), printed[#printed])
+
+-- Search results get Go, not Remove.
+ns.ToggleUI("bite 2")
+check("search rows keep Go", sw.rows[1].way._text == "Go")
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

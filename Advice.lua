@@ -687,7 +687,8 @@ local function SearchStats()
         for _, lvl in ipairs(levels) do
             local s = stats[family][lvl]
             rows[#rows + 1] = { text = family .. " level " .. lvl .. ": " .. (s.health or "?") .. " health, "
-                .. (s.armor or "?") .. " armor" .. (s.name and (" (" .. s.name .. ")") or "") }
+                .. (s.armor or "?") .. " armor" .. (s.name and (" (" .. s.name .. ")") or ""),
+                remove = { family = family, level = lvl } }
         end
     end
     return { title = "measured pet stats (lowest seen, so buffs don't count)", rows = rows }
@@ -710,6 +711,26 @@ function ns.Search(query, limit)
     wipe(results)
     for i, row in ipairs(result.rows or {}) do results[i] = row end
     return result
+end
+
+-- Forget one pet measurement (a pet you've abandoned, say).
+function ns.ForgetPetStat(family, level)
+    local byLevel = PetScoutDB.petStats and PetScoutDB.petStats[family]
+    if not (byLevel and byLevel[level]) then return false end
+    byLevel[level] = nil
+    if not next(byLevel) then PetScoutDB.petStats[family] = nil end
+    return true
+end
+
+-- /petscout forget N: remove row N of the last pet stats list.
+function ns.ForgetRow(index)
+    local row = results[tonumber(index) or 0]
+    if not (row and row.remove) then
+        print(HEADER .. ": run /petscout stats first, then /petscout forget <number>.")
+        return
+    end
+    ns.ForgetPetStat(row.remove.family, row.remove.level)
+    print(HEADER .. ": forgot " .. row.text .. ".")
 end
 
 -- Chat output: /petscout find ...
