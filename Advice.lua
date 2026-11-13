@@ -241,17 +241,20 @@ function ns.Find(query)
     query = query or ""
     -- "fast cat" / "fastest wolves": sort by attack speed. ("faster attack" stays a skill.)
     local fast = query:lower():match("^%s*fast%s+") or query:lower():match("^%s*fastest%s+")
+        or query:lower():match("^%s*fast%s*$") or query:lower():match("^%s*fastest%s*$")
     if fast then query = query:sub(#fast + 1) end
+    -- Plain "fast": every family.
+    local anyFamily = fast and query:match("^%s*$") ~= nil
     local family = ParseFamily(query)
     local ability, rank
-    if not family then
+    if not family and not anyFamily then
         ability, rank = ParseQuery(query)
         if not ability then
             print(HEADER .. ": find what? e.g. /petscout find bite 2, /petscout find faster attack 5, /petscout find cat")
             return
         end
     end
-    local what = family and Plural(family) or (ability .. (rank and (" " .. rank) or ""))
+    local what = anyFamily and "beasts" or family and Plural(family) or (ability .. (rank and (" " .. rank) or ""))
 
     local ids = {}
     for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, PetScoutDB.npcs }) do
@@ -271,8 +274,8 @@ function ns.Find(query)
         matches[#matches + 1] = m
     end
     for npcId in pairs(ids) do
-        if family then
-            if Field(npcId, "family") == family then
+        if family or anyFamily then
+            if anyFamily or Field(npcId, "family") == family then
                 -- Speed is what you compare when picking between beasts of one family.
                 Add(npcId, { rank = 0, speed = ns.Lookup(npcId, ns.SpeedOf) })
             end
@@ -283,7 +286,7 @@ function ns.Find(query)
         end
     end
     if #matches == 0 then
-        print(HEADER .. ": no " .. (family and (what .. " found") or ("beast found that teaches " .. what)) .. ".")
+        print(HEADER .. ": no " .. ((family or anyFamily) and (what .. " found") or ("beast found that teaches " .. what)) .. ".")
         return
     end
 
@@ -323,7 +326,7 @@ function ns.Find(query)
     local order = #reachable == 0 and "none you can tame yet, lowest level first"
         or (fast and "fastest first" or "closest first")
     wipe(results)
-    print(HEADER .. ": " .. #matches .. " " .. (family and what or ("beasts teach " .. what))
+    print(HEADER .. ": " .. #matches .. " " .. ((family or anyFamily) and what or ("beasts teach " .. what))
         .. (hidden > 0 and (" (" .. hidden .. " above your level hidden)") or "")
         .. (#matches > 8 and ", showing 8" or "") .. ", " .. order .. ":")
     for i = 1, math.min(8, #matches) do
@@ -336,8 +339,9 @@ function ns.Find(query)
         local link = m.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or ""
         local color = Group(m) == 3 and GREY or ""
         local label
-        if family then
-            label = m.name .. " (" .. levels .. ")" .. (m.speed and (" " .. string.format("%.1f", m.speed)) or "")
+        if family or anyFamily then
+            -- Name the family only when the list mixes them.
+            label = m.name .. " (" .. (anyFamily and (m.family .. " ") or "") .. levels .. ")" .. (m.speed and (" " .. string.format("%.1f", m.speed)) or "")
         else
             label = ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " " .. levels .. ")"
         end

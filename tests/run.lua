@@ -427,6 +427,12 @@ check("fast cat: fastest first", printed[mark + 1]:find("fastest first", 1, true
     and printed[mark + 2]:find(") 1.2, ", 1, true), found)
 check("fast cat: hides cats above 12", printed[mark + 1]:find("above your level hidden", 1, true), printed[mark + 1])
 mark = #printed
+SlashCmdList.PETSCOUT("find fast")
+found = table.concat(printed, "\n", mark + 1)
+check("find fast: any family, fastest first", printed[mark + 1]:find(" beasts (", 1, true)
+    and printed[mark + 1]:find("fastest first", 1, true) and printed[mark + 2]:find(") 1.2, ", 1, true), found)
+check("find fast names the family", printed[mark + 2]:find("%(%a[%a ]* %d"), printed[mark + 2])
+mark = #printed
 SlashCmdList.PETSCOUT("find faster attack 3")
 check("'faster attack' is still a skill", printed[mark + 1]:find("teach Faster Attack 3", 1, true), printed[mark + 1])
 mark = #printed
