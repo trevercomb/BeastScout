@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "PetScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "PetScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("PetScout", ns)
 end
@@ -479,6 +479,69 @@ SlashCmdList.PETSCOUT("stats")
 check("/petscout stats prints it", printed[mark + 2]:find("Cat level 10: 500 health, 300 armor (Shal'ma)", 1, true),
     printed[mark + 2])
 UnitHealthMax, UnitArmor, units.pet = nil, nil, nil
+
+-- The window. A fake that remembers text, scripts and visibility.
+local function UIFake(name)
+    local o = { _scripts = {}, _shown = false }
+    if name then _G[name] = o end
+    return setmetatable(o, { __index = function(_, k)
+        -- Like real frames: unknown fields are nil; only methods (Capitalized) exist.
+        if not k:match("^%u") then return nil end
+        if k == "SetText" then return function(self, v) self._text = v end end
+        if k == "GetText" then return function(self) return self._text end end
+        if k == "SetScript" then return function(self, n, fn) self._scripts[n] = fn end end
+        if k == "Show" then return function(self) self._shown = true end end
+        if k == "Hide" then return function(self) self._shown = false end end
+        if k == "IsShown" then return function(self) return self._shown end end
+        if k == "SetShown" then return function(self, v) self._shown = v and true or false end end
+        if k == "CreateFontString" or k == "CreateTexture" then return function() return UIFake() end end
+        return function() end
+    end })
+end
+CreateFrame = function(_, name) return UIFake(name) end
+UIParent = UIFake()
+
+units.player = { level = 12 }
+units.pet = nil
+SlashCmdList.PETSCOUT("")
+local win = _G.PetScoutFrame
+check("window opens on /petscout", win and win._shown)
+check("first open without a pet shows the fastest", win and win.title._text:find("fastest first", 1, true), win and win.title._text)
+check("rows filled", win.rows[1]._shown and win.rows[1].text._text:find("^1%. "), win.rows[1].text._text)
+check("waypoint button shown for rows with a spot", win.rows[1].way._shown)
+
+win.search:SetText("bite 2")
+win.search._scripts.OnEnterPressed(win.search)
+check("search box runs a search", win.title._text:find("teach Bite 2", 1, true), win.title._text)
+
+ns.ToggleUI("tank")
+check("quick search: tank", win.title._text:find("Tank families", 1, true), win.title._text)
+local greyRow
+for _, row in ipairs(win.rows) do
+    if row._shown and row.text._text:find("none at your level", 1, true) then greyRow = row end
+end
+check("tank rows without a beast have no waypoint button", not greyRow or not greyRow.way._shown)
+
+ns.ToggleUI("nonsense")
+check("bad search shows the help in the title", win.title._text:find("find what?", 1, true), win.title._text)
+check("bad search hides old rows", not win.rows[1]._shown)
+
+ns.ToggleUI("bite 2")
+mark = #printed
+win.rows[1].way._scripts.OnClick(win.rows[1].way)
+check("Go button sets a waypoint (or explains why not)", printed[#printed]:find("waypoint", 1, true), printed[#printed])
+
+SlashCmdList.PETSCOUT("")
+check("/petscout again closes it", not win._shown)
+
+Minimap = UIFake()
+ns.CreateMinimapButton()
+check("minimap button created", _G.PetScoutMinimapButton and _G.PetScoutMinimapButton._shown)
+SlashCmdList.PETSCOUT("minimap")
+check("/petscout minimap hides it", not _G.PetScoutMinimapButton._shown and PetScoutDB.minimap.hide == true)
+SlashCmdList.PETSCOUT("minimap")
+check("and shows it again", _G.PetScoutMinimapButton._shown)
+Minimap = nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

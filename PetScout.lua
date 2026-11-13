@@ -162,7 +162,7 @@ end
 local exportFrame
 local SHARE_URL = "github.com/trevercomb/PetScout/issues/new?template=observations.yml"
 
-local function ShowExport()
+function ns.ShowExport()
     local lines = ns.ExportLines()
     if #lines == 0 then
         print(HEADER .. ": nothing to export yet. Target beasts out of combat, use Beast Lore, or tame one.")
@@ -223,6 +223,7 @@ f:SetScript("OnEvent", function(self, event, ...)
         if select(2, UnitClass("player")) ~= "HUNTER" then return end
         HookTooltip()
         ns.StartCollecting(self)
+        ns.CreateMinimapButton()
     else
         ns.OnCollectEvent(event, ...)
     end
@@ -231,8 +232,14 @@ end)
 SLASH_PETSCOUT1 = "/petscout"
 SlashCmdList.PETSCOUT = function(msg)
     msg = msg and msg:lower() or ""
-    if msg == "export" then
-        ShowExport()
+    if msg == "" then
+        ns.ToggleUI()
+        return
+    elseif msg == "export" then
+        ns.ShowExport()
+        return
+    elseif msg == "minimap" then
+        print(HEADER .. ": minimap button " .. (ns.ToggleMinimapButton() and "shown" or "hidden") .. ".")
         return
     elseif msg == "stats" then
         ns.ShowPetStats()
@@ -259,6 +266,8 @@ SlashCmdList.PETSCOUT = function(msg)
         print("  GUID: " .. tostring(UnitGUID("pet")))
         print("  spellbook: " .. (#spells > 0 and table.concat(spells, ", ") or "(empty)"))
         return
+    elseif msg == "help" then
+        -- falls through to the status and command list below
     elseif msg == "reset" then
         wipe(PetScoutDB.npcs)
         print(HEADER .. ": cleared your recorded beasts.")
@@ -268,6 +277,7 @@ SlashCmdList.PETSCOUT = function(msg)
     print(HEADER .. ": " .. Count(PetScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
         .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
+    print("  /petscout - open the PetScout window   /petscout minimap - hide or show its minimap button")
     print("  /petscout export - copy your observations   /petscout reset - forget them")
     print("  /petscout find bite 2 - beasts that teach a skill, closest first   /petscout way 1 - waypoint to one")
     print("  /petscout find tank - best tank families   /petscout stats - your pets' measured health and armor")

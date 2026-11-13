@@ -2,7 +2,8 @@ local _, ns = ...
 
 -- Advice built from PetScout's data and your current pet:
 --   ns.UpgradesFor(teaches): what a beast teaches that your pet would gain
---   ns.Find(query):          /petscout find, beasts that teach a skill
+--   ns.Search(query):        beasts by skill, family, speed, tank or upgrades
+--   ns.Find(query):          the same, printed to chat (/petscout find)
 
 local HEADER = "|cffabd473PetScout|r"
 local GREY = "|cff9d9d9d"
@@ -30,9 +31,15 @@ function ns.PetKnown()
     return known, UnitName("pet"), UnitCreatureFamily("pet")
 end
 
--- e.g. { "Bite 2 (has 1)", "Dash 1 (new)" }, plus your pet's name.
-function ns.UpgradesFor(teaches)
-    local ok, known, petName, petFamily = pcall(ns.PetKnown)
+-- e.g. { "Bite 2 (has 1)", "Dash 1 (new)" }, plus your pet's name. pet is
+-- { known, name, family } when the caller already read the spellbook.
+function ns.UpgradesFor(teaches, pet)
+    local ok, known, petName, petFamily = true, nil, nil, nil
+    if pet then
+        known, petName, petFamily = pet.known, pet.name, pet.family
+    else
+        ok, known, petName, petFamily = pcall(ns.PetKnown)
+    end
     if not ok or not known then return {}, nil end
     local out = {}
     for _, t in ipairs(teaches or {}) do
@@ -177,7 +184,8 @@ function ns.Waypoint(index)
         return
     end
     if not m.spot then
-        print(HEADER .. ": no spawn point known for " .. m.name .. "; look in " .. (m.where or "its zone") .. ".")
+        print(HEADER .. ": no spawn point known for " .. (m.name or "that one")
+            .. (m.where and ("; look in " .. m.where) or "") .. ".")
         return
     end
     local zone, x, y = m.spot[1], m.spot[2], m.spot[3]
@@ -218,7 +226,10 @@ elseif hooksecurefunc and SetItemRef then
     hooksecurefunc("SetItemRef", OnLink)
 end
 
--- /petscout find ---------------------------------------------------------------
+-- Searches ---------------------------------------------------------------------
+-- Every search returns data, so chat (ns.Find) and the window (UI.lua) show
+-- the same thing: { title, rows = { { text, grey, spot, name, where } }, note }
+-- or { error }. Rows with a spot can get a waypoint.
 
 -- "Wolf" -> "Wolves", "Bird of Prey" -> "Birds of Prey", "Cat" -> "Cats".
 local function Plural(family)
@@ -237,80 +248,61 @@ local function ParseFamily(query)
     end
 end
 
-function ns.Find(query)
-    query = query or ""
-    if query:lower():match("^%s*tanks?%s*$") then return ns.FindTank() end
-    -- "fast cat" / "fastest wolves": sort by attack speed. ("faster attack" stays a skill.)
-    local fast = query:lower():match("^%s*fast%s+") or query:lower():match("^%s*fastest%s+")
-        or query:lower():match("^%s*fast%s*$") or query:lower():match("^%s*fastest%s*$")
-    if fast then query = query:sub(#fast + 1) end
-    -- Plain "fast": every family.
-    local anyFamily = fast and query:match("^%s*$") ~= nil
-    local family = ParseFamily(query)
-    local ability, rank
-    if not family and not anyFamily then
-        ability, rank = ParseQuery(query)
-        if not ability then
-            print(HEADER .. ": find what? e.g. /petscout find bite 2, /petscout find faster attack 5, /petscout find cat")
-            return
-        end
-    end
-    local what = anyFamily and "beasts" or family and Plural(family) or (ability .. (rank and (" " .. rank) or ""))
+local function Levels(m)
+    if m.levelMin == 0 and not m.levelMax then return "level ?" end
+    return m.levelMin .. ((m.levelMax and m.levelMax ~= m.levelMin) and ("-" .. m.levelMax) or "")
+end
 
+local function Place(m)
+    return (m.where and (", " .. m.where) or "") .. (m.dist and (" " .. Yards(m.dist)) or "")
+end
+
+local function AllIds()
     local ids = {}
     for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, PetScoutDB.npcs }) do
         for npcId in pairs(layer) do ids[npcId] = true end
     end
+    return ids
+end
 
+-- Name, levels, nearest spot and distance for one beast.
+local function Describe(npcId, here, m)
+    m = m or {}
+    local low, high = LevelRange(npcId)
+    local spot, dist = Nearest(Spots(npcId), here)
+    local zones = Field(npcId, "zones")
+    m.name, m.family = Field(npcId, "name") or "?", Field(npcId, "family") or "?"
+    m.levelMin, m.levelMax, m.spot, m.dist = low, high, spot, dist
+    m.where = spot and spot[1] or (zones and table.concat(zones, ", "))
+    return m
+end
+
+local function Here()
     local continent, wx, wy = PlayerWorldPos()
-    local here = continent and { continent, wx, wy }
-    local matches = {}
-    local function Add(npcId, m)
-        local low, high = LevelRange(npcId)
-        local spot, dist = Nearest(Spots(npcId), here)
-        local zones = Field(npcId, "zones")
-        m.name, m.family = Field(npcId, "name") or "?", Field(npcId, "family") or "?"
-        m.levelMin, m.levelMax, m.spot, m.dist = low, high, spot, dist
-        m.where = spot and spot[1] or (zones and table.concat(zones, ", "))
-        matches[#matches + 1] = m
-    end
-    for npcId in pairs(ids) do
-        if family or anyFamily then
-            if anyFamily or Field(npcId, "family") == family then
-                -- Speed is what you compare when picking between beasts of one family.
-                Add(npcId, { rank = 0, speed = ns.Lookup(npcId, ns.SpeedOf) })
-            end
-        else
-            for _, t in ipairs(ns.Lookup(npcId, ns.TeachesOf) or {}) do
-                if t[1] == ability and (not rank or t[2] == rank) then Add(npcId, { rank = t[2] }) end
-            end
-        end
-    end
-    if #matches == 0 then
-        print(HEADER .. ": no " .. ((family or anyFamily) and (what .. " found") or ("beast found that teaches " .. what)) .. ".")
-        return
-    end
+    return continent and { continent, wx, wy }
+end
 
-    -- 1: you can tame it now, 2: level unknown, 3: above your level.
+-- 1: you can tame it now, 2: level unknown, 3: above your level.
+local function Group(m, level)
+    if m.levelMin == 0 then return 2 end
+    return m.levelMin <= level and 1 or 3
+end
+
+-- Hide beasts above your level unless that's all there is, then sort:
+-- tameable first, then by speed (fast) or distance, then best rank.
+local function Rank(matches, fast)
     local level = UnitLevel("player") or 0
-    local function Group(m)
-        if m.levelMin == 0 then return 2 end
-        return m.levelMin <= level and 1 or 3
-    end
-
-    -- Hide beasts above your level, unless that's all there is (then show
-    -- the lowest ones, greyed, as something to aim for).
-    local hidden, reachable = 0, {}
+    local reachable = {}
     for _, m in ipairs(matches) do
-        if Group(m) < 3 then reachable[#reachable + 1] = m end
+        if Group(m, level) < 3 then reachable[#reachable + 1] = m end
     end
+    local hidden = 0
     if #reachable > 0 then
         hidden = #matches - #reachable
         matches = reachable
     end
-
     table.sort(matches, function(a, b)
-        local ga, gb = Group(a), Group(b)
+        local ga, gb = Group(a, level), Group(b, level)
         if ga ~= gb then return ga < gb end
         if ga == 3 and a.levelMin ~= b.levelMin then return a.levelMin < b.levelMin end
         if fast and a.speed ~= b.speed then
@@ -319,77 +311,109 @@ function ns.Find(query)
         end
         if (a.dist ~= nil) ~= (b.dist ~= nil) then return a.dist ~= nil end
         if a.dist and b.dist and a.dist ~= b.dist then return a.dist < b.dist end
-        if a.rank ~= b.rank then return a.rank > b.rank end
+        if (a.rank or 0) ~= (b.rank or 0) then return (a.rank or 0) > (b.rank or 0) end
         if a.levelMin ~= b.levelMin then return a.levelMin < b.levelMin end
         return a.name < b.name
     end)
-
-    local order = #reachable == 0 and "none you can tame yet, lowest level first"
-        or (fast and "fastest first" or "closest first")
-    wipe(results)
-    print(HEADER .. ": " .. #matches .. " " .. ((family or anyFamily) and what or ("beasts teach " .. what))
-        .. (hidden > 0 and (" (" .. hidden .. " above your level hidden)") or "")
-        .. (#matches > 8 and ", showing 8" or "") .. ", " .. order .. ":")
-    for i = 1, math.min(8, #matches) do
-        local m = matches[i]
-        results[i] = m
-        local levels = m.levelMin .. ((m.levelMax and m.levelMax ~= m.levelMin) and ("-" .. m.levelMax) or "")
-        if m.levelMin == 0 and not m.levelMax then levels = "level ?" end
-        local where = m.where and (", " .. m.where) or ""
-        local far = m.dist and (" " .. Yards(m.dist)) or ""
-        local link = m.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or ""
-        local color = Group(m) == 3 and GREY or ""
-        local label
-        if family or anyFamily then
-            -- Name the family only when the list mixes them.
-            label = m.name .. " (" .. (anyFamily and (m.family .. " ") or "") .. levels .. ")" .. (m.speed and (" " .. string.format("%.1f", m.speed)) or "")
-        else
-            label = ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " " .. levels .. ")"
-        end
-        print("  " .. i .. ". " .. color .. label .. where .. far .. (color ~= "" and "|r" or "") .. link)
-    end
-    print(GREY .. "  Click [Waypoint] or type /petscout way <number>.|r")
+    for _, m in ipairs(matches) do m.grey = Group(m, level) == 3 end
+    return matches, hidden, #reachable == 0
 end
 
--- /petscout find tank ----------------------------------------------------------
+local function Counted(count, what, hidden, limit, order)
+    return count .. " " .. what .. (hidden > 0 and (" (" .. hidden .. " above your level hidden)") or "")
+        .. (count > limit and (", showing " .. limit) or "") .. ", " .. order
+end
+
+local function Take(matches, limit, Label)
+    local rows = {}
+    for i = 1, math.min(limit, #matches) do
+        local m = matches[i]
+        m.text = Label(m)
+        rows[i] = m
+    end
+    return rows
+end
+
+-- A skill ("bite 2"), a family ("cat"), "fast" or "fast <family>".
+local function SearchBeasts(query, limit)
+    local fast = query:lower():match("^%s*fast%s+") or query:lower():match("^%s*fastest%s+")
+        or query:lower():match("^%s*fast%s*$") or query:lower():match("^%s*fastest%s*$")
+    if fast then query = query:sub(#fast + 1) end
+    local anyFamily = fast and query:match("^%s*$") ~= nil
+    local family = ParseFamily(query)
+    local ability, rank
+    if not family and not anyFamily then
+        ability, rank = ParseQuery(query)
+        if not ability then
+            return { error = "find what? e.g. bite 2, faster attack 5, cat, fast, tank, upgrades" }
+        end
+    end
+    local listing = family or anyFamily
+    local what = anyFamily and "beasts" or family and Plural(family) or (ability .. (rank and (" " .. rank) or ""))
+
+    local here, matches = Here(), {}
+    for npcId in pairs(AllIds()) do
+        if listing then
+            if anyFamily or Field(npcId, "family") == family then
+                -- Speed is what you compare when picking between beasts.
+                matches[#matches + 1] = Describe(npcId, here, { speed = ns.Lookup(npcId, ns.SpeedOf) })
+            end
+        else
+            for _, t in ipairs(ns.Lookup(npcId, ns.TeachesOf) or {}) do
+                if t[1] == ability and (not rank or t[2] == rank) then
+                    matches[#matches + 1] = Describe(npcId, here, { rank = t[2] })
+                end
+            end
+        end
+    end
+    if #matches == 0 then
+        return { error = "no " .. (listing and (what .. " found") or ("beast found that teaches " .. what)) .. "." }
+    end
+
+    local hidden, noneTameable
+    matches, hidden, noneTameable = Rank(matches, fast)
+    local order = noneTameable and "none you can tame yet, lowest level first"
+        or (fast and "fastest first" or "closest first")
+    return {
+        title = Counted(#matches, listing and what or ("beasts teach " .. what), hidden, limit, order),
+        rows = Take(matches, limit, function(m)
+            if listing then
+                -- Name the family only when the list mixes them.
+                return m.name .. " (" .. (anyFamily and (m.family .. " ") or "") .. Levels(m) .. ")"
+                    .. (m.speed and (" " .. string.format("%.1f", m.speed)) or "") .. Place(m)
+            end
+            return ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " " .. Levels(m) .. ")" .. Place(m)
+        end),
+    }
+end
+
 -- Tankiness is a family trait (health and armor bonuses), so rank families
 -- and show the closest beast you can tame from each.
-
 local function Percent(mult)
     local p = math.floor((mult - 1) * 100 + 0.5)
     return (p > 0 and "+" or "") .. p .. "%"
 end
 
-function ns.FindTank()
-    local level = UnitLevel("player") or 0
-    local continent, wx, wy = PlayerWorldPos()
-    local here = continent and { continent, wx, wy }
-
-    -- Closest tameable beast per family.
+local function SearchTank()
+    local level, here = UnitLevel("player") or 0, Here()
     local best = {}
-    for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, PetScoutDB.npcs }) do
-        for npcId in pairs(layer) do
-            local family = Field(npcId, "family")
-            local low = LevelRange(npcId)
-            if family and low > 0 and low <= level then
-                local spot, dist = Nearest(Spots(npcId), here)
-                local cur = best[family]
-                local better = not cur or (dist and (not cur.dist or dist < cur.dist))
-                    or (not dist and not cur.dist and low > cur.levelMin)
-                if better then
-                    local _, high = LevelRange(npcId)
-                    best[family] = { npcId = npcId, name = Field(npcId, "name") or "?", levelMin = low, levelMax = high,
-                        spot = spot, dist = dist, where = spot and spot[1] }
-                end
+    for npcId in pairs(AllIds()) do
+        local family = Field(npcId, "family")
+        local low = LevelRange(npcId)
+        if family and low > 0 and low <= level then
+            local m = Describe(npcId, here)
+            local cur = best[family]
+            if not cur or (m.dist and (not cur.dist or m.dist < cur.dist))
+                or (not m.dist and not cur.dist and m.levelMin > cur.levelMin) then
+                best[family] = m
             end
         end
     end
 
-    -- Effective toughness: health x armor bonus.
     local ranked = {}
     for family, mods in pairs(ns.CLASSIC_FAMILY_MODS) do
         if mods.health * mods.armor > 1.001 then
-            ranked[#ranked + 1] = { family = family, mods = mods, score = mods.health * mods.armor, beast = best[family] }
+            ranked[#ranked + 1] = { family = family, mods = mods, score = mods.health * mods.armor }
         end
     end
     table.sort(ranked, function(a, b)
@@ -397,51 +421,122 @@ function ns.FindTank()
         return a.family < b.family
     end)
 
-    wipe(results)
-    print(HEADER .. ": tank families, toughest first (Classic numbers, not yet confirmed for Forever):")
+    local rows = {}
     for i, r in ipairs(ranked) do
         local bonus = {}
         if r.mods.health ~= 1 then bonus[#bonus + 1] = Percent(r.mods.health) .. " health" end
         if r.mods.armor ~= 1 then bonus[#bonus + 1] = Percent(r.mods.armor) .. " armor" end
         local skill = ns.TANK_SKILLS[r.family] and (", " .. ns.TANK_SKILLS[r.family]) or ""
-        local b = r.beast
-        local line = "  " .. i .. ". " .. r.family .. " (" .. table.concat(bonus, ", ") .. skill .. ")"
-        if b then
-            results[i] = b
-            local levels = b.levelMin .. ((b.levelMax and b.levelMax ~= b.levelMin) and ("-" .. b.levelMax) or "")
-            line = line .. ": " .. b.name .. " (" .. levels .. ")" .. (b.where and (", " .. b.where) or "")
-                .. (b.dist and (" " .. Yards(b.dist)) or "")
-                .. (b.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or "")
+        local head = r.family .. " (" .. table.concat(bonus, ", ") .. skill .. ")"
+        local m = best[r.family]
+        if m then
+            m.text = head .. ": " .. m.name .. " (" .. Levels(m) .. ")" .. Place(m)
+            rows[i] = m
         else
-            line = GREY .. line .. ": none at your level|r"
+            rows[i] = { text = head .. ": none at your level", grey = true }
         end
-        print(line)
     end
-    print(GREY .. "  Fox, Bird of Prey and Core Hound are new in Forever; their bonuses are unknown.|r")
+    return {
+        title = "tank families, toughest first (Classic numbers, not yet confirmed for Forever)",
+        rows = rows,
+        note = "Fox, Bird of Prey and Core Hound are new in Forever; their bonuses are unknown.",
+    }
 end
 
--- /petscout stats: what PetScout has measured from your pets.
-function ns.ShowPetStats()
+-- Beasts you can tame that would teach your current pet something.
+local function SearchUpgrades(limit)
+    local ok, known, petName, petFamily = pcall(ns.PetKnown)
+    if not ok or not known then
+        return { error = "summon your pet first; upgrades are worked out from its spellbook." }
+    end
+    local pet = { known = known, name = petName, family = petFamily }
+    local level, here, matches = UnitLevel("player") or 0, Here(), {}
+    for npcId in pairs(AllIds()) do
+        local low = LevelRange(npcId)
+        if low > 0 and low <= level then
+            local ups = ns.UpgradesFor(ns.Lookup(npcId, ns.TeachesOf), pet)
+            if #ups > 0 then
+                matches[#matches + 1] = Describe(npcId, here, { upgrades = table.concat(ups, ", ") })
+            end
+        end
+    end
+    if #matches == 0 then
+        return { error = "nothing at your level would teach " .. (petName or "your pet") .. " anything new." }
+    end
+    matches = Rank(matches)
+    return {
+        title = Counted(#matches, "beasts could teach " .. (petName or "your pet"), 0, limit, "closest first"),
+        rows = Take(matches, limit, function(m)
+            return m.name .. " (" .. m.family .. " " .. Levels(m) .. "): " .. m.upgrades .. Place(m)
+        end),
+    }
+end
+
+-- What PetScout has measured from your pets.
+local function SearchStats()
     local stats = PetScoutDB.petStats or {}
     local families = {}
     for family in pairs(stats) do families[#families + 1] = family end
     table.sort(families)
     if #families == 0 then
-        print(HEADER .. ": no pet measurements yet. They're taken whenever your pet is out of combat.")
-        return
+        return { error = "no pet measurements yet. They're taken whenever your pet is out of combat." }
     end
-    print(HEADER .. ": measured pet stats (lowest seen, so buffs don't count):")
+    local rows = {}
     for _, family in ipairs(families) do
         local levels = {}
         for lvl in pairs(stats[family]) do levels[#levels + 1] = lvl end
         table.sort(levels)
         for _, lvl in ipairs(levels) do
             local s = stats[family][lvl]
-            print("  " .. family .. " level " .. lvl .. ": " .. (s.health or "?") .. " health, "
-                .. (s.armor or "?") .. " armor" .. (s.name and (" (" .. s.name .. ")") or ""))
+            rows[#rows + 1] = { text = family .. " level " .. lvl .. ": " .. (s.health or "?") .. " health, "
+                .. (s.armor or "?") .. " armor" .. (s.name and (" (" .. s.name .. ")") or "") }
         end
     end
+    return { title = "measured pet stats (lowest seen, so buffs don't count)", rows = rows }
 end
+
+-- Run any search. Rows are also kept for /petscout way N and the links.
+function ns.Search(query, limit)
+    query, limit = query or "", limit or 8
+    local q = query:lower():gsub("^%s+", ""):gsub("%s+$", "")
+    local result
+    if q == "tank" or q == "tanks" then
+        result = SearchTank()
+    elseif q == "upgrade" or q == "upgrades" then
+        result = SearchUpgrades(limit)
+    elseif q == "stats" then
+        result = SearchStats()
+    else
+        result = SearchBeasts(query, limit)
+    end
+    wipe(results)
+    for i, row in ipairs(result.rows or {}) do results[i] = row end
+    return result
+end
+
+-- Chat output: /petscout find ...
+function ns.PrintResult(result)
+    if result.error then
+        print(HEADER .. ": " .. result.error)
+        return
+    end
+    print(HEADER .. ": " .. result.title .. ":")
+    local anySpot = false
+    for i, row in ipairs(result.rows) do
+        local link = row.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or ""
+        anySpot = anySpot or row.spot ~= nil
+        print("  " .. i .. ". " .. (row.grey and GREY or "") .. row.text .. (row.grey and "|r" or "") .. link)
+    end
+    if result.note then print(GREY .. "  " .. result.note .. "|r") end
+    if anySpot then print(GREY .. "  Click [Waypoint] or type /petscout way <number>.|r") end
+end
+
+function ns.Find(query)
+    ns.PrintResult(ns.Search(query, 8))
+end
+
+function ns.FindTank() ns.Find("tank") end
+function ns.ShowPetStats() ns.Find("stats") end
 
 -- Your pet's status ----------------------------------------------------------
 -- The game hides loyalty behind the pet frame; this puts it in the pet's
