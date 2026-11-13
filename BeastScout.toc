@@ -9,6 +9,7 @@
 
 Data.lua
 Training.lua
+Locale.lua
 Community.lua
 Handbook.lua
 Collect.lua

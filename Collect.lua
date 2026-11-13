@@ -27,8 +27,8 @@ end
 -- A beast we could tame: has a creature family and isn't someone's pet.
 function ns.IsWildBeast(unit)
     if not UnitExists(unit) or UnitPlayerControlled(unit) then return false end
-    local family = UnitCreatureFamily(unit)
-    if family == nil or IsSecret(family) then return false end
+    local family = ns.FamilyOf(unit) -- English key, in any client language
+    if family == nil then return false end
     return true, family
 end
 
@@ -37,8 +37,7 @@ local function Round(v)
 end
 
 local function CurrentZone()
-    local zone = GetRealZoneText and GetRealZoneText()
-    if zone and not IsSecret(zone) and zone ~= "" then return zone end
+    return ns.CurrentZoneName()
 end
 
 -- Where you're standing, as a spawn point: { zone, x, y } in map percent.
@@ -52,7 +51,8 @@ local function CurrentSpot()
         local x, y = pos.x, pos.y
         if pos.GetXY then x, y = pos:GetXY() end
         if IsSecret(x) or IsSecret(y) or not x or x == 0 then return nil end
-        return { info.name, Round(x * 100) , Round(y * 100) }
+        -- English zone name when we know the map, so data matches in any language.
+        return { ns.ZoneName(mapID) or info.name, Round(x * 100) , Round(y * 100) }
     end)
     return ok and spot or nil
 end
@@ -139,27 +139,37 @@ function ns.Observe(unit)
     if r.speedSource ~= "tame" then r.speed, r.speedSource = nil, nil end
 end
 
--- "Bite 2", "Bite (Rank 2)", "Faster Attack III" -> rank number.
+-- "Bite 2", "Bite (Rank 2)", "Biss (Rang 2)", "Faster Attack III" -> rank.
+-- The word before the number can be "Rank" in any language.
 local ROMAN = { I = 1, II = 2, III = 3, IV = 4, V = 5, VI = 6, VII = 7, VIII = 8, IX = 9, X = 10 }
 
-local function RankAfter(text, ability)
-    local s, e = text:find(ability, 1, true)
+local function RankAfter(text, name)
+    local s, e = text:find(name, 1, true)
     if not s then return nil end
     local tail = text:sub(e + 1)
-    local n = tail:match("^%s*%(?[Rr]ank%s*(%d+)") or tail:match("^%s*%(?(%d+)%f[^%d]")
+    local n = tail:match("^%s*%(?(%d+)%f[^%d]") or tail:match("^%s*%(?[^%d%s%(%)]+%s*(%d+)%f[^%d]")
     if n then return tonumber(n) end
-    local roman = tail:match("^%s*%(?[Rr]ank%s*([IVX]+)%f[^%a]") or tail:match("^%s*%(?([IVX]+)%f[^%a]")
+    local roman = tail:match("^%s*%(?([IVX]+)%f[^%a]") or tail:match("^%s*%(?[^%d%s%(%)]+%s+([IVX]+)%f[^%a]")
     return roman and ROMAN[roman]
 end
 
+-- A rank that ability really has (so "Bite deals 20 damage" isn't rank 20).
+local function RealRank(ability, rank)
+    local training = ns.TRAINING and ns.TRAINING[ability]
+    if training and next(training.ranks) then return training.ranks[rank] ~= nil end
+    return rank >= 1 and rank <= 10
+end
+
+-- Finds abilities by their English or local name; found is keyed in English.
 local function FindAbilities(text, found)
-    for _, ability in ipairs(ns.TAME_ABILITIES) do
+    for _, pair in ipairs(ns.AbilityNames()) do
+        local name, ability = pair[1], pair[2]
         if not found[ability] then
-            local rank = RankAfter(text, ability)
-            if rank then
+            local rank = RankAfter(text, name)
+            if rank and RealRank(ability, rank) then
                 found[ability] = rank
                 -- Blank it out so "Attack" inside "Faster Attack" can't match again.
-                text = text:gsub(ability:gsub("%p", "%%%0"), "", 1)
+                text = text:gsub(name:gsub("%p", "%%%0"), "", 1)
             end
         end
     end
@@ -263,7 +273,7 @@ local function TryCaptureTame(final)
     if not pending or GetTime() - pending.at > 60 then pending = nil return true end
     if not UnitExists("pet") then Debug("no pet yet") return false end
     if UnitGUID("pet") == pending.oldPet then Debug("still the old pet") return false end
-    local petFamily = UnitCreatureFamily("pet")
+    local petFamily = ns.FamilyOf("pet")
     if petFamily ~= pending.family then
         Debug("pet family", petFamily, "isn't", pending.family)
         return false
@@ -308,7 +318,7 @@ end
 
 function ns.MeasurePet()
     if not UnitExists("pet") or UnitAffectingCombat("pet") then return end
-    local family, level = UnitCreatureFamily("pet"), UnitLevel("pet")
+    local family, level = ns.FamilyOf("pet"), UnitLevel("pet")
     local health = UnitHealthMax("pet")
     local armor = UnitArmor and UnitArmor("pet") -- first value is base armor, without buffs
     for _, v in ipairs({ family, level, health, armor or 0 }) do
@@ -362,8 +372,9 @@ function ns.ReadBeastTraining()
             local rank, level = 1, nil
             for j = 4, #info do
                 local v = info[j]
-                if type(v) == "string" and not IsSecret(v) and v:match("Rank (%d+)") then
-                    rank = tonumber(v:match("Rank (%d+)"))
+                -- "Rank 2", "Rang 2", "Rango 2": the number is the rank.
+                if type(v) == "string" and not IsSecret(v) and v:match("(%d+)") then
+                    rank = tonumber(v:match("(%d+)"))
                 elseif type(v) == "number" and not IsSecret(v) and j == 5 then
                     level = v
                 end
@@ -377,6 +388,7 @@ function ns.ReadBeastTraining()
                 local okCost, c = pcall(GetTrainerServiceCost, i)
                 if okCost and not IsSecret(c) then cost = tonumber(c) end
             end
+            name = ns.EnglishAbility(name) -- "Biss" -> "Bite"
             skills[name] = skills[name] or {}
             skills[name][rank] = { state = state, level = level, cost = cost }
         end

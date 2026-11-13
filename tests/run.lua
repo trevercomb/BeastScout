@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Training.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "BeastScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Training.lua", "Locale.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "BeastScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("BeastScout", ns)
 end
@@ -715,6 +715,57 @@ check("forget only works on stats rows", printed[#printed]:find("run /beastscout
 -- Search results get Go, not Remove.
 ns.ToggleUI("bite 2")
 check("search rows keep Go", sw.rows[1].way._text == "Go")
+
+-- A German client: the game hands back German names everywhere.
+local german = { [17253] = "Biss", [16827] = "Klaue", [1742] = "Ducken", [1263099] = "Schnellerer Angriff",
+    [1515] = "Wildtier zähmen" }
+local englishSpellInfo = GetSpellInfo
+GetSpellInfo = function(id) return german[id] end
+
+check("ability names: German maps to English", ns.EnglishAbility("Biss") == "Bite" and ns.EnglishAbility("Klaue") == "Claw")
+check("ability names: English still works", ns.EnglishAbility("Bite") == "Bite")
+
+-- Pet spellbook in German.
+units.pet = { name = "Shal'ma", family = "Katze", level = 11, guid = "Pet-0-1-2-3-165189-SHAL" }
+petSpells = { { "Biss", "Rang 2" }, { "Klaue", "Rang 1" }, { "Schnellerer Angriff V", "" }, { "Knurren", "Rang 1" } }
+local known = ns.PetKnown()
+check("German spellbook read", known.Bite == 2 and known.Claw == 1 and known["Faster Attack"] == 5,
+    tostring(known.Bite) .. " " .. tostring(known.Claw) .. " " .. tostring(known["Faster Attack"]))
+
+-- Family learned from a beast our data knows (Juvenile Snow Leopard is a Cat).
+BeastScoutDB.familyNames = nil
+units.mouseover = { name = "Junger Schneeleopard", family = "Katze", level = 6, guid = "Creature-0-1-2-3-1199-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("German family learned from known beast", BeastScoutDB.familyNames and BeastScoutDB.familyNames.Katze == "Cat")
+check("tooltip shows the Cat family abilities", text:find("Family: Bite, Claw", 1, true), text)
+check("pet family now known too", ns.FamilyOf("pet") == "Cat")
+
+-- Beast Lore in German, including a line whose number isn't a rank.
+units.mouseover = { name = "Testkatze", family = "Katze", level = 20, guid = "Creature-0-1-2-3-999777-0000ABCD" }
+resetTooltip("mouseover", { { "Klaue (Rang 3)" }, { "Biss verursacht 20 Schaden" } })
+ns.ReadBeastLore(tooltip, "mouseover")
+local lore = {}
+for _, t in ipairs(BeastScoutDB.npcs[999777] and BeastScoutDB.npcs[999777].teaches or {}) do lore[t[1]] = t[2] end
+check("German Beast Lore: Klaue (Rang 3) = Claw 3", lore.Claw == 3, tostring(lore.Claw))
+check("a number that isn't a real rank is ignored", lore.Bite == nil, tostring(lore.Bite))
+
+-- Beast Training in German.
+function GetNumTrainerServices() return 1 end
+function GetTrainerServiceInfo() return "Biss", "unavailable", 132278, 8, "Rang 2" end
+function GetTrainerServiceCost() return 4 end
+ns.ReadBeastTraining()
+check("German Beast Training stored under English", BeastScoutDB.trainer.skills.Bite and BeastScoutDB.trainer.skills.Bite[2].cost == 4)
+GetNumTrainerServices, GetTrainerServiceInfo, GetTrainerServiceCost = nil, nil, nil
+
+-- Zones by map ID, whatever the map is called.
+C_Map = { GetBestMapForUnit = function() return 1429 end, GetMapInfo = function() return { name = "Wald von Elwynn" } end }
+check("zone by map ID", ns.CurrentZoneName() == "Elwynn Forest")
+C_Map = nil
+
+GetSpellInfo = englishSpellInfo
+units.pet, units.mouseover = nil, nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

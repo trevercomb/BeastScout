@@ -63,7 +63,7 @@ function ns.PetKnown()
     if not UnitExists("pet") then return nil end
     local known = {}
     for _, spell in ipairs(ns.PetSpellbook()) do ns.FindAbilities(spell, known) end
-    return known, UnitName("pet"), UnitCreatureFamily("pet"), UnitLevel("pet")
+    return known, UnitName("pet"), ns.FamilyOf("pet"), UnitLevel("pet")
 end
 
 local function ReadPet(pet)
@@ -168,7 +168,10 @@ local function RememberMap(info)
 end
 
 local function MapID(zone)
-    if not (C_Map and C_Map.GetMapInfo) or not zone then return nil end
+    if not zone then return nil end
+    -- Known zones by ID (works in any language), others by name.
+    if ns.ZONE_MAP_IDS[zone] then return ns.ZONE_MAP_IDS[zone] end
+    if not (C_Map and C_Map.GetMapInfo) then return nil end
     if not mapIds then
         mapIds = {}
         for _, root in ipairs(MAP_ROOTS) do
@@ -353,8 +356,7 @@ end
 
 local function Here()
     local continent, wx, wy = PlayerWorldPos()
-    local zone = GetRealZoneText and GetRealZoneText()
-    if zone and (zone == "" or ns.IsSecret(zone)) then zone = nil end
+    local zone = ns.CurrentZoneName() -- English when we know the map
     if not continent and not zone then return nil end
     return { continent, wx, wy, zone = zone }
 end
@@ -810,7 +812,7 @@ local function TrainingPoints()
 end
 
 function ns.AddPetLines(tooltip)
-    local family = UnitCreatureFamily("pet")
+    local family = ns.FamilyOf("pet")
     tooltip:AddLine(HEADER .. " your pet" .. (family and (" (" .. family .. ")") or ""))
 
     local loyalty, loyaltyLevel = Loyalty()

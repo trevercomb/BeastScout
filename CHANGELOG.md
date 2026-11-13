@@ -3,6 +3,7 @@
 ## Unreleased
 
 - BeastScout's own logo as its icon in the AddOns list and on the minimap button.
+- Works on non-English clients: ability, family and zone names are matched in any language (BeastScout's own labels are still English).
 
 ## 0.10.1
 

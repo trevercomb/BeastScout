@@ -10,7 +10,7 @@ A small World of Warcraft: Forever addon for hunters. Hover over a wild beast an
 
 Hover over your own pet to see its **loyalty**, **happiness** (and whether loyalty is rising) and **free training points**.
 
-The extra lines only show up for hunters. No other addon is needed.
+The extra lines only show up for hunters. No other addon is needed. It works on any client language: names from the game are matched by spell and map IDs, though BeastScout's own labels are in English.
 
 ## What it looks like
 
