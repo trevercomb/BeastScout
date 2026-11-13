@@ -400,6 +400,25 @@ check("spawn point recorded", spot and spot[1] == "Dun Morogh" and spot[2] == 33
     spot and table.concat(spot, ","))
 units.target, C_Map, UiMapPoint = nil, nil, nil
 
+-- find by family, with speed in the results.
+units.player = { level = 12 }
+mark = #printed
+SlashCmdList.PETSCOUT("find cat")
+found = table.concat(printed, "\n", mark + 1)
+check("find cat lists cats with speed", printed[mark + 1]:find(" Cats", 1, true)
+    and found:find("Juvenile Snow Leopard (5-6) 1.5, Dun Morogh", 1, true), found)
+check("unknown level shown as ?", found:find("Nightsaber Guardian (level ?)", 1, true), found)
+check("cat results have no skill prefix", not found:find("Bite", 1, true), found)
+mark = #printed
+SlashCmdList.PETSCOUT("find wolves")
+check("find wolves (plural)", printed[mark + 1]:find(" Wolves, ", 1, true), printed[mark + 1])
+mark = #printed
+SlashCmdList.PETSCOUT("find birds of prey")
+check("find birds of prey", printed[mark + 1]:find(" Birds of Prey, ", 1, true), printed[mark + 1])
+mark = #printed
+SlashCmdList.PETSCOUT("find dragons")
+check("unknown family explained", printed[#printed]:find("find what?", 1, true), printed[#printed])
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

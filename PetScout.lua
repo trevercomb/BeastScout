@@ -45,7 +45,7 @@ local function PassiveOf(r)
     end
 end
 
-local function SpeedOf(r)
+function ns.SpeedOf(r)
     if r.speed and r.speedSource == "tame" then return r.speed, 3, "speedSource" end
     local name, rank = PassiveOf(r)
     local speed = name and ns.PASSIVE_SPEED[name][rank]
@@ -79,7 +79,7 @@ local function AddLines(tooltip, unit)
 
     tooltip:AddLine(HEADER .. " " .. family)
 
-    local speed, speedFrom = ns.Lookup(npcId, SpeedOf)
+    local speed, speedFrom = ns.Lookup(npcId, ns.SpeedOf)
     if speed then
         -- Source goes on the left: long right-hand text got clipped in game.
         tooltip:AddDoubleLine("Attack speed" .. speedFrom, string.format("%.1f", speed), 1, 1, 1, 1, 1, 1)

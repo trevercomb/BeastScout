@@ -220,12 +220,35 @@ end
 
 -- /petscout find ---------------------------------------------------------------
 
-function ns.Find(query)
-    local ability, rank = ParseQuery(query or "")
-    if not ability then
-        print(HEADER .. ": find what? e.g. /petscout find bite 2, /petscout find faster attack 5")
-        return
+-- "Wolf" -> "Wolves", "Bird of Prey" -> "Birds of Prey", "Cat" -> "Cats".
+local function Plural(family)
+    if family:find(" of ", 1, true) then return (family:gsub("^(%a+)", "%1s")) end
+    if family:find("f$") then return (family:gsub("f$", "ves")) end
+    return family .. "s"
+end
+
+-- "cat", "cats", "wolves", "birds of prey" -> "Cat", "Wolf", "Bird of Prey".
+local function ParseFamily(query)
+    local q = query:lower():gsub("^%s+", ""):gsub("%s+$", "")
+    for family in pairs(ns.FAMILIES) do
+        local f = family:lower()
+        local plural = f:gsub("f$", "ve") .. "s" -- wolf -> wolves
+        if q == f or q == f .. "s" or q == plural or q == f:gsub("^(%a+)", "%1s") then return family end
     end
+end
+
+function ns.Find(query)
+    query = query or ""
+    local family = ParseFamily(query)
+    local ability, rank
+    if not family then
+        ability, rank = ParseQuery(query)
+        if not ability then
+            print(HEADER .. ": find what? e.g. /petscout find bite 2, /petscout find faster attack 5, /petscout find cat")
+            return
+        end
+    end
+    local what = family and Plural(family) or (ability .. (rank and (" " .. rank) or ""))
 
     local ids = {}
     for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, PetScoutDB.npcs }) do
@@ -235,23 +258,29 @@ function ns.Find(query)
     local continent, wx, wy = PlayerWorldPos()
     local here = continent and { continent, wx, wy }
     local matches = {}
+    local function Add(npcId, m)
+        local low, high = LevelRange(npcId)
+        local spot, dist = Nearest(Spots(npcId), here)
+        local zones = Field(npcId, "zones")
+        m.name, m.family = Field(npcId, "name") or "?", Field(npcId, "family") or "?"
+        m.levelMin, m.levelMax, m.spot, m.dist = low, high, spot, dist
+        m.where = spot and spot[1] or (zones and table.concat(zones, ", "))
+        matches[#matches + 1] = m
+    end
     for npcId in pairs(ids) do
-        local teaches = ns.Lookup(npcId, ns.TeachesOf)
-        for _, t in ipairs(teaches or {}) do
-            if t[1] == ability and (not rank or t[2] == rank) then
-                local low, high = LevelRange(npcId)
-                local spot, dist = Nearest(Spots(npcId), here)
-                local zones = Field(npcId, "zones")
-                matches[#matches + 1] = {
-                    rank = t[2], name = Field(npcId, "name") or "?", family = Field(npcId, "family") or "?",
-                    levelMin = low, levelMax = high, spot = spot, dist = dist,
-                    where = spot and spot[1] or (zones and table.concat(zones, ", ")),
-                }
+        if family then
+            if Field(npcId, "family") == family then
+                -- Speed is what you compare when picking between beasts of one family.
+                Add(npcId, { rank = 0, speed = ns.Lookup(npcId, ns.SpeedOf) })
+            end
+        else
+            for _, t in ipairs(ns.Lookup(npcId, ns.TeachesOf) or {}) do
+                if t[1] == ability and (not rank or t[2] == rank) then Add(npcId, { rank = t[2] }) end
             end
         end
     end
     if #matches == 0 then
-        print(HEADER .. ": no beast found that teaches " .. ability .. (rank and (" " .. rank) or "") .. ".")
+        print(HEADER .. ": no " .. (family and (what .. " found") or ("beast found that teaches " .. what)) .. ".")
         return
     end
 
@@ -268,18 +297,24 @@ function ns.Find(query)
     end)
 
     wipe(results)
-    print(HEADER .. ": " .. #matches .. " beasts teach " .. ability .. (rank and (" " .. rank) or "")
+    print(HEADER .. ": " .. #matches .. " " .. (family and what or ("beasts teach " .. what))
         .. (#matches > 8 and ", showing 8" or "") .. ", closest first:")
     for i = 1, math.min(8, #matches) do
         local m = matches[i]
         results[i] = m
         local levels = m.levelMin .. ((m.levelMax and m.levelMax ~= m.levelMin) and ("-" .. m.levelMax) or "")
+        if m.levelMin == 0 and not m.levelMax then levels = "level ?" end
         local where = m.where and (", " .. m.where) or ""
         local far = m.dist and (" " .. Yards(m.dist)) or ""
         local link = m.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or ""
         local color = m.levelMin <= level and "" or GREY
-        print("  " .. i .. ". " .. color .. ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " "
-            .. levels .. ")" .. where .. far .. (color ~= "" and "|r" or "") .. link)
+        local label
+        if family then
+            label = m.name .. " (" .. levels .. ")" .. (m.speed and (" " .. string.format("%.1f", m.speed)) or "")
+        else
+            label = ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " " .. levels .. ")"
+        end
+        print("  " .. i .. ". " .. color .. label .. where .. far .. (color ~= "" and "|r" or "") .. link)
     end
     print(GREY .. "  Click [Waypoint] or type /petscout way <number>.|r")
 end
