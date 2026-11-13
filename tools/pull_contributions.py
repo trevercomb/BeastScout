@@ -8,10 +8,12 @@ merge counts one report per player) but not reversible without the salt.
 The salt and the list of pulled issues stay in tools/local.json, which isn't
 committed. Needs the GitHub CLI (gh), logged in.
 
+Each issue is deleted once it's been read and saved, so the public issue
+(which shows the username) doesn't stay around. That can't be undone; the
+data is in contributions/ by then. --keep-issues leaves them in place.
+
 Usage:
-  python tools/pull_contributions.py [--state open|closed|all] [--delete-merged]
---delete-merged deletes each pulled issue afterwards, so the public issue
-(which shows the username) goes too. That can't be undone.
+  python tools/pull_contributions.py [--state open|closed|all] [--keep-issues]
 Then rebuild with tools/build_bestiary.py.
 """
 
@@ -87,8 +89,8 @@ def gh(*args):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--state", default="open", choices=["open", "closed", "all"])
-    ap.add_argument("--delete-merged", action="store_true",
-                    help="delete each pulled issue afterwards (permanent)")
+    ap.add_argument("--keep-issues", action="store_true",
+                    help="don't delete issues after reading them")
     args = ap.parse_args()
 
     config = load_local()
@@ -141,16 +143,17 @@ def main():
     if not pulled:
         print("Nothing new to pull.")
         return
-    if args.delete_merged:
+    # The data is saved (above) before anything is deleted.
+    if not args.keep_issues:
         for number in pulled:
-            gh("issue", "delete", str(number), "--yes")
-            print(f"deleted issue #{number}")
+            try:
+                gh("issue", "delete", str(number), "--yes")
+                print(f"deleted issue #{number}")
+            except subprocess.CalledProcessError as e:
+                print(f"couldn't delete issue #{number}: {(e.stderr or '').strip()}")
     print("\nNext:")
     print("  python tools/build_bestiary.py")
-    print("  review the Community.lua diff and commit"
-          + ("" if args.delete_merged else
-             ", then close or delete the issues: "
-             + " ".join(f"gh issue close {n} -c \"Merged, thanks!\"" for n in pulled)))
+    print("  review the Community.lua diff and commit")
 
 
 if __name__ == "__main__":

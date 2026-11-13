@@ -52,17 +52,18 @@ def main():
         "good line kept": all("[1] = " in t for t in texts),
         "salt kept locally": len(config.get("author_salt", "")) == 32,
         "pulled issues remembered": config.get("pulled_issues") == [7, 8],
-        "nothing deleted without the flag": not any(c[:2] == ("issue", "delete") for c in calls),
+        "issues deleted after reading": sorted(c[2] for c in calls if c[:2] == ("issue", "delete")) == ["7", "8"],
         "hash depends on the salt": pc.author_hash("x", "salt1") != pc.author_hash("x", "salt2"),
     }
 
-    # A second run pulls nothing; --delete-merged deletes only what it pulls.
+    # A second run skips pulled issues; --keep-issues deletes nothing.
     issues.append({"number": 9, "author": {"login": "other"}, "body": BODY, "createdAt": "2026-11-15T00:00:00Z"})
     calls.clear()
-    sys.argv = ["pull_contributions.py", "--delete-merged"]
+    sys.argv = ["pull_contributions.py", "--keep-issues"]
     pc.main()
     deleted = [c[2] for c in calls if c[:2] == ("issue", "delete")]
-    checks["re-run skips pulled issues, deletes only the new one"] = deleted == ["9"]
+    checks["--keep-issues deletes nothing"] = deleted == []
+    checks["re-run reads only the new issue"] = json.loads(pc.LOCAL.read_text())["pulled_issues"] == [7, 8, 9]
     checks["other player gets another hash"] = len({f.read_text().splitlines()[0]
                                                     for f in pc.CONTRIB.glob("*.lua")}) == 2
 

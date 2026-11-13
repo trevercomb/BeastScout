@@ -84,11 +84,11 @@ Everything in the window also works in chat:
 Your observations improve everyone's tooltips once they're merged into a release.
 
 1. In game, type `/beastscout export`. The text is already selected: press Ctrl+C.
-2. Open [Share beast observations](https://github.com/trevercomb/BeastScout/issues/new?template=observations.yml) (needs a free GitHub account), paste, and submit.
+2. Open [Share beast observations](https://github.com/trevercomb/BeastScout/issues/new?template=observations.yml) (needs a free GitHub account), paste, and submit. Your issue is deleted once its data is merged.
 
 ## Maintainer: merging shared observations
 
-1. Pull submitted issues into `contributions/`. Each line is checked: known family and abilities, ranks 1–10, speed 0.8–3.5, sane levels. Bad lines are rejected and listed. Files don't name anyone: each player's author is a salted hash (the salt stays in `tools/local.json`, which isn't committed), and files are named by date, not issue number. Add `--delete-merged` to delete the issues once pulled, so the public issue goes too.
+1. Pull submitted issues into `contributions/`. Each line is checked: known family and abilities, ranks 1–10, speed 0.8–3.5, sane levels. Bad lines are rejected and listed. Files don't name anyone: each player's author is a salted hash (the salt stays in `tools/local.json`, which isn't committed), and files are named by date, not issue number. Each issue is **deleted** once it's read and saved, so the public issue (with the username) doesn't stay around; `--keep-issues` skips that.
 
    ```
    python tools/pull_contributions.py

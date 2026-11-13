@@ -1,13 +1,13 @@
 name: Share beast observations
 description: Paste your /beastscout export so everyone's tooltips get your data.
-title: "Observations from "
+title: "Beast observations"
 labels: ["observations"]
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for helping! In game, type `/beastscout export`, press Ctrl+A then Ctrl+C in the window, and paste below.
-        You only need to change the title: put your character or realm name after "Observations from".
+        Once your data is merged, this issue is deleted, so your username isn't kept with it. Submitting again later is fine: your newer data replaces your older data.
   - type: textarea
     id: export
     attributes:
