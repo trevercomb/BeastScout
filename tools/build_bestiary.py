@@ -156,11 +156,24 @@ def pick(reports):
     return value, top[0][1], counts[value]
 
 
+def author_of(path):
+    """The '-- author: name' line of a contribution file. Files without one
+    count as their own author, so they can't be merged with anyone."""
+    m = re.search(r"^-- author: (\S+)", Path(path).read_text(encoding="utf-8"), re.M)
+    return m.group(1).lower() if m else "file:" + Path(path).name
+
+
 def merge_contributions(paths):
-    reports = {}
+    # One report per author per beast: a player who exports and submits
+    # everything again replaces their old report instead of counting twice.
+    latest_by_author = {}
     for order, path in enumerate(paths):
+        author = author_of(path)
         for npc_id, b in parse_ours(path).items():
-            reports.setdefault(npc_id, []).append((order, b))
+            latest_by_author[(npc_id, author)] = (order, b)
+    reports = {}
+    for (npc_id, _), row in sorted(latest_by_author.items(), key=lambda kv: kv[1][0]):
+        reports.setdefault(npc_id, []).append(row)
 
     merged = {}
     for npc_id, rows in reports.items():

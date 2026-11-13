@@ -156,7 +156,9 @@ def sync(wtf):
                 continue
             beasts[npc_id] = combine(beasts[npc_id], b) if npc_id in beasts else b
 
-    lines = ["-- Your own observations, synced by tools/sync_local.py. Regenerated on every sync."]
+    # One author for all of your own data, so re-syncing never double counts.
+    lines = ["-- Your own observations, synced by tools/sync_local.py. Regenerated on every sync.",
+             "-- author: maintainer"]
     lines += [to_line(i, beasts[i]) for i in sorted(beasts)]
     text = "\n".join(lines) + "\n"
     if OUT.exists() and OUT.read_text(encoding="utf-8") == text:

@@ -47,6 +47,23 @@ def main():
     checks["round trip"] = back["speed"] == 1.5 and back["speedSource"] == "tame" \
         and back["teaches"] == m[1]["teaches"] and back["teachesSource"] == "tame"
 
+    # One report per author: re-submitting doesn't count twice.
+    same = [
+        contrib(tmp, "issue-10.lua", "-- author: alice",
+                '    [5] = { name="Cat E", family="Cat", speed=1.3, speedSource="tame" },'),
+        contrib(tmp, "issue-11.lua", "-- author: Alice",
+                '    [5] = { name="Cat E", family="Cat", speed=1.3, speedSource="tame" },'),
+    ]
+    m2 = merge_contributions(same)
+    checks["same player twice counts once"] = m2[5]["speedReports"] == 1
+    two = same + [contrib(tmp, "issue-12.lua", "-- author: bob",
+                          '    [5] = { name="Cat E", family="Cat", speed=1.3, speedSource="tame" },')]
+    checks["two players count twice"] = merge_contributions(two)[5]["speedReports"] == 2
+    changed = [same[0], contrib(tmp, "issue-13.lua", "-- author: alice",
+                                '    [5] = { name="Cat E", family="Cat", speed=1.2, speedSource="tame" },')]
+    m3 = merge_contributions(changed)
+    checks["a player's newer report replaces their older one"] = m3[5]["speed"] == 1.2 and m3[5]["speedReports"] == 1
+
     failed = [name for name, ok in checks.items() if not ok]
     for name, ok in checks.items():
         print(("ok   " if ok else "FAIL ") + name)

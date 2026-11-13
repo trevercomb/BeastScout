@@ -84,7 +84,8 @@ def main():
             print(f"    rejected {npc_id}: {', '.join(why)}")
         if not good:
             continue
-        lines = [f"-- From issue #{issue['number']} by {issue['author']['login']}"]
+        lines = [f"-- From issue #{issue['number']} by {issue['author']['login']}",
+                 f"-- author: {issue['author']['login']}"]
         lines += [to_line(npc_id, beasts[npc_id]) for npc_id, _ in good]
         out.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         pulled.append(issue["number"])
