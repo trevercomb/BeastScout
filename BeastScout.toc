@@ -4,6 +4,7 @@
 ## Author: Tony
 ## Version: 0.10.0
 ## SavedVariables: BeastScoutDB
+## X-Curse-Project-ID: 1802153
 
 Data.lua
 Training.lua
