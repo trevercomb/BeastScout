@@ -300,13 +300,23 @@ local function Call(name)
     return select(2, unpack(results))
 end
 
+local LOYALTY = { "Rebellious", "Unruly", "Submissive", "Dependable", "Faithful", "Best Friend" }
+
+-- Loyalty name and level. Forever gave only the name ("Unruly"), so the
+-- level comes from its place in the list when the game doesn't say.
 local function Loyalty()
     local a, b = Call("GetPetLoyalty")
     if type(a) == "table" then
         a, b = a.loyaltyLevel or a.level or a[1], a.loyaltyName or a.name or a.text or a[2]
     end
-    if type(a) == "number" then return b and (b .. " (" .. a .. ")") or ("Level " .. a) end
-    if type(a) == "string" and a ~= "" then return a end
+    local level, name = tonumber(a), type(b) == "string" and b or nil
+    if type(a) == "string" and a ~= "" then name = a end
+    if name and not level then
+        for i, n in ipairs(LOYALTY) do
+            if name:find(n, 1, true) then level = i end
+        end
+    end
+    return name or (level and LOYALTY[level]), level
 end
 
 local function Happiness()
@@ -330,8 +340,9 @@ function ns.AddPetLines(tooltip)
     local family = UnitCreatureFamily("pet")
     tooltip:AddLine(HEADER .. " your pet" .. (family and (" (" .. family .. ")") or ""))
 
-    local loyalty = Loyalty()
-    tooltip:AddDoubleLine("Loyalty", loyalty or GREY .. "unknown|r", 1, 1, 1, 1, 1, 1)
+    local loyalty, loyaltyLevel = Loyalty()
+    local loyaltyText = loyalty and (loyalty .. (loyaltyLevel and (" (" .. loyaltyLevel .. " of 6)") or ""))
+    tooltip:AddDoubleLine("Loyalty", loyaltyText or GREY .. "unknown|r", 1, 1, 1, 1, 1, 1)
 
     local happiness, rate = Happiness()
     if happiness then
@@ -343,7 +354,13 @@ function ns.AddPetLines(tooltip)
 
     local available, total = TrainingPoints()
     if total then
-        tooltip:AddDoubleLine("Training points", available .. " free of " .. total, 1, 1, 1, 1, 1, 1)
+        -- Total = pet level x (loyalty - 1), confirmed in game (level 10
+        -- Unruly = 10). Only show the next step when the numbers fit it.
+        local petLevel, next = UnitLevel("pet"), ""
+        if loyaltyLevel and loyaltyLevel < #LOYALTY and petLevel and total == petLevel * (loyaltyLevel - 1) then
+            next = " (" .. petLevel * loyaltyLevel .. " at " .. LOYALTY[loyaltyLevel + 1] .. ")"
+        end
+        tooltip:AddDoubleLine("Training points", available .. " free of " .. total .. next, 1, 1, 1, 1, 1, 1)
     end
     tooltip:Show()
 end

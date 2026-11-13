@@ -319,7 +319,8 @@ function GetPetTrainingPoints() return 22, 21 end
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("pet tooltip: loyalty", text:find("Loyalty | Unruly (2)", 1, true), text)
+check("pet tooltip: loyalty", text:find("Loyalty | Unruly (2 of 6)", 1, true), text)
+check("no next step when the numbers do not fit", not text:find(" at Submissive", 1, true), text)
 check("pet tooltip: happiness and trend", text:find("Happiness | Happy (loyalty rising)", 1, true), text)
 check("pet tooltip: training points", text:find("Training points | 1 free of 22", 1, true), text)
 check("pet tooltip: no wild-beast lines", not text:find("Attack speed", 1, true), text)
@@ -333,9 +334,21 @@ C_PetInfo = {
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("pet tooltip: table-shaped loyalty", text:find("Loyalty | Submissive (3)", 1, true), text)
+check("pet tooltip: table-shaped loyalty", text:find("Loyalty | Submissive (3 of 6)", 1, true), text)
 check("pet tooltip: unhappy, loyalty dropping", text:find("Happiness | Unhappy (loyalty dropping)", 1, true), text)
 check("pet tooltip: missing TP API is skipped", not text:find("Training points", 1, true), text)
+-- What Forever actually returned: just the name. Level 10, 2 free of 10.
+C_PetInfo = nil
+units.pet.level = 10
+function GetPetLoyalty() return "Unruly" end
+function GetPetHappiness() return 3, 125, 20 end
+function GetPetTrainingPoints() return 10, 8 end
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("name-only loyalty gets its level", text:find("Loyalty | Unruly (2 of 6)", 1, true), text)
+check("next loyalty step worth", text:find("Training points | 2 free of 10 (20 at Submissive)", 1, true), text)
+GetPetLoyalty, GetPetHappiness, GetPetTrainingPoints = nil, nil, nil
 C_PetInfo, UnitIsUnit, units.pet, units.mouseover = nil, nil, nil, nil
 
 -- Distance and waypoints, on a fake continent: Dun Morogh at world (0, 0) and
