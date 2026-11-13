@@ -340,6 +340,52 @@ function ns.StartCollecting(frame)
     end
 end
 
+-- Beast Training -----------------------------------------------------------------
+-- Forever opens Beast Training in the class trainer window, so the trainer
+-- API lists the pet skills you can teach (seen in game 2026-11-13:
+-- GetTrainerServiceInfo(i) -> "Bite", "unavailable", icon, 8, "Rank 2").
+-- PetScoutDB.trainer.skills[ability][rank] = { state, level, costRaw }.
+-- costRaw keeps GetTrainerServiceCost's returns until we know which is TP.
+
+local unpack = unpack or table.unpack
+
+function ns.ReadBeastTraining()
+    if not (GetNumTrainerServices and GetTrainerServiceInfo) then return end
+    if UnitExists("npc") then return end -- talking to a real class trainer
+    local ok, n = pcall(GetNumTrainerServices)
+    n = ok and tonumber(n) or 0
+    if n == 0 then return end
+    local skills = {}
+    for i = 1, n do
+        local info = { pcall(GetTrainerServiceInfo, i) }
+        local name, state = info[2], info[3]
+        if info[1] and type(name) == "string" and not IsSecret(name) then
+            local rank, level = 1, nil
+            for j = 4, #info do
+                local v = info[j]
+                if type(v) == "string" and not IsSecret(v) and v:match("Rank (%d+)") then
+                    rank = tonumber(v:match("Rank (%d+)"))
+                elseif type(v) == "number" and not IsSecret(v) and j == 5 then
+                    level = v
+                end
+            end
+            if GetTrainerServiceLevelReq then
+                local okLevel, req = pcall(GetTrainerServiceLevelReq, i)
+                if okLevel and tonumber(req) then level = tonumber(req) end
+            end
+            local costRaw
+            if GetTrainerServiceCost then
+                local c = { pcall(GetTrainerServiceCost, i) }
+                if c[1] then costRaw = { select(2, unpack(c)) } end
+            end
+            skills[name] = skills[name] or {}
+            skills[name][rank] = { state = state, level = level, costRaw = costRaw }
+        end
+    end
+    PetScoutDB.trainer = { skills = skills, at = time and time() or 0 }
+    Debug("read Beast Training:", n, "entries")
+end
+
 -- /petscout trainer: what PetScout can read from the Beast Training window.
 -- Run it with the window open; the answer decides how to read it for real.
 function ns.ProbeTrainer()
@@ -381,7 +427,8 @@ function ns.ProbeTrainer()
         local ok, n = pcall(GetNumTrainerServices)
         print("  trainer services: " .. tostring(ok and n))
         for i = 1, math.min(tonumber(ok and n) or 0, 12) do
-            print("  " .. i .. ": " .. Show(select(2, pcall(GetTrainerServiceInfo, i))))
+            print("  " .. i .. ": " .. Show(select(2, pcall(GetTrainerServiceInfo, i)))
+                .. "  cost: " .. (GetTrainerServiceCost and Show(select(2, pcall(GetTrainerServiceCost, i))) or "?"))
         end
     end
 
@@ -433,6 +480,10 @@ function ns.ProbeTrainer()
         end
     end
     print("  frames showing \"Training Points\": " .. (#found > 0 and table.concat(found, ", ") or "none"))
+    pcall(ns.ReadBeastTraining)
+    local n = 0
+    for _ in pairs(PetScoutDB.trainer and PetScoutDB.trainer.skills or {}) do n = n + 1 end
+    print("  PetScout has recorded " .. n .. " trainable skills.")
 end
 
 function ns.OnCollectEvent(event, ...)
@@ -450,6 +501,10 @@ function ns.OnCollectEvent(event, ...)
         pcall(ns.MeasurePet)
     elseif event:find("CRAFT") or event:find("TRAINER") then
         Debug("training window event:", event)
+        if event == "TRAINER_SHOW" or event == "TRAINER_UPDATE" then
+            -- The list fills a moment after the window opens.
+            C_Timer.After(0.2, function() pcall(ns.ReadBeastTraining) end)
+        end
     end
 end
 

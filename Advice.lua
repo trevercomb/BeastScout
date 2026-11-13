@@ -34,10 +34,28 @@ end
 
 -- Pet level a rank needs and its training point cost (nil when unknown,
 -- e.g. Faster Attack, which comes with the tame).
+-- What Beast Training says you can teach (read whenever you open it):
+-- { [rank] = { state, level, costRaw } } for one ability.
+local function TrainerRanks(ability)
+    local skills = PetScoutDB.trainer and PetScoutDB.trainer.skills
+    return skills and skills[ability]
+end
+
+-- Highest rank of an ability you can teach at Beast Training (0: none).
+function ns.TrainerRank(ability)
+    local best = 0
+    for rank in pairs(TrainerRanks(ability) or {}) do best = math.max(best, rank) end
+    return best
+end
+
+-- Pet level a rank needs (Beast Training's own number when it's been read)
+-- and its training point cost (nil when unknown, e.g. passives).
 local function RankNeeds(ability, rank)
+    local seen = TrainerRanks(ability)
+    seen = seen and seen[rank]
     local training = ns.TRAINING and ns.TRAINING[ability]
     local r = training and training.ranks[rank]
-    if r then return r[1], r[2] end
+    return (seen and seen.level) or (r and r[1]), r and r[2]
 end
 
 -- What your current pet knows, read from its spellbook: { [ability] = rank }.
@@ -69,14 +87,20 @@ function ns.UpgradeOptions(teaches, pet)
         if not NEVER[ability] and rank > has and CanLearn(pet.family, ability) then
             local needs, cost = RankNeeds(ability, rank)
             out[#out + 1] = { ability = ability, rank = rank, has = has, cost = cost, needs = needs,
-                learnable = not needs or not pet.level or pet.level >= needs }
+                learnable = not needs or not pet.level or pet.level >= needs,
+                trainable = (TrainerRanks(ability) or {})[rank] ~= nil } -- listed in Beast Training
         end
     end
     return out, pet
 end
 
--- "Bite 2 (has 1, 4 TP)", "Cower 1 (new, 8 TP)", or "Claw 3 (at pet level 16)".
+-- "Bite 2 (has 1, 4 TP)", "Cower 1 (new, 8 TP)", "Claw 3 (at pet level 16)",
+-- or for ranks you can already teach: "Bite 2 (train it, 4 TP)".
 function ns.DescribeUpgrade(o)
+    if o.trainable then
+        if not o.learnable then return o.ability .. " " .. o.rank .. " (train at pet level " .. o.needs .. ")" end
+        return o.ability .. " " .. o.rank .. " (train it" .. (o.cost and (", " .. o.cost .. " TP") or "") .. ")"
+    end
     if not o.learnable then return o.ability .. " " .. o.rank .. " (at pet level " .. o.needs .. ")" end
     local parts = { o.has > 0 and ("has " .. o.has) or "new" }
     if o.cost then parts[#parts + 1] = o.cost .. " TP" end
@@ -516,13 +540,42 @@ local function SearchUpgrades(limit)
         local low = LevelRange(npcId)
         if low > 0 and low <= level then
             for _, o in ipairs(ns.UpgradeOptions(ns.Lookup(npcId, ns.TeachesOf), pet)) do
-                offers[o.ability] = offers[o.ability] or {}
-                table.insert(offers[o.ability], { npcId = npcId, o = o })
+                -- Ranks you can already teach don't need a beast.
+                if not o.trainable then
+                    offers[o.ability] = offers[o.ability] or {}
+                    table.insert(offers[o.ability], { npcId = npcId, o = o })
+                end
             end
         end
     end
+
+    -- Skills you've already learned: train them at Beast Training.
+    local train = {} -- ability -> rows
+    for _, ability in ipairs(ns.TAME_ABILITIES) do
+        local top, has = ns.TrainerRank(ability), pet.known[ability] or 0
+        if top > has and not NEVER[ability] and CanLearn(pet.family, ability) then
+            local options = ns.UpgradeOptions({ { ability, top } }, pet)
+            -- Only ranks the window actually lists (knowing Bite 2 doesn't mean
+            -- you can teach Bite 1).
+            local listed, now = TrainerRanks(ability) or {}, 0
+            for rank = top, has + 1, -1 do
+                local needs = RankNeeds(ability, rank)
+                if listed[rank] and (not needs or not pet.level or pet.level >= needs) then now = rank break end
+            end
+            local rows = {}
+            if now > 0 then
+                local o = ns.UpgradeOptions({ { ability, now } }, pet)[1]
+                rows[#rows + 1] = { text = ns.DescribeUpgrade(o) .. ": at Beast Training" }
+            end
+            if top > now and options[1] then
+                rows[#rows + 1] = { text = ns.DescribeUpgrade(options[1]) .. ": at Beast Training", grey = true }
+            end
+            train[ability] = { rows = rows, now = now > 0 }
+        end
+    end
+
     local who = pet.name or "your pet"
-    if not next(offers) then
+    if not next(offers) and not next(train) then
         return { error = "nothing at your level would teach " .. who .. " anything new." }
     end
 
@@ -556,6 +609,11 @@ local function SearchUpgrades(limit)
     end
 
     local groups = {}
+    for ability, t in pairs(train) do
+        if not offers[ability] then
+            groups[#groups + 1] = { ability = ability, rows = t.rows, now = t.now, first = t.now and -1 or math.huge }
+        end
+    end
     for ability, list in pairs(offers) do
         local best, future = 0, 0
         for _, e in ipairs(list) do
@@ -576,7 +634,13 @@ local function SearchUpgrades(limit)
             local soon = Closest(list, function(o) return not o.learnable and o.rank == future end, 1)[1]
             if soon then rows[#rows + 1] = Row(soon, true) end
         end
-        groups[#groups + 1] = { ability = ability, rows = rows, now = best > 0, first = first }
+        local t = train[ability]
+        if t then
+            -- Training comes first; a beast only for the ranks beyond it.
+            for i = #t.rows, 1, -1 do table.insert(rows, 1, t.rows[i]) end
+            if t.now then first = -1 end
+        end
+        groups[#groups + 1] = { ability = ability, rows = rows, now = best > 0 or (t and t.now), first = first }
     end
     table.sort(groups, function(a, b)
         if a.now ~= b.now then return a.now end
@@ -593,7 +657,8 @@ local function SearchUpgrades(limit)
     return {
         title = "best upgrades for " .. who .. " (pet level " .. (pet.level or "?") .. "), by skill, closest first",
         rows = rows,
-        note = "Greyed: within your level, but " .. who .. " is too young to learn it yet.",
+        note = "Greyed: " .. who .. " is too young to learn it yet."
+            .. (PetScoutDB.trainer and "" or " Open Beast Training once so PetScout knows what you can already teach."),
     }
 end
 

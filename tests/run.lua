@@ -621,8 +621,54 @@ local window = { IsShown = function() return true end, GetRegions = function() r
 EnumerateFrames = function(f) if f == nil then return window end end
 mark = #printed
 SlashCmdList.PETSCOUT("trainer")
-check("probe finds the window by its label", printed[#printed]:find('ForeverBeastTraining ("Training Points: 0")', 1, true), printed[#printed])
+check("probe finds the window by its label", printed[#printed - 1]:find('ForeverBeastTraining ("Training Points: 0")', 1, true), printed[#printed - 1])
 EnumerateFrames = nil
+
+-- Beast Training as Forever showed it for River (2026-11-13).
+local services = {
+    { "Growl", "used", 132270, 1, "Rank 1" }, { "Great Stamina", "available", 136112, 1, "Rank 1" },
+    { "Natural Armor", "available", 136094, 1, "Rank 1" }, { "Bite", "unavailable", 132278, 8, "Rank 2" },
+    { "Claw", "unavailable", 132140, 8, "Rank 2" }, { "Growl", "unavailable", 132270, 10, "Rank 2" },
+    { "Great Stamina", "unavailable", 136112, 12, "Rank 2" }, { "Natural Armor", "unavailable", 136094, 12, "Rank 2" },
+}
+function GetNumTrainerServices() return #services end
+function GetTrainerServiceInfo(i) return table.unpack(services[i]) end
+PetScoutDB.trainer = nil
+ns.ReadBeastTraining()
+local tr = PetScoutDB.trainer and PetScoutDB.trainer.skills
+check("trainer read: Bite 2 at pet level 8", tr and tr.Bite and tr.Bite[2] and tr.Bite[2].level == 8)
+check("trainer read: Claw 2 at pet level 8", tr and tr.Claw and tr.Claw[2] and tr.Claw[2].level == 8)
+check("trainer rank", ns.TrainerRank("Bite") == 2 and ns.TrainerRank("Cower") == 0)
+
+-- Not when talking to a real class trainer.
+units.npc = { name = "Regnus Thundergranite" }
+PetScoutDB.trainer = nil
+ns.ReadBeastTraining()
+check("ignores real class trainers", PetScoutDB.trainer == nil)
+units.npc = nil
+ns.ReadBeastTraining()
+
+-- River at pet level 7 (knows Claw 1): Bite 2 and Claw 2 are "train at 8",
+-- not a beast to tame; Cower still sends you to a beast.
+units.player = { level = 12 }
+units.pet = { name = "River", family = "Bear", level = 7, guid = "Pet-0-1-2-3-165189-RIVER" }
+petSpells = { { "Claw", "Rank 1" } }
+local ur = ns.Search("upgrades", 30)
+local lines = {}
+for _, row in ipairs(ur.rows or {}) do lines[#lines + 1] = row.text end
+local ut = table.concat(lines, "\n")
+check("upgrades: Bite 1 isn't trainable (only Bite 2 is listed)", not ut:find("Bite 1 (train", 1, true), ut)
+check("upgrades: Bite 2 says train at pet level 8", ut:find("Bite 2 (train at pet level 8): at Beast Training", 1, true), ut)
+check("upgrades: Claw 2 says train at pet level 8", ut:find("Claw 2 (train at pet level 8): at Beast Training", 1, true), ut)
+check("upgrades: no beast suggested for Bite 2", not ut:find("Bite 2 (new", 1, true), ut)
+check("upgrades: Cower still from a beast", ut:find("Cower 1 (new, 8 TP): ", 1, true), ut)
+check("upgrades: Bite 1 still from a beast (not trainable)", ut:find("Bite 1 (new, 1 TP): ", 1, true), ut)
+
+-- At pet level 8 Bite 2 becomes "train it" and comes first.
+units.pet.level = 8
+ur = ns.Search("upgrades", 30)
+check("upgrades: train-now row first", ur.rows[1].text:find("(train it, 4 TP): at Beast Training", 1, true), ur.rows[1].text)
+GetNumTrainerServices, GetTrainerServiceInfo, units.pet = nil, nil, nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
