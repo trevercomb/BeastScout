@@ -309,6 +309,35 @@ check("zone recorded", PetScoutDB.npcs[1131].zones and PetScoutDB.npcs[1131].zon
 GetRealZoneText = nil
 units.target = nil
 
+-- Hovering your own pet shows its loyalty, happiness and training points.
+units.pet = { name = "Shal'ma", family = "Cat", level = 11, guid = "Pet-0-1-2-3-165189-SHAL" }
+units.mouseover = units.pet
+function UnitIsUnit(a, b) return units[a] ~= nil and units[a] == units[b] end
+function GetPetLoyalty() return 2, "Unruly" end
+function GetPetHappiness() return 3, 125, 20 end
+function GetPetTrainingPoints() return 22, 21 end
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("pet tooltip: loyalty", text:find("Loyalty | Unruly (2)", 1, true), text)
+check("pet tooltip: happiness and trend", text:find("Happiness | Happy (loyalty rising)", 1, true), text)
+check("pet tooltip: training points", text:find("Training points | 1 free of 22", 1, true), text)
+check("pet tooltip: no wild-beast lines", not text:find("Attack speed", 1, true), text)
+
+-- Newer clients may hand back tables instead.
+GetPetLoyalty, GetPetHappiness, GetPetTrainingPoints = nil, nil, nil
+C_PetInfo = {
+    GetPetLoyalty = function() return { loyaltyLevel = 3, loyaltyName = "Submissive" } end,
+    GetPetHappiness = function() return { happinessLevel = 1, loyaltyRate = -5 } end,
+}
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("pet tooltip: table-shaped loyalty", text:find("Loyalty | Submissive (3)", 1, true), text)
+check("pet tooltip: unhappy, loyalty dropping", text:find("Happiness | Unhappy (loyalty dropping)", 1, true), text)
+check("pet tooltip: missing TP API is skipped", not text:find("Training points", 1, true), text)
+C_PetInfo, UnitIsUnit, units.pet, units.mouseover = nil, nil, nil, nil
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

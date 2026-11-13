@@ -130,3 +130,67 @@ function ns.Find(query)
             .. where .. (color ~= "" and "|r" or ""))
     end
 end
+
+-- Your pet's status ----------------------------------------------------------
+-- The game hides loyalty behind the pet frame; this puts it in the pet's
+-- tooltip. Classic returns plain values, newer clients may return a table,
+-- so each reader accepts either (as Hunter's Handbook does on Forever).
+
+local HAPPINESS = { "Unhappy", "Content", "Happy" }
+local unpack = unpack or table.unpack
+
+local function Call(name)
+    local fn = _G[name] or (C_PetInfo and C_PetInfo[name])
+    if type(fn) ~= "function" then return nil end
+    local results = { pcall(fn) }
+    if not results[1] then return nil end
+    return select(2, unpack(results))
+end
+
+local function Loyalty()
+    local a, b = Call("GetPetLoyalty")
+    if type(a) == "table" then
+        a, b = a.loyaltyLevel or a.level or a[1], a.loyaltyName or a.name or a.text or a[2]
+    end
+    if type(a) == "number" then return b and (b .. " (" .. a .. ")") or ("Level " .. a) end
+    if type(a) == "string" and a ~= "" then return a end
+end
+
+local function Happiness()
+    local level, _, rate = Call("GetPetHappiness")
+    if type(level) == "table" then
+        level, rate = level.happinessLevel or level.happiness or level.level or level[1], level.loyaltyRate or level[3]
+    end
+    return HAPPINESS[tonumber(level) or 0], tonumber(rate)
+end
+
+local function TrainingPoints()
+    local total, spent = Call("GetPetTrainingPoints")
+    if type(total) == "table" then
+        total, spent = total.totalPoints or total.total or total[1], total.spentPoints or total.spent or total[2]
+    end
+    total, spent = tonumber(total), tonumber(spent) or 0
+    if total then return total - spent, total end
+end
+
+function ns.AddPetLines(tooltip)
+    local family = UnitCreatureFamily("pet")
+    tooltip:AddLine(HEADER .. " your pet" .. (family and (" (" .. family .. ")") or ""))
+
+    local loyalty = Loyalty()
+    tooltip:AddDoubleLine("Loyalty", loyalty or GREY .. "unknown|r", 1, 1, 1, 1, 1, 1)
+
+    local happiness, rate = Happiness()
+    if happiness then
+        -- Loyalty only grows while the pet is happy.
+        local trend = rate and (rate > 0 and " (loyalty rising)" or rate < 0 and " (loyalty dropping)") or ""
+        local r, g = happiness == "Happy" and 0.4 or 1, happiness == "Unhappy" and 0.3 or 1
+        tooltip:AddDoubleLine("Happiness", happiness .. trend, 1, 1, 1, r, g, 0.4)
+    end
+
+    local available, total = TrainingPoints()
+    if total then
+        tooltip:AddDoubleLine("Training points", available .. " free of " .. total, 1, 1, 1, 1, 1, 1)
+    end
+    tooltip:Show()
+end

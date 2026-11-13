@@ -116,6 +116,10 @@ local function OnTooltipUnit(tooltip)
     if tooltip ~= GameTooltip then return end
     local _, unit = tooltip:GetUnit()
     if not unit or ns.IsSecret(unit) then return end
+    if UnitIsUnit and UnitExists("pet") and UnitIsUnit(unit, "pet") then
+        ns.AddPetLines(tooltip)
+        return
+    end
     ns.Observe(unit)
     ns.ReadBeastLore(tooltip, unit)
     AddLines(tooltip, unit)

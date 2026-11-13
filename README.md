@@ -8,6 +8,8 @@ A small World of Warcraft: Forever addon for hunters. Hover over a wild beast an
 - **Diet:** what the family eats.
 - **Upgrade for your pet:** if your current pet could use something the beast teaches, e.g. `Upgrade for Shal'ma: Bite 2 (has 1)`. Only skills your pet's family can learn and that beat what it already knows are shown; Slower Attack never is.
 
+Hover over your own pet to see its **loyalty**, **happiness** (and whether loyalty is rising) and **free training points**.
+
 The extra lines only show up for hunters. No other addon is needed.
 
 ## Where the data comes from
