@@ -35,7 +35,7 @@ end
 -- Pet level a rank needs and its training point cost (nil when unknown,
 -- e.g. Faster Attack, which comes with the tame).
 -- What Beast Training says you can teach (read whenever you open it):
--- { [rank] = { state, level, costRaw } } for one ability.
+-- { [rank] = { state, level, cost } } for one ability.
 local function TrainerRanks(ability)
     local skills = PetScoutDB.trainer and PetScoutDB.trainer.skills
     return skills and skills[ability]
@@ -48,14 +48,14 @@ function ns.TrainerRank(ability)
     return best
 end
 
--- Pet level a rank needs (Beast Training's own number when it's been read)
--- and its training point cost (nil when unknown, e.g. passives).
+-- Pet level a rank needs and its training point cost: Beast Training's own
+-- numbers when it's been read, else Hunter's Handbook's (nil when unknown).
 local function RankNeeds(ability, rank)
     local seen = TrainerRanks(ability)
     seen = seen and seen[rank]
     local training = ns.TRAINING and ns.TRAINING[ability]
     local r = training and training.ranks[rank]
-    return (seen and seen.level) or (r and r[1]), r and r[2]
+    return (seen and seen.level) or (r and r[1]), (seen and seen.cost) or (r and r[2])
 end
 
 -- What your current pet knows, read from its spellbook: { [ability] = rank }.

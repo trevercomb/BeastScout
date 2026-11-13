@@ -344,10 +344,9 @@ end
 -- Forever opens Beast Training in the class trainer window, so the trainer
 -- API lists the pet skills you can teach (seen in game 2026-11-13:
 -- GetTrainerServiceInfo(i) -> "Bite", "unavailable", icon, 8, "Rank 2").
--- PetScoutDB.trainer.skills[ability][rank] = { state, level, costRaw }.
--- costRaw keeps GetTrainerServiceCost's returns until we know which is TP.
-
-local unpack = unpack or table.unpack
+-- PetScoutDB.trainer.skills[ability][rank] = { state, level, cost }.
+-- GetTrainerServiceCost(i) returns the training point cost (matched the
+-- window for all 8 of River's entries in game).
 
 function ns.ReadBeastTraining()
     if not (GetNumTrainerServices and GetTrainerServiceInfo) then return end
@@ -373,13 +372,13 @@ function ns.ReadBeastTraining()
                 local okLevel, req = pcall(GetTrainerServiceLevelReq, i)
                 if okLevel and tonumber(req) then level = tonumber(req) end
             end
-            local costRaw
+            local cost
             if GetTrainerServiceCost then
-                local c = { pcall(GetTrainerServiceCost, i) }
-                if c[1] then costRaw = { select(2, unpack(c)) } end
+                local okCost, c = pcall(GetTrainerServiceCost, i)
+                if okCost and not IsSecret(c) then cost = tonumber(c) end
             end
             skills[name] = skills[name] or {}
-            skills[name][rank] = { state = state, level = level, costRaw = costRaw }
+            skills[name][rank] = { state = state, level = level, cost = cost }
         end
     end
     PetScoutDB.trainer = { skills = skills, at = time and time() or 0 }

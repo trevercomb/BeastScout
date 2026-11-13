@@ -633,6 +633,8 @@ local services = {
 }
 function GetNumTrainerServices() return #services end
 function GetTrainerServiceInfo(i) return table.unpack(services[i]) end
+local costs = { 0, 5, 1, 4, 3, 0, 10, 5 } -- as Forever returned them
+function GetTrainerServiceCost(i) return costs[i] end
 PetScoutDB.trainer = nil
 ns.ReadBeastTraining()
 local tr = PetScoutDB.trainer and PetScoutDB.trainer.skills
@@ -660,6 +662,7 @@ local ut = table.concat(lines, "\n")
 check("upgrades: Bite 1 isn't trainable (only Bite 2 is listed)", not ut:find("Bite 1 (train", 1, true), ut)
 check("upgrades: Bite 2 says train at pet level 8", ut:find("Bite 2 (train at pet level 8): at Beast Training", 1, true), ut)
 check("upgrades: Claw 2 says train at pet level 8", ut:find("Claw 2 (train at pet level 8): at Beast Training", 1, true), ut)
+check("trainer cost read", tr and tr.Claw[2].cost == 3)
 check("upgrades: no beast suggested for Bite 2", not ut:find("Bite 2 (new", 1, true), ut)
 check("upgrades: Cower still from a beast", ut:find("Cower 1 (new, 8 TP): ", 1, true), ut)
 check("upgrades: Bite 1 still from a beast (not trainable)", ut:find("Bite 1 (new, 1 TP): ", 1, true), ut)
@@ -667,8 +670,12 @@ check("upgrades: Bite 1 still from a beast (not trainable)", ut:find("Bite 1 (ne
 -- At pet level 8 Bite 2 becomes "train it" and comes first.
 units.pet.level = 8
 ur = ns.Search("upgrades", 30)
-check("upgrades: train-now row first", ur.rows[1].text:find("(train it, 4 TP): at Beast Training", 1, true), ur.rows[1].text)
-GetNumTrainerServices, GetTrainerServiceInfo, units.pet = nil, nil, nil
+check("upgrades: train-now row first", ur.rows[1].text:find("(train it, ", 1, true), ur.rows[1].text)
+local trainNow = {}
+for _, row in ipairs(ur.rows) do trainNow[#trainNow + 1] = row.text end
+trainNow = table.concat(trainNow, "\n")
+check("Claw 2 costs 3 TP, from Beast Training (Handbook says 4)", trainNow:find("Claw 2 (train it, 3 TP)", 1, true), trainNow)
+GetNumTrainerServices, GetTrainerServiceInfo, GetTrainerServiceCost, units.pet = nil, nil, nil, nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
