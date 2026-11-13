@@ -334,6 +334,56 @@ function ns.StartCollecting(frame)
         frame:RegisterUnitEvent(event, "player")
     end
     frame:RegisterUnitEvent("UNIT_LEVEL", "pet")
+    -- Beast Training window events (Classic names); unknown ones are skipped.
+    for _, event in ipairs({ "CRAFT_SHOW", "CRAFT_UPDATE", "TRAINER_SHOW", "TRAINER_UPDATE" }) do
+        pcall(frame.RegisterEvent, frame, event)
+    end
+end
+
+-- /petscout trainer: what PetScout can read from the Beast Training window.
+-- Run it with the window open; the answer decides how to read it for real.
+function ns.ProbeTrainer()
+    local function Show(...)
+        local parts = {}
+        for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+        return table.concat(parts, " | ")
+    end
+    local apis = {}
+    for _, name in ipairs({ "GetNumCrafts", "GetCraftInfo", "GetCraftDisplaySkillLine", "GetNumTrainerServices",
+        "GetTrainerServiceInfo", "GetTrainerServiceCost" }) do
+        if type(_G[name]) == "function" then apis[#apis + 1] = name end
+    end
+    print("|cffabd473PetScout|r trainer probe. Functions: " .. (#apis > 0 and table.concat(apis, ", ") or "none"))
+    for _, space in ipairs({ "C_PetTraining", "C_Trainer", "C_Craft", "C_ClassTrainer" }) do
+        local t = _G[space]
+        if type(t) == "table" then
+            local names = {}
+            for k in pairs(t) do names[#names + 1] = k end
+            table.sort(names)
+            print("  " .. space .. ": " .. table.concat(names, ", "))
+        end
+    end
+    local shown = {}
+    for _, name in ipairs({ "CraftFrame", "ClassTrainerFrame", "PetTrainingFrame", "BeastTrainingFrame" }) do
+        local f = _G[name]
+        if type(f) == "table" and f.IsShown and f:IsShown() then shown[#shown + 1] = name end
+    end
+    print("  open windows: " .. (#shown > 0 and table.concat(shown, ", ") or "none of the usual ones"))
+    if GetNumCrafts then
+        local ok, n = pcall(GetNumCrafts)
+        local line = GetCraftDisplaySkillLine and select(2, pcall(GetCraftDisplaySkillLine))
+        print("  crafts: " .. tostring(ok and n) .. ", skill line: " .. tostring(line))
+        for i = 1, math.min(tonumber(ok and n) or 0, 12) do
+            print("  " .. i .. ": " .. Show(select(2, pcall(GetCraftInfo, i))))
+        end
+    end
+    if GetNumTrainerServices then
+        local ok, n = pcall(GetNumTrainerServices)
+        print("  trainer services: " .. tostring(ok and n))
+        for i = 1, math.min(tonumber(ok and n) or 0, 12) do
+            print("  " .. i .. ": " .. Show(select(2, pcall(GetTrainerServiceInfo, i))))
+        end
+    end
 end
 
 function ns.OnCollectEvent(event, ...)
@@ -349,6 +399,8 @@ function ns.OnCollectEvent(event, ...)
         C_Timer.After(1.5, function() pcall(ns.MeasurePet) end)
     elseif event == "PLAYER_REGEN_ENABLED" or event == "UNIT_LEVEL" then
         pcall(ns.MeasurePet)
+    elseif event:find("CRAFT") or event:find("TRAINER") then
+        Debug("training window event:", event)
     end
 end
 

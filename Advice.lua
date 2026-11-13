@@ -9,8 +9,10 @@ local HEADER = "|cffabd473PetScout|r"
 local GREY = "|cff9d9d9d"
 ns.UPGRADE_COLOR = "|cff40ff40"
 
--- Never an upgrade: it slows the pet down.
-local NEVER = { ["Slower Attack"] = true }
+-- Never suggested as upgrades: the Faster/Slower Attack passives come only
+-- with the tame. They don't appear in Beast Training even after taming three
+-- Faster Attack pets (seen in game 2026-11-13).
+local NEVER = { ["Slower Attack"] = true, ["Faster Attack"] = true }
 
 -- Which families can learn an ability: Hunter's Handbook's training guide
 -- (ns.TRAINING) when it names them, else the family ability lists.

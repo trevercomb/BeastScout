@@ -241,6 +241,9 @@ SlashCmdList.PETSCOUT = function(msg)
     elseif msg == "minimap" then
         print(HEADER .. ": minimap button " .. (ns.ToggleMinimapButton() and "shown" or "hidden") .. ".")
         return
+    elseif msg == "trainer" then
+        ns.ProbeTrainer()
+        return
     elseif msg == "stats" then
         ns.ShowPetStats()
         return

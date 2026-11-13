@@ -586,6 +586,27 @@ check("same-zone beast without coordinates comes first", zr.rows[1].text:find("Z
     and not zr.rows[1].text:find(" yd", 1, true), zr.rows[1].text)
 GetRealZoneText = nil
 
+-- Faster Attack only comes with a tame, so it's never an upgrade.
+units.pet = { name = "River", family = "Bear", level = 8, guid = "Pet-0-1-2-3-165189-RIVER" }
+petSpells = { { "Claw", "Rank 1" } }
+units.mouseover = { name = "Ornery Galestrider", family = "Tallstrider", level = 9, guid = "Creature-0-1-2-3-251707-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+check("Faster Attack isn't offered as an upgrade", not tooltipText():find("Upgrade for River: Faster Attack", 1, true), tooltipText())
+
+-- /petscout trainer runs even when none of the training APIs exist (and with fake ones).
+mark = #printed
+SlashCmdList.PETSCOUT("trainer")
+check("trainer probe without APIs", printed[mark + 1]:find("Functions: none", 1, true), printed[mark + 1])
+function GetNumCrafts() return 2 end
+function GetCraftDisplaySkillLine() return "Beast Training" end
+function GetCraftInfo(i) return ({ "Bite", "Claw" })[i], "Rank 2", "available", 0, nil, 4, 8 end
+mark = #printed
+SlashCmdList.PETSCOUT("trainer")
+local probe = table.concat(printed, "\n", mark + 1)
+check("trainer probe lists crafts", probe:find("Beast Training", 1, true) and probe:find("1: Bite | Rank 2 | available | 0 | nil | 4 | 8", 1, true), probe)
+GetNumCrafts, GetCraftDisplaySkillLine, GetCraftInfo, units.pet, units.mouseover = nil, nil, nil, nil, nil
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()
