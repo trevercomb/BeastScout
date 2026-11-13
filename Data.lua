@@ -3,10 +3,11 @@ local _, ns = ...
 -- WoW Forever pet families (game version 1.60.1), from seemeta.com/en/wow-forever/pets.
 -- Pet swing timer by passive rank. Every Hunter's Handbook beast with a known
 -- passive fits this exactly (2026-11-11); beasts without one swing at 2.0.
--- Slower Attack I and III aren't confirmed yet. Slower Attack II is disputed:
--- the Handbook says 2.5, but a tamed Young Forest Bear swung at 2.13 in game
--- (2026-11-13). Tamed data overrides this table for that beast.
--- Confirmed in game: Faster Attack III (1.5) and V (1.3).
+-- Slower Attack I and III aren't confirmed yet.
+-- Confirmed in game: Faster Attack III (1.5) and V (1.3), Slower Attack II
+-- (2.5, a tamed Highlands Ursera). One tamed Young Forest Bear swung at 2.13
+-- with Slower Attack II too, which is unexplained; tamed data overrides this
+-- table for that beast.
 ns.PASSIVE_SPEED = {
     ["Faster Attack"] = { 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.0 },
     ["Slower Attack"] = { [2] = 2.5 },
