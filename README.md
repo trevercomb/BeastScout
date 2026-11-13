@@ -6,11 +6,32 @@ A small World of Warcraft: Forever addon for hunters. Hover over a wild beast an
 - **Teaches:** the exact ability ranks the beast teaches, including Faster/Slower Attack passives.
 - **Family:** the abilities its family can learn and the pet level for each.
 - **Diet:** what the family eats.
-- **Upgrade for your pet:** if your current pet could use something the beast teaches, e.g. `Upgrade for Shal'ma: Bite 2 (has 1)`. Only skills your pet's family can learn and that beat what it already knows are shown; Slower Attack never is.
+- **Upgrade for your pet:** if your current pet could use something the beast teaches, e.g. `Upgrade for Shal'ma: Bite 2 (has 1, 4 TP)`, or `Claw 3 (at pet level 16)` when your pet is too young. Only skills your pet's family can learn and that beat what it already knows are shown. Faster/Slower Attack never are: they only come with a tame.
 
 Hover over your own pet to see its **loyalty**, **happiness** (and whether loyalty is rising) and **free training points**.
 
 The extra lines only show up for hunters. No other addon is needed.
+
+## What it looks like
+
+<p>
+  <img src="docs/screenshots/tooltip-tamed.png" alt="A wild Ornery Galestrider's tooltip: attack speed 1.3 and Faster Attack 5, both from your own tame">
+  <img src="docs/screenshots/tooltip-upgrade.png" alt="A Young Forest Bear's tooltip with the line: Upgrade for Shalma: Claw 2 (new)">
+</p>
+
+Hovering a beast shows its pet attack speed, what it teaches and where each value came from (left), and whether your current pet could use any of it (right).
+
+<img src="docs/screenshots/pet-tooltip.png" alt="Your own pet's tooltip: loyalty Submissive (3 of 6), happiness Happy (loyalty rising), training points 12 free of 20 (30 at Dependable)">
+
+Hovering your own pet shows its loyalty, happiness and training points, and what the next loyalty step is worth.
+
+<img src="docs/screenshots/window-upgrades.png" alt="The PetScout window showing the best upgrades for a pet, grouped by skill, with Go buttons">
+
+`/petscout` opens the window. Here: the best upgrades for a level 7 bear, grouped by skill, with the closest beasts first. Greyed rows are ranks the pet is too young for, and skills you've already learned say to train them at Beast Training.
+
+<img src="docs/screenshots/map-waypoint.jpg" alt="The world map with a PetScout waypoint set on Loch Modan">
+
+Go (or a [Waypoint] link in chat) puts a waypoint on your map.
 
 ## Where the data comes from
 
