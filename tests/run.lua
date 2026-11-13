@@ -550,7 +550,7 @@ units.mouseover = { name = "Shadowgale Ursera", family = "Bear", level = 10, gui
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("tooltip: too-young rank says the pet level", text:find("Upgrade for River: Claw 3 (pet level 16)", 1, true), text)
+check("tooltip: too-young rank says the pet level", text:find("Upgrade for River: Claw 3 (at pet level 16)", 1, true), text)
 
 units.mouseover = { name = "Windsong Crawler", family = "Crab", level = 8, guid = "Creature-0-1-2-3-254588-0000ABCD" }
 resetTooltip("mouseover")
@@ -564,9 +564,15 @@ local r = ns.Search("upgrades", 50)
 local all = {}
 for _, row in ipairs(r.rows or {}) do all[#all + 1] = row.text end
 all = table.concat(all, "\n")
-check("upgrades: title names the pet level", r.title and r.title:find("pet level 8", 1, true), r.title or r.error)
+check("upgrades: title names the pet level", r.title and r.title:find("(pet level 8)", 1, true), r.title or r.error)
 check("upgrades: Claw 2 offered", all:find("Claw 2 (has 1, 4 TP)", 1, true), all)
-check("upgrades: no Claw 3 (needs pet level 16)", not all:find("Claw 3", 1, true), all)
+local soon
+for _, row in ipairs(r.rows) do
+    if row.text:find("Claw 3 (at pet level 16)", 1, true) then soon = row end
+end
+check("upgrades: Claw 3 shown as coming soon, greyed", soon and soon.grey, all)
+check("upgrades: grouped, learnable skills before coming-soon ones", r.rows[1].text:find("^Bite 2") and not r.rows[1].grey, all)
+check("upgrades: at most 2 beasts per learnable rank", select(2, all:gsub("Bite 2 %(new", "")) <= 2, all)
 check("upgrades: Bite 2 beats Bite 1", all:find("Bite 2 (new, 4 TP)", 1, true) and not all:find("Bite 1", 1, true), all)
 check("upgrades: never Slower Attack", not all:find("Slower Attack", 1, true), all)
 units.pet, units.mouseover = nil, nil

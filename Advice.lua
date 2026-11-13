@@ -73,9 +73,9 @@ function ns.UpgradeOptions(teaches, pet)
     return out, pet
 end
 
--- "Bite 2 (has 1, 4 TP)", "Cower 1 (new, 8 TP)", or "Claw 3 (pet level 16)".
+-- "Bite 2 (has 1, 4 TP)", "Cower 1 (new, 8 TP)", or "Claw 3 (at pet level 16)".
 function ns.DescribeUpgrade(o)
-    if not o.learnable then return o.ability .. " " .. o.rank .. " (pet level " .. o.needs .. ")" end
+    if not o.learnable then return o.ability .. " " .. o.rank .. " (at pet level " .. o.needs .. ")" end
     local parts = { o.has > 0 and ("has " .. o.has) or "new" }
     if o.cost then parts[#parts + 1] = o.cost .. " TP" end
     return o.ability .. " " .. o.rank .. " (" .. table.concat(parts, ", ") .. ")"
@@ -481,50 +481,103 @@ local function SearchTank()
 end
 
 -- Beasts you can tame that would teach your current pet something.
--- Only ranks your pet is old enough for, and only the best rank of each
--- skill on offer (no point taming for Bite 1 when Bite 2 is around).
+-- Upgrades, grouped by skill. For each skill your pet could gain from a beast
+-- you can tame:
+--   - the best rank it can learn now, from the 2 closest beasts
+--   - a weaker rank, if a beast teaching it is closer than those
+--   - "coming soon": a higher rank your pet is too young for, greyed, with the
+--     pet level it needs
+-- Skills it can learn now come first, closest first.
 local function SearchUpgrades(limit)
     local ok, pet = ReadPet()
     if not ok then
         return { error = "summon your pet first; upgrades are worked out from its spellbook." }
     end
     local level, here = UnitLevel("player") or 0, Here()
-    local candidates, best = {}, {}
+
+    local offers = {} -- ability -> { { npcId, option } }
     for npcId in pairs(AllIds()) do
         local low = LevelRange(npcId)
         if low > 0 and low <= level then
-            local learnable = {}
             for _, o in ipairs(ns.UpgradeOptions(ns.Lookup(npcId, ns.TeachesOf), pet)) do
-                if o.learnable then
-                    learnable[#learnable + 1] = o
-                    best[o.ability] = math.max(best[o.ability] or 0, o.rank)
-                end
+                offers[o.ability] = offers[o.ability] or {}
+                table.insert(offers[o.ability], { npcId = npcId, o = o })
             end
-            if #learnable > 0 then candidates[#candidates + 1] = { npcId = npcId, options = learnable } end
-        end
-    end
-
-    local matches = {}
-    for _, c in ipairs(candidates) do
-        local keep = {}
-        for _, o in ipairs(c.options) do
-            if o.rank == best[o.ability] then keep[#keep + 1] = ns.DescribeUpgrade(o) end
-        end
-        if #keep > 0 then
-            matches[#matches + 1] = Describe(c.npcId, here, { upgrades = table.concat(keep, ", ") })
         end
     end
     local who = pet.name or "your pet"
-    if #matches == 0 then
-        return { error = "nothing at your level would teach " .. who .. " anything new it can learn yet." }
+    if not next(offers) then
+        return { error = "nothing at your level would teach " .. who .. " anything new." }
     end
-    matches = Rank(matches)
+
+    local beasts = {}
+    local function Beast(npcId)
+        beasts[npcId] = beasts[npcId] or Describe(npcId, here)
+        return beasts[npcId]
+    end
+    local function Far(e) return Beast(e.npcId).dist or math.huge end
+
+    -- The n closest offers that pass keep().
+    local function Closest(list, keep, n)
+        local out = {}
+        for _, e in ipairs(list) do
+            if keep(e.o) then out[#out + 1] = e end
+        end
+        table.sort(out, function(a, b)
+            if Far(a) ~= Far(b) then return Far(a) < Far(b) end
+            return Beast(a.npcId).name < Beast(b.npcId).name
+        end)
+        for i = #out, n + 1, -1 do out[i] = nil end
+        return out
+    end
+
+    local function Row(e, future)
+        local m = Beast(e.npcId)
+        return {
+            text = ns.DescribeUpgrade(e.o) .. ": " .. m.name .. " (" .. m.family .. " " .. Levels(m) .. ")" .. Place(m),
+            spot = m.spot, name = m.name, where = m.where, grey = future,
+        }
+    end
+
+    local groups = {}
+    for ability, list in pairs(offers) do
+        local best, future = 0, 0
+        for _, e in ipairs(list) do
+            if e.o.learnable then best = math.max(best, e.o.rank) else future = math.max(future, e.o.rank) end
+        end
+        local rows, first = {}, math.huge
+        if best > 0 then
+            local top = Closest(list, function(o) return o.learnable and o.rank == best end, 2)
+            first = Far(top[1])
+            local weaker = Closest(list, function(o) return o.learnable and o.rank < best end, 1)[1]
+            if weaker and Far(weaker) < first then
+                rows[#rows + 1] = Row(weaker)
+                first = Far(weaker)
+            end
+            for _, e in ipairs(top) do rows[#rows + 1] = Row(e) end
+        end
+        if future > best then
+            local soon = Closest(list, function(o) return not o.learnable and o.rank == future end, 1)[1]
+            if soon then rows[#rows + 1] = Row(soon, true) end
+        end
+        groups[#groups + 1] = { ability = ability, rows = rows, now = best > 0, first = first }
+    end
+    table.sort(groups, function(a, b)
+        if a.now ~= b.now then return a.now end
+        if a.first ~= b.first then return a.first < b.first end
+        return a.ability < b.ability
+    end)
+
+    local rows = {}
+    for _, g in ipairs(groups) do
+        for _, row in ipairs(g.rows) do
+            if #rows < limit then rows[#rows + 1] = row end
+        end
+    end
     return {
-        title = Counted(#matches, "beasts teach " .. who .. "'s best upgrades", 0, limit,
-            "closest first (pet level " .. (pet.level or "?") .. ")"),
-        rows = Take(matches, limit, function(m)
-            return m.name .. " (" .. m.family .. " " .. Levels(m) .. "): " .. m.upgrades .. Place(m)
-        end),
+        title = "best upgrades for " .. who .. " (pet level " .. (pet.level or "?") .. "), by skill, closest first",
+        rows = rows,
+        note = "Greyed: within your level, but " .. who .. " is too young to learn it yet.",
     }
 end
 
