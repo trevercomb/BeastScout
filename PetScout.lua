@@ -234,6 +234,9 @@ SlashCmdList.PETSCOUT = function(msg)
     if msg == "export" then
         ShowExport()
         return
+    elseif msg:find("^way") then
+        ns.Waypoint(msg:match("%d+"))
+        return
     elseif msg:find("^find") then
         ns.Find(msg:sub(5))
         return
@@ -263,6 +266,6 @@ SlashCmdList.PETSCOUT = function(msg)
         .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
     print("  /petscout export - copy your observations   /petscout reset - forget them")
-    print("  /petscout find bite 2 - beasts that teach a skill, ones you can tame first")
+    print("  /petscout find bite 2 - beasts that teach a skill, closest first   /petscout way 1 - waypoint to one")
     print("  /petscout pet - what PetScout reads from your pet   /petscout debug - narrate tames in chat")
 end

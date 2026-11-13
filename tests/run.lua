@@ -338,6 +338,55 @@ check("pet tooltip: unhappy, loyalty dropping", text:find("Happiness | Unhappy (
 check("pet tooltip: missing TP API is skipped", not text:find("Training points", 1, true), text)
 C_PetInfo, UnitIsUnit, units.pet, units.mouseover = nil, nil, nil, nil
 
+-- Distance and waypoints, on a fake continent: Dun Morogh at world (0, 0) and
+-- Elwynn Forest 5000 yards away, each map 1000 yards across.
+local maps = {
+    [1415] = { mapID = 1415, name = "Eastern Kingdoms", mapType = 2 },
+    [1426] = { mapID = 1426, name = "Dun Morogh", mapType = 3, ox = 0, oy = 0 },
+    [1429] = { mapID = 1429, name = "Elwynn Forest", mapType = 3, ox = 0, oy = 5000 },
+}
+local waypoint
+C_Map = {
+    GetMapInfo = function(id) return maps[id] end,
+    GetMapChildrenInfo = function(id) return id == 1415 and { maps[1426], maps[1429] } or {} end,
+    GetWorldPosFromMapPos = function(id, v)
+        local m = maps[id]
+        if not m or not m.ox then return nil end
+        return 0, { x = m.ox + v.x * 1000, y = m.oy + v.y * 1000 }
+    end,
+    GetBestMapForUnit = function() return 1426 end,
+    GetPlayerMapPosition = function() return { x = 0.33, y = 0.43 } end,
+    SetUserWaypoint = function(point) waypoint = point end,
+}
+UiMapPoint = { CreateFromCoordinates = function(id, x, y) return { mapID = id, x = x, y = y } end }
+
+mark = #printed
+SlashCmdList.PETSCOUT("find bite 2")
+found = table.concat(printed, "\n", mark + 1)
+check("closest first: Starving Winter Wolf", printed[mark + 2]:find("1. Bite 2: Starving Winter Wolf", 1, true), found)
+check("distance shown", printed[mark + 2]:find("~", 1, true) and printed[mark + 2]:find(" yd", 1, true), printed[mark + 2])
+check("clickable waypoint link", printed[mark + 2]:find("|Haddon:petscout:way:1|h[Waypoint]|h", 1, true), printed[mark + 2])
+local prowler
+for i = mark + 2, #printed do
+    if printed[i]:find("Prowler", 1, true) then prowler = printed[i] end
+end
+check("Prowler further down, about 5k yards away", prowler and prowler:find("k yd", 1, true), prowler)
+
+SlashCmdList.PETSCOUT("way 1")
+check("waypoint set on Dun Morogh", waypoint and waypoint.mapID == 1426 and math.abs(waypoint.x - 0.322) < 0.001,
+    waypoint and (waypoint.mapID .. " " .. waypoint.x))
+check("waypoint confirmed in chat", printed[#printed]:find("waypoint set for Starving Winter Wolf", 1, true), printed[#printed])
+SlashCmdList.PETSCOUT("way 99")
+check("bad waypoint number explained", printed[#printed]:find("run /petscout find first", 1, true), printed[#printed])
+
+-- Sightings record where you stood.
+units.target = { name = "Winter Wolf", family = "Wolf", level = 7, guid = "Creature-0-1-2-3-1131-0000ABCD" }
+ns.OnCollectEvent("PLAYER_TARGET_CHANGED")
+local spot = PetScoutDB.npcs[1131].spots and PetScoutDB.npcs[1131].spots[1]
+check("spawn point recorded", spot and spot[1] == "Dun Morogh" and spot[2] == 33 and spot[3] == 43,
+    spot and table.concat(spot, ","))
+units.target, C_Map, UiMapPoint = nil, nil, nil
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

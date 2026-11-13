@@ -41,8 +41,34 @@ local function CurrentZone()
     if zone and not IsSecret(zone) and zone ~= "" then return zone end
 end
 
--- zone defaults to where you are now; a tame passes the zone it started in.
-local function Record(npcId, name, family, level, zone)
+-- Where you're standing, as a spawn point: { zone, x, y } in map percent.
+local function CurrentSpot()
+    if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetPlayerMapPosition) then return nil end
+    local ok, spot = pcall(function()
+        local mapID = C_Map.GetBestMapForUnit("player")
+        local pos = mapID and C_Map.GetPlayerMapPosition(mapID, "player")
+        local info = mapID and C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
+        if not (pos and info and info.name) then return nil end
+        local x, y = pos.x, pos.y
+        if pos.GetXY then x, y = pos:GetXY() end
+        if IsSecret(x) or IsSecret(y) or not x or x == 0 then return nil end
+        return { info.name, Round(x * 100) , Round(y * 100) }
+    end)
+    return ok and spot or nil
+end
+
+local function AddSpot(r, spot)
+    if not spot then return end
+    r.spots = r.spots or {}
+    for _, s in ipairs(r.spots) do
+        -- Same place within about 2% of the map: already known.
+        if s[1] == spot[1] and math.abs(s[2] - spot[2]) + math.abs(s[3] - spot[3]) <= 2 then return end
+    end
+    if #r.spots < 4 then table.insert(r.spots, spot) end
+end
+
+-- zone and spot default to where you are now; a tame passes where it started.
+local function Record(npcId, name, family, level, zone, spot)
     local db = PetScoutDB.npcs
     local r = db[npcId] or {}
     db[npcId] = r
@@ -58,6 +84,7 @@ local function Record(npcId, name, family, level, zone)
         for _, z in ipairs(r.zones) do known = known or z == zone end
         if not known and #r.zones < 3 then table.insert(r.zones, zone) end
     end
+    AddSpot(r, spot or CurrentSpot())
     return r
 end
 
@@ -184,7 +211,7 @@ local function Snapshot(unit)
     local npcId = ns.NpcIdFromGUID(UnitGUID(unit))
     if not npcId then return nil end
     return { npcId = npcId, name = UnitName(unit), family = family, level = UnitLevel(unit), at = GetTime(),
-        zone = CurrentZone() }
+        zone = CurrentZone(), spot = CurrentSpot() }
 end
 
 local function IsTameSpell(spellId)
@@ -248,7 +275,7 @@ local function TryCaptureTame(final)
     for _, spell in ipairs(spells) do FindAbilities(spell, found) end
     if not next(found) and not final then return false end
 
-    local r = Record(pending.npcId, pending.name, pending.family, pending.level, pending.zone)
+    local r = Record(pending.npcId, pending.name, pending.family, pending.level, pending.zone, pending.spot)
     SetTeaches(r, found, "tame")
     SetSpeed(r, UnitAttackSpeed("pet"), "tame")
     print("|cffabd473PetScout|r: recorded tame of " .. pending.name .. ".")
@@ -326,6 +353,13 @@ function ns.ExportLines()
             for _, a in ipairs(r.teaches) do table.insert(t, "{" .. LuaString(a[1]) .. ", " .. a[2] .. "}") end
             table.insert(parts, "teaches={ " .. table.concat(t, ", ") .. " }")
             table.insert(parts, 'teachesSource="' .. (r.teachesSource or "lore") .. '"')
+        end
+        if r.spots and #r.spots > 0 then
+            local sp = {}
+            for _, s in ipairs(r.spots) do
+                table.insert(sp, "{" .. LuaString(s[1]) .. ", " .. s[2] .. ", " .. s[3] .. "}")
+            end
+            table.insert(parts, "spots={ " .. table.concat(sp, ", ") .. " }")
         end
         if r.zones and #r.zones > 0 then
             local z = {}

@@ -58,11 +58,24 @@ def parse_handbook(path):
             "teaches": [(a, int(r)) for a, r in TEACH.findall(body)],
             "passive": passive_of(body),
             "zones": unique(re.findall(r'zone="([^"]+)"', body)),
+            "spots": unique_spots((z, float(x), float(y)) for z, x, y in SPOT.findall(body)),
         }
     return beasts
 
 
 MAX_ZONES = 3
+MAX_SPOTS = 4
+SPOT = re.compile(r'\{zone="([^"]+)", x=([0-9.]+), y=([0-9.]+)')
+OURS_SPOT = re.compile(r'\{"([^"]+)", ([0-9.]+), ([0-9.]+)\}')
+
+
+def unique_spots(spots):
+    """First MAX_SPOTS spawn points (zone, x, y), skipping near-duplicates."""
+    out = []
+    for z, x, y in spots:
+        if all(z != oz or abs(x - ox) + abs(y - oy) > 2 for oz, ox, oy in out):
+            out.append((z, x, y))
+    return out[:MAX_SPOTS]
 
 
 def unique(items):
@@ -98,6 +111,8 @@ def parse_ours_text(text):
             "speed": number(body, "speed"),
             "teaches": [(a, int(r)) for a, r in teaches],
             "zones": unique(re.findall(r'"([^"]+)"', field(body, "zones", r'\{(.*?) \}') or "")),
+            "spots": unique_spots((z, float(x), float(y))
+                                  for z, x, y in OURS_SPOT.findall(field(body, "spots", r'\{ (.*?) \}') or "")),
         }
         # A wild beast's own swing timer says nothing about the pet's, so
         # 'seen' speeds (and old exports without a source) are dropped.
@@ -158,6 +173,7 @@ def merge_contributions(paths):
         if highs:
             out["levelMax"] = max(highs)
         out["zones"] = unique(z for _, b in rows for z in b["zones"])
+        out["spots"] = unique_spots(s for _, b in reversed(rows) for s in b["spots"])
 
         speeds = [(o, b["speedSource"], b["speed"]) for o, b in rows
                   if b["speed"] is not None and b["speedSource"] in TRUST]
@@ -199,6 +215,9 @@ def to_line(npc_id, b):
         parts.append(f'passive={{{lua_str(b["passive"][0])}, {b["passive"][1]}}}')
     if b.get("teachesReports"):
         parts.append(f"teachesReports={b['teachesReports']}")
+    if b.get("spots"):
+        parts.append("spots={ " + ", ".join(f"{{{lua_str(z)}, {fmt_num(x)}, {fmt_num(y)}}}"
+                                             for z, x, y in b["spots"]) + " }")
     if b.get("zones"):
         parts.append("zones={ " + ", ".join(lua_str(z) for z in b["zones"]) + " }")
     return f"    [{npc_id}] = {{ {', '.join(parts)} }},"

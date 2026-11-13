@@ -119,6 +119,7 @@ def to_beast(r):
         "speedSource": "tame" if r.get("speedSource") == "tame" else None,
         "teaches": [(t[0], int(t[1])) for t in r.get("teaches") or [] if len(t) == 2],
         "zones": list(r.get("zones") or [])[:3],
+        "spots": [(sp[0], float(sp[1]), float(sp[2])) for sp in r.get("spots") or [] if len(sp) == 3][:4],
     }
     b["teachesSource"] = r.get("teachesSource") or ("lore" if b["teaches"] else None)
     return b

@@ -33,7 +33,7 @@ Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\PetScout`, so 
 ## Commands
 
 - `/petscout`: shows how many beasts each source covers, plus the client's interface version.
-- `/petscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, with their zones.
+- `/petscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/petscout way 2` to put a waypoint on the map.
 - `/petscout export`: opens a window with your observations, ready to copy.
 - `/petscout pet`: shows what PetScout reads from your current pet (spellbook, swing timer).
 - `/petscout debug`: reports each step of a tame in chat, for troubleshooting.

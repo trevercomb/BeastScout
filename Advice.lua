@@ -79,6 +79,147 @@ local function LevelRange(npcId)
     return low or 0, high
 end
 
+-- Maps and distance ------------------------------------------------------------
+-- Spawn points are stored as zone name + map percent. To measure distance or
+-- set a waypoint we need the zone's map ID, found by name in the game's own
+-- map tree (so new Forever zones work without a hardcoded list).
+
+local MAP_ROOTS = { 947, 1414, 1415, 12, 13 } -- Azeroth, Kalimdor, Eastern Kingdoms (both ID schemes)
+local mapIds
+
+local function RememberMap(info)
+    if type(info) ~= "table" or not info.mapID or not info.name then return end
+    local key = info.name:lower()
+    local old = mapIds[key]
+    -- Prefer zone maps (type 3) when names repeat.
+    if not old or (info.mapType == 3 and old.mapType ~= 3) then
+        mapIds[key] = { id = info.mapID, mapType = info.mapType }
+    end
+end
+
+local function MapID(zone)
+    if not (C_Map and C_Map.GetMapInfo) or not zone then return nil end
+    if not mapIds then
+        mapIds = {}
+        for _, root in ipairs(MAP_ROOTS) do
+            pcall(function()
+                RememberMap(C_Map.GetMapInfo(root))
+                for _, info in ipairs(C_Map.GetMapChildrenInfo(root, nil, true) or {}) do RememberMap(info) end
+            end)
+        end
+    end
+    local entry = mapIds[zone:lower()]
+    return entry and entry.id
+end
+
+local function WorldPos(mapID, x, y)
+    if not (mapID and C_Map and C_Map.GetWorldPosFromMapPos) then return nil end
+    local ok, continent, pos = pcall(C_Map.GetWorldPosFromMapPos, mapID,
+        CreateVector2D and CreateVector2D(x / 100, y / 100) or { x = x / 100, y = y / 100 })
+    if not ok or not continent or not pos then return nil end
+    local wx, wy = pos.x, pos.y
+    if pos.GetXY then wx, wy = pos:GetXY() end
+    return continent, wx, wy
+end
+
+local function PlayerWorldPos()
+    if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetPlayerMapPosition) then return nil end
+    local ok, continent, wx, wy = pcall(function()
+        local mapID = C_Map.GetBestMapForUnit("player")
+        local pos = mapID and C_Map.GetPlayerMapPosition(mapID, "player")
+        if not pos then return nil end
+        MapID("") -- make sure the map list exists, then add the map you're on
+        RememberMap(C_Map.GetMapInfo(mapID))
+        local x, y = pos.x, pos.y
+        if pos.GetXY then x, y = pos:GetXY() end
+        return WorldPos(mapID, x * 100, y * 100)
+    end)
+    if ok then return continent, wx, wy end
+end
+
+-- Nearest known spawn point and its distance in yards (nil if unknown or on
+-- another continent).
+local function Nearest(spots, here)
+    local best, bestDist
+    for _, spot in ipairs(spots) do
+        local continent, wx, wy = WorldPos(MapID(spot[1]), spot[2], spot[3])
+        local dist
+        if here and continent == here[1] then
+            dist = math.sqrt((wx - here[2]) ^ 2 + (wy - here[3]) ^ 2)
+        end
+        if not best or (dist and (not bestDist or dist < bestDist)) then best, bestDist = spot, dist end
+    end
+    return best, bestDist
+end
+
+local function Spots(npcId)
+    local out = {}
+    for _, layer in ipairs({ PetScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
+        local r = layer[npcId]
+        for _, spot in ipairs(r and r.spots or {}) do out[#out + 1] = spot end
+    end
+    return out
+end
+
+local function Yards(dist)
+    if dist < 1000 then return string.format("~%d yd", math.floor(dist / 50 + 0.5) * 50) end
+    return string.format("~%.1fk yd", dist / 1000)
+end
+
+-- Waypoints ------------------------------------------------------------------------
+
+local results = {} -- the last /petscout find, for /petscout way N and the chat links
+
+function ns.Waypoint(index)
+    local m = results[tonumber(index) or 0]
+    if not m then
+        print(HEADER .. ": run /petscout find first, then /petscout way <number>.")
+        return
+    end
+    if not m.spot then
+        print(HEADER .. ": no spawn point known for " .. m.name .. "; look in " .. (m.where or "its zone") .. ".")
+        return
+    end
+    local zone, x, y = m.spot[1], m.spot[2], m.spot[3]
+    local mapID = MapID(zone)
+    if not (mapID and C_Map and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates) then
+        print(HEADER .. ": can't place a waypoint here. " .. m.name .. " is at " .. zone .. " " .. x .. ", " .. y .. ".")
+        return
+    end
+    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(mapID) then
+        print(HEADER .. ": " .. zone .. " doesn't allow waypoints. " .. m.name .. " is at " .. x .. ", " .. y .. ".")
+        return
+    end
+    local ok = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x / 100, y / 100))
+    if ok and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+    end
+    print(HEADER .. ": " .. (ok and "waypoint set" or "couldn't set a waypoint") .. " for " .. m.name
+        .. ", " .. zone .. " " .. x .. ", " .. y .. ".")
+end
+
+-- Clickable [Waypoint] in chat. Newer clients pass "addon:" links to
+-- EventRegistry's SetItemRef event; older ones only to SetItemRef itself.
+local LINK = "addon:petscout:way:"
+
+local function OnLink(...)
+    for i = 1, select("#", ...) do
+        local v = select(i, ...)
+        if type(v) == "string" and v:sub(1, #LINK) == LINK then
+            ns.Waypoint(v:sub(#LINK + 1))
+            return
+        end
+    end
+end
+
+if EventRegistry and EventRegistry.RegisterCallback then
+    EventRegistry:RegisterCallback("SetItemRef", OnLink)
+elseif hooksecurefunc and SetItemRef then
+    hooksecurefunc("SetItemRef", OnLink)
+end
+
+-- /petscout find ---------------------------------------------------------------
+
 function ns.Find(query)
     local ability, rank = ParseQuery(query or "")
     if not ability then
@@ -91,15 +232,20 @@ function ns.Find(query)
         for npcId in pairs(layer) do ids[npcId] = true end
     end
 
+    local continent, wx, wy = PlayerWorldPos()
+    local here = continent and { continent, wx, wy }
     local matches = {}
     for npcId in pairs(ids) do
         local teaches = ns.Lookup(npcId, ns.TeachesOf)
         for _, t in ipairs(teaches or {}) do
             if t[1] == ability and (not rank or t[2] == rank) then
                 local low, high = LevelRange(npcId)
+                local spot, dist = Nearest(Spots(npcId), here)
+                local zones = Field(npcId, "zones")
                 matches[#matches + 1] = {
                     rank = t[2], name = Field(npcId, "name") or "?", family = Field(npcId, "family") or "?",
-                    levelMin = low, levelMax = high, zones = Field(npcId, "zones"),
+                    levelMin = low, levelMax = high, spot = spot, dist = dist,
+                    where = spot and spot[1] or (zones and table.concat(zones, ", ")),
                 }
             end
         end
@@ -109,26 +255,33 @@ function ns.Find(query)
         return
     end
 
-    -- Ones you can tame now first, then the best rank, then the lowest level.
+    -- Ones you can tame now first, then the closest, then the best rank.
     local level = UnitLevel("player") or 0
     table.sort(matches, function(a, b)
         local aOk, bOk = a.levelMin <= level, b.levelMin <= level
         if aOk ~= bOk then return aOk end
+        if (a.dist ~= nil) ~= (b.dist ~= nil) then return a.dist ~= nil end
+        if a.dist and b.dist and a.dist ~= b.dist then return a.dist < b.dist end
         if a.rank ~= b.rank then return a.rank > b.rank end
         if a.levelMin ~= b.levelMin then return a.levelMin < b.levelMin end
         return a.name < b.name
     end)
 
+    wipe(results)
     print(HEADER .. ": " .. #matches .. " beasts teach " .. ability .. (rank and (" " .. rank) or "")
-        .. (#matches > 8 and ", showing 8" or "") .. ":")
+        .. (#matches > 8 and ", showing 8" or "") .. ", closest first:")
     for i = 1, math.min(8, #matches) do
         local m = matches[i]
+        results[i] = m
         local levels = m.levelMin .. ((m.levelMax and m.levelMax ~= m.levelMin) and ("-" .. m.levelMax) or "")
-        local where = m.zones and #m.zones > 0 and (", " .. table.concat(m.zones, ", ")) or ""
+        local where = m.where and (", " .. m.where) or ""
+        local far = m.dist and (" " .. Yards(m.dist)) or ""
+        local link = m.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or ""
         local color = m.levelMin <= level and "" or GREY
-        print("  " .. color .. ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " " .. levels .. ")"
-            .. where .. (color ~= "" and "|r" or ""))
+        print("  " .. i .. ". " .. color .. ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " "
+            .. levels .. ")" .. where .. far .. (color ~= "" and "|r" or "") .. link)
     end
+    print(GREY .. "  Click [Waypoint] or type /petscout way <number>.|r")
 end
 
 -- Your pet's status ----------------------------------------------------------
