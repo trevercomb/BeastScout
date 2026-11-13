@@ -410,24 +410,29 @@ function ns.ProbeTrainer()
     print("  functions named train/beast: " .. (#hits > 0 and table.concat(hits, ", ") or "none"))
     print("  in C_ namespaces: " .. (#spaces > 0 and table.concat(spaces, ", ") or "none"))
 
-    local frames = {}
+    -- Find the window by its text: any visible frame with a "Training Points"
+    -- label (the Beast Training window's footer), named or not.
+    local found = {}
     if EnumerateFrames then
         local f = EnumerateFrames()
         while f do
-            local ok, name = pcall(f.GetName, f)
             local okShown, isShown = pcall(f.IsShown, f)
-            if ok and type(name) == "string" and okShown and isShown then
-                local n = name:lower()
-                if n:find("train") or n:find("beast") or (n:find("pet") and not n:find("petscout")) then
-                    frames[#frames + 1] = name
+            if okShown and isShown and f.GetRegions then
+                for _, region in ipairs({ f:GetRegions() }) do
+                    local okText, text = pcall(function()
+                        return region:GetObjectType() == "FontString" and region:GetText()
+                    end)
+                    if okText and type(text) == "string" and not IsSecret(text) and text:find("Training Points") then
+                        local okName, name = pcall(function() return f.GetDebugName and f:GetDebugName() or f:GetName() end)
+                        found[#found + 1] = tostring(okName and name or "?") .. " (\"" .. text .. "\")"
+                    end
                 end
             end
             f = EnumerateFrames(f)
-            if #frames >= 15 then break end
+            if #found >= 5 then break end
         end
     end
-    table.sort(frames)
-    print("  visible frames named train/beast/pet: " .. (#frames > 0 and table.concat(frames, ", ") or "none"))
+    print("  frames showing \"Training Points\": " .. (#found > 0 and table.concat(found, ", ") or "none"))
 end
 
 function ns.OnCollectEvent(event, ...)

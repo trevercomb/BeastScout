@@ -614,6 +614,15 @@ SlashCmdList.PETSCOUT("trainer")
 probe = table.concat(printed, "\n", mark + 1)
 check("probe finds training functions", probe:find("GetPetTrainingSkills", 1, true) and probe:find("C_PetTrain.GetSkills", 1, true), probe)
 GetPetTrainingSkills, C_PetTrain = nil, nil
+-- Finding the window by its "Training Points" label.
+local label = { GetObjectType = function() return "FontString" end, GetText = function() return "Training Points: 0" end }
+local window = { IsShown = function() return true end, GetRegions = function() return label end,
+    GetDebugName = function() return "ForeverBeastTraining" end }
+EnumerateFrames = function(f) if f == nil then return window end end
+mark = #printed
+SlashCmdList.PETSCOUT("trainer")
+check("probe finds the window by its label", printed[#printed]:find('ForeverBeastTraining ("Training Points: 0")', 1, true), printed[#printed])
+EnumerateFrames = nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
