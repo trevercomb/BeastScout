@@ -47,7 +47,7 @@ Everything in the window also works in chat:
 
 
 - `/petscout`: opens the window. `/petscout help` lists the commands and how many beasts each source covers.
-- `/petscout find upgrades`: beasts at your level that would teach your current pet something new.
+- `/petscout find upgrades`: beasts at your level that would teach your current pet something new. Only ranks your pet is old enough for, only the best rank of each skill, with its training point cost (pet levels and costs from Hunter's Handbook's training guide).
 - `/petscout find cat` (or `wolves`, `birds of prey`, ...): lists beasts of a family with their attack speed, closest first, with waypoints like below. `/petscout find fast cat` sorts by speed instead, and plain `/petscout find fast` lists the fastest beasts of any family.
 - `/petscout find tank`: tank families ranked by health and armor bonus (Bear, Boar, Turtle, ...), each with the closest beast you can tame. The bonuses are Classic's ([Highground Gaming](https://www.highgroundgaming.com/best-hunter-pets-in-wow-classic/)); Forever's aren't published yet.
 - `/petscout stats`: your pets' health and armor as PetScout measured them, by family and level. These are being collected to check the Classic bonuses against Forever.

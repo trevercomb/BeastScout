@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "PetScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Training.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "PetScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("PetScout", ns)
 end
@@ -270,7 +270,7 @@ units.mouseover = { name = "Prowler", family = "Wolf", level = 9, guid = "Creatu
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
-check("upgrade line for Bite 2 only", text:find("Upgrade for Shal'ma: Bite 2 (has 1)|r", 1, true)
+check("upgrade line for Bite 2 only", text:find("Upgrade for Shal'ma: Bite 2 (has 1, 4 TP)|r", 1, true)
     and not text:find("Faster Attack 3 (", 1, true), text)
 check("upgrade line not learned as Beast Lore", PetScoutDB.npcs[118] == nil or PetScoutDB.npcs[118].teaches == nil)
 
@@ -542,6 +542,35 @@ check("/petscout minimap hides it", not _G.PetScoutMinimapButton._shown and PetS
 SlashCmdList.PETSCOUT("minimap")
 check("and shows it again", _G.PetScoutMinimapButton._shown)
 Minimap = nil
+
+-- Rank levels: River (bear, pet level 8, knows Claw 1) and Claw 3, which needs pet level 16.
+units.pet = { name = "River", family = "Bear", level = 8, guid = "Pet-0-1-2-3-165189-RIVER" }
+petSpells = { { "Claw", "Rank 1" }, { "Slower Attack II", "" } }
+units.mouseover = { name = "Shadowgale Ursera", family = "Bear", level = 10, guid = "Creature-0-1-2-3-250927-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("tooltip: too-young rank says the pet level", text:find("Upgrade for River: Claw 3 (pet level 16)", 1, true), text)
+
+units.mouseover = { name = "Windsong Crawler", family = "Crab", level = 8, guid = "Creature-0-1-2-3-254588-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("tooltip: learnable rank shows its cost", text:find("Upgrade for River: Claw 2 (has 1, 4 TP)", 1, true), text)
+
+-- Upgrades search: best learnable rank of each skill only.
+units.player = { level = 12 }
+local r = ns.Search("upgrades", 50)
+local all = {}
+for _, row in ipairs(r.rows or {}) do all[#all + 1] = row.text end
+all = table.concat(all, "\n")
+check("upgrades: title names the pet level", r.title and r.title:find("pet level 8", 1, true), r.title or r.error)
+check("upgrades: Claw 2 offered", all:find("Claw 2 (has 1, 4 TP)", 1, true), all)
+check("upgrades: no Claw 3 (needs pet level 16)", not all:find("Claw 3", 1, true), all)
+check("upgrades: Bite 2 beats Bite 1", all:find("Bite 2 (new, 4 TP)", 1, true) and not all:find("Bite 1", 1, true), all)
+check("upgrades: never Slower Attack", not all:find("Slower Attack", 1, true), all)
+units.pet, units.mouseover = nil, nil
+check("upgrades: needs a pet", ns.Search("upgrades").error:find("summon your pet", 1, true))
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

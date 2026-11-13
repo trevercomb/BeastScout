@@ -9,13 +9,20 @@ local HEADER = "|cffabd473PetScout|r"
 local GREY = "|cff9d9d9d"
 ns.UPGRADE_COLOR = "|cff40ff40"
 
--- Any family can learn these; everything else must be in the pet's family list.
-local ANY_FAMILY = { ["Cower"] = true, ["Faster Attack"] = true }
 -- Never an upgrade: it slows the pet down.
 local NEVER = { ["Slower Attack"] = true }
 
+-- Which families can learn an ability: Hunter's Handbook's training guide
+-- (ns.TRAINING) when it names them, else the family ability lists.
 local function CanLearn(petFamily, ability)
-    if ANY_FAMILY[ability] then return true end
+    local training = ns.TRAINING and ns.TRAINING[ability]
+    if training and training.families then
+        for _, f in ipairs(training.families) do
+            if f == petFamily then return true end
+        end
+        return false
+    end
+    if ability == "Cower" then return true end
     local info = ns.FAMILIES[petFamily or ""]
     for _, a in ipairs(info and info.abilities or {}) do
         if a[1] == ability then return true end
@@ -23,33 +30,63 @@ local function CanLearn(petFamily, ability)
     return false
 end
 
+-- Pet level a rank needs and its training point cost (nil when unknown,
+-- e.g. Faster Attack, which comes with the tame).
+local function RankNeeds(ability, rank)
+    local training = ns.TRAINING and ns.TRAINING[ability]
+    local r = training and training.ranks[rank]
+    if r then return r[1], r[2] end
+end
+
 -- What your current pet knows, read from its spellbook: { [ability] = rank }.
 function ns.PetKnown()
     if not UnitExists("pet") then return nil end
     local known = {}
     for _, spell in ipairs(ns.PetSpellbook()) do ns.FindAbilities(spell, known) end
-    return known, UnitName("pet"), UnitCreatureFamily("pet")
+    return known, UnitName("pet"), UnitCreatureFamily("pet"), UnitLevel("pet")
 end
 
--- e.g. { "Bite 2 (has 1)", "Dash 1 (new)" }, plus your pet's name. pet is
--- { known, name, family } when the caller already read the spellbook.
-function ns.UpgradesFor(teaches, pet)
-    local ok, known, petName, petFamily = true, nil, nil, nil
-    if pet then
-        known, petName, petFamily = pet.known, pet.name, pet.family
-    else
-        ok, known, petName, petFamily = pcall(ns.PetKnown)
-    end
-    if not ok or not known then return {}, nil end
+local function ReadPet(pet)
+    if pet then return true, pet end
+    local ok, known, name, family, level = pcall(ns.PetKnown)
+    if not ok or not known then return false end
+    return true, { known = known, name = name, family = family, level = level }
+end
+
+-- What a beast teaches that your pet would gain:
+-- { { ability, rank, has, cost, needs, learnable } }. pet is { known, name,
+-- family, level } when the caller already read the spellbook.
+function ns.UpgradeOptions(teaches, pet)
+    local ok
+    ok, pet = ReadPet(pet)
+    if not ok then return {}, nil end
     local out = {}
     for _, t in ipairs(teaches or {}) do
         local ability, rank = t[1], t[2]
-        local has = known[ability] or 0
-        if not NEVER[ability] and rank > has and CanLearn(petFamily, ability) then
-            out[#out + 1] = ability .. " " .. rank .. (has > 0 and (" (has " .. has .. ")") or " (new)")
+        local has = pet.known[ability] or 0
+        if not NEVER[ability] and rank > has and CanLearn(pet.family, ability) then
+            local needs, cost = RankNeeds(ability, rank)
+            out[#out + 1] = { ability = ability, rank = rank, has = has, cost = cost, needs = needs,
+                learnable = not needs or not pet.level or pet.level >= needs }
         end
     end
-    return out, petName
+    return out, pet
+end
+
+-- "Bite 2 (has 1, 4 TP)", "Cower 1 (new, 8 TP)", or "Claw 3 (pet level 16)".
+function ns.DescribeUpgrade(o)
+    if not o.learnable then return o.ability .. " " .. o.rank .. " (pet level " .. o.needs .. ")" end
+    local parts = { o.has > 0 and ("has " .. o.has) or "new" }
+    if o.cost then parts[#parts + 1] = o.cost .. " TP" end
+    return o.ability .. " " .. o.rank .. " (" .. table.concat(parts, ", ") .. ")"
+end
+
+-- For the tooltip: every upgrade, including ranks your pet is too young for.
+function ns.UpgradesFor(teaches, pet)
+    local options, p = ns.UpgradeOptions(teaches, pet)
+    local out = {}
+    for _, o in ipairs(options) do out[#out + 1] = ns.DescribeUpgrade(o) end
+    return out, p and p.name
 end
 
 -- /petscout find ------------------------------------------------------------
@@ -444,28 +481,47 @@ local function SearchTank()
 end
 
 -- Beasts you can tame that would teach your current pet something.
+-- Only ranks your pet is old enough for, and only the best rank of each
+-- skill on offer (no point taming for Bite 1 when Bite 2 is around).
 local function SearchUpgrades(limit)
-    local ok, known, petName, petFamily = pcall(ns.PetKnown)
-    if not ok or not known then
+    local ok, pet = ReadPet()
+    if not ok then
         return { error = "summon your pet first; upgrades are worked out from its spellbook." }
     end
-    local pet = { known = known, name = petName, family = petFamily }
-    local level, here, matches = UnitLevel("player") or 0, Here(), {}
+    local level, here = UnitLevel("player") or 0, Here()
+    local candidates, best = {}, {}
     for npcId in pairs(AllIds()) do
         local low = LevelRange(npcId)
         if low > 0 and low <= level then
-            local ups = ns.UpgradesFor(ns.Lookup(npcId, ns.TeachesOf), pet)
-            if #ups > 0 then
-                matches[#matches + 1] = Describe(npcId, here, { upgrades = table.concat(ups, ", ") })
+            local learnable = {}
+            for _, o in ipairs(ns.UpgradeOptions(ns.Lookup(npcId, ns.TeachesOf), pet)) do
+                if o.learnable then
+                    learnable[#learnable + 1] = o
+                    best[o.ability] = math.max(best[o.ability] or 0, o.rank)
+                end
             end
+            if #learnable > 0 then candidates[#candidates + 1] = { npcId = npcId, options = learnable } end
         end
     end
+
+    local matches = {}
+    for _, c in ipairs(candidates) do
+        local keep = {}
+        for _, o in ipairs(c.options) do
+            if o.rank == best[o.ability] then keep[#keep + 1] = ns.DescribeUpgrade(o) end
+        end
+        if #keep > 0 then
+            matches[#matches + 1] = Describe(c.npcId, here, { upgrades = table.concat(keep, ", ") })
+        end
+    end
+    local who = pet.name or "your pet"
     if #matches == 0 then
-        return { error = "nothing at your level would teach " .. (petName or "your pet") .. " anything new." }
+        return { error = "nothing at your level would teach " .. who .. " anything new it can learn yet." }
     end
     matches = Rank(matches)
     return {
-        title = Counted(#matches, "beasts could teach " .. (petName or "your pet"), 0, limit, "closest first"),
+        title = Counted(#matches, "beasts teach " .. who .. "'s best upgrades", 0, limit,
+            "closest first (pet level " .. (pet.level or "?") .. ")"),
         rows = Take(matches, limit, function(m)
             return m.name .. " (" .. m.family .. " " .. Levels(m) .. "): " .. m.upgrades .. Place(m)
         end),
