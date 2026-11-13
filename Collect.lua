@@ -36,7 +36,13 @@ local function Round(v)
     return math.floor(v * 100 + 0.5) / 100
 end
 
-local function Record(npcId, name, family, level)
+local function CurrentZone()
+    local zone = GetRealZoneText and GetRealZoneText()
+    if zone and not IsSecret(zone) and zone ~= "" then return zone end
+end
+
+-- zone defaults to where you are now; a tame passes the zone it started in.
+local function Record(npcId, name, family, level, zone)
     local db = PetScoutDB.npcs
     local r = db[npcId] or {}
     db[npcId] = r
@@ -44,6 +50,13 @@ local function Record(npcId, name, family, level)
     if level and level > 0 then
         r.levelMin = math.min(r.levelMin or level, level)
         r.levelMax = math.max(r.levelMax or level, level)
+    end
+    zone = zone or CurrentZone()
+    if zone then
+        r.zones = r.zones or {}
+        local known = false
+        for _, z in ipairs(r.zones) do known = known or z == zone end
+        if not known and #r.zones < 3 then table.insert(r.zones, zone) end
     end
     return r
 end
@@ -124,6 +137,7 @@ local function FindAbilities(text, found)
         end
     end
 end
+ns.FindAbilities = FindAbilities
 
 -- Read Beast Lore's ability lines off the tooltip. Our own lines carry
 -- ns.IsOwnLine markers and are skipped so we never learn from ourselves.
@@ -169,7 +183,8 @@ local function Snapshot(unit)
     if not ok then return nil end
     local npcId = ns.NpcIdFromGUID(UnitGUID(unit))
     if not npcId then return nil end
-    return { npcId = npcId, name = UnitName(unit), family = family, level = UnitLevel(unit), at = GetTime() }
+    return { npcId = npcId, name = UnitName(unit), family = family, level = UnitLevel(unit), at = GetTime(),
+        zone = CurrentZone() }
 end
 
 local function IsTameSpell(spellId)
@@ -233,7 +248,7 @@ local function TryCaptureTame(final)
     for _, spell in ipairs(spells) do FindAbilities(spell, found) end
     if not next(found) and not final then return false end
 
-    local r = Record(pending.npcId, pending.name, pending.family, pending.level)
+    local r = Record(pending.npcId, pending.name, pending.family, pending.level, pending.zone)
     SetTeaches(r, found, "tame")
     SetSpeed(r, UnitAttackSpeed("pet"), "tame")
     print("|cffabd473PetScout|r: recorded tame of " .. pending.name .. ".")
@@ -311,6 +326,11 @@ function ns.ExportLines()
             for _, a in ipairs(r.teaches) do table.insert(t, "{" .. LuaString(a[1]) .. ", " .. a[2] .. "}") end
             table.insert(parts, "teaches={ " .. table.concat(t, ", ") .. " }")
             table.insert(parts, 'teachesSource="' .. (r.teachesSource or "lore") .. '"')
+        end
+        if r.zones and #r.zones > 0 then
+            local z = {}
+            for _, zone in ipairs(r.zones) do table.insert(z, LuaString(zone)) end
+            table.insert(parts, "zones={ " .. table.concat(z, ", ") .. " }")
         end
         table.insert(lines, "    [" .. npcId .. "] = { " .. table.concat(parts, ", ") .. " },")
     end

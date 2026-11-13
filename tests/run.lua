@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Community.lua", "Handbook.lua", "Collect.lua", "PetScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "PetScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("PetScout", ns)
 end
@@ -261,6 +261,53 @@ check("/petscout pet lists spellbook", printed[#printed]:find("Bite Rank 1, Grow
 units.pet = nil
 SlashCmdList.PETSCOUT("pet")
 check("/petscout pet with no pet", printed[#printed]:find("no pet out", 1, true), printed[#printed])
+
+-- Upgrade hints: Shal'ma (Bite 1, Claw 2, Faster Attack V) hovering a Prowler
+-- (Bite 2, Faster Attack 3) should only flag Bite 2.
+units.pet = { name = "Shal'ma", family = "Cat", level = 11, speed = 1.3, guid = "Pet-0-1-2-3-165189-SHAL" }
+petSpells = { { "Bite", "Rank 1" }, { "Claw", "Rank 2" }, { "Faster Attack V", "" }, { "Growl", "Rank 1" } }
+units.mouseover = { name = "Prowler", family = "Wolf", level = 9, guid = "Creature-0-1-2-3-118-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("upgrade line for Bite 2 only", text:find("Upgrade for Shal'ma: Bite 2 (has 1)|r", 1, true)
+    and not text:find("Faster Attack 3 (", 1, true), text)
+check("upgrade line not learned as Beast Lore", PetScoutDB.npcs[118] == nil or PetScoutDB.npcs[118].teaches == nil)
+
+-- A bear hovering a Young Forest Bear: Slower Attack is never an upgrade,
+-- and a cat can't take a skill outside its family.
+units.mouseover = { name = "Young Forest Bear", family = "Bear", level = 8, guid = "Creature-0-1-2-3-822-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("no upgrade line when nothing is better", not text:find("Upgrade for", 1, true), text)
+units.pet = nil
+resetTooltip("mouseover")
+hooked(tooltip)
+check("no upgrade line without a pet", not tooltipText():find("Upgrade for", 1, true))
+
+-- /petscout find
+units.player = { level = 12 }
+local mark = #printed
+SlashCmdList.PETSCOUT("find bite 2")
+local found = table.concat(printed, "\n", mark + 1)
+check("find lists Prowler with zone", found:find("Bite 2: Prowler (Wolf 9-10), Elwynn Forest", 1, true), found)
+check("find puts tameable first", not printed[mark + 2]:find("|cff9d9d9d", 1, true), printed[mark + 2])
+mark = #printed
+SlashCmdList.PETSCOUT("find faster attack vi")
+found = table.concat(printed, "\n", mark + 1)
+check("find with roman rank", found:find("Faster Attack 6: The Rake", 1, true), found)
+mark = #printed
+SlashCmdList.PETSCOUT("find nonsense")
+check("find explains bad query", printed[#printed]:find("find what?", 1, true), printed[#printed])
+
+-- Zones are recorded where you see a beast.
+GetRealZoneText = function() return "Dun Morogh" end
+units.target = { name = "Winter Wolf", family = "Wolf", level = 7, guid = "Creature-0-1-2-3-1131-0000ABCD" }
+ns.OnCollectEvent("PLAYER_TARGET_CHANGED")
+check("zone recorded", PetScoutDB.npcs[1131].zones and PetScoutDB.npcs[1131].zones[1] == "Dun Morogh")
+GetRealZoneText = nil
+units.target = nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

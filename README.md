@@ -6,6 +6,7 @@ A small World of Warcraft: Forever addon for hunters. Hover over a wild beast an
 - **Teaches:** the exact ability ranks the beast teaches, including Faster/Slower Attack passives.
 - **Family:** the abilities its family can learn and the pet level for each.
 - **Diet:** what the family eats.
+- **Upgrade for your pet:** if your current pet could use something the beast teaches, e.g. `Upgrade for Shal'ma: Bite 2 (has 1)`. Only skills your pet's family can learn and that beat what it already knows are shown; Slower Attack never is.
 
 The extra lines only show up for hunters. No other addon is needed.
 
@@ -30,7 +31,10 @@ Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\PetScout`, so 
 ## Commands
 
 - `/petscout`: shows how many beasts each source covers, plus the client's interface version.
+- `/petscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, with their zones.
 - `/petscout export`: opens a window with your observations, ready to copy.
+- `/petscout pet`: shows what PetScout reads from your current pet (spellbook, swing timer).
+- `/petscout debug`: reports each step of a tame in chat, for troubleshooting.
 - `/petscout reset`: forgets your observations.
 
 ## Share your observations

@@ -57,8 +57,21 @@ def parse_handbook(path):
             "speed": number(body, "attackSpeed"),
             "teaches": [(a, int(r)) for a, r in TEACH.findall(body)],
             "passive": passive_of(body),
+            "zones": unique(re.findall(r'zone="([^"]+)"', body)),
         }
     return beasts
+
+
+MAX_ZONES = 3
+
+
+def unique(items):
+    """First MAX_ZONES distinct items, in order."""
+    out = []
+    for item in items:
+        if item not in out:
+            out.append(item)
+    return out[:MAX_ZONES]
 
 
 def passive_of(body):
@@ -84,6 +97,7 @@ def parse_ours_text(text):
             "levelMax": number(body, "levelMax"),
             "speed": number(body, "speed"),
             "teaches": [(a, int(r)) for a, r in teaches],
+            "zones": unique(re.findall(r'"([^"]+)"', field(body, "zones", r'\{(.*?) \}') or "")),
         }
         # A wild beast's own swing timer says nothing about the pet's, so
         # 'seen' speeds (and old exports without a source) are dropped.
@@ -143,6 +157,7 @@ def merge_contributions(paths):
             out["levelMin"] = min(lows)
         if highs:
             out["levelMax"] = max(highs)
+        out["zones"] = unique(z for _, b in rows for z in b["zones"])
 
         speeds = [(o, b["speedSource"], b["speed"]) for o, b in rows
                   if b["speed"] is not None and b["speedSource"] in TRUST]
@@ -184,6 +199,8 @@ def to_line(npc_id, b):
         parts.append(f'passive={{{lua_str(b["passive"][0])}, {b["passive"][1]}}}')
     if b.get("teachesReports"):
         parts.append(f"teachesReports={b['teachesReports']}")
+    if b.get("zones"):
+        parts.append("zones={ " + ", ".join(lua_str(z) for z in b["zones"]) + " }")
     return f"    [{npc_id}] = {{ {', '.join(parts)} }},"
 
 

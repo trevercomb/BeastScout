@@ -8,6 +8,7 @@ function ns.IsOwnLine(text)
     if type(text) ~= "string" then return false end
     return text:find("^Attack speed") ~= nil or text:find("^Teaches") ~= nil
         or text:find("^|cffabd473PetScout") ~= nil or text:find("^|cff9d9d9d") ~= nil
+        or text:find("^" .. ns.UPGRADE_COLOR) ~= nil
 end
 
 local SOURCE_WORDS = { tame = "tamed", lore = "Beast Lore" }
@@ -30,7 +31,7 @@ local function SourceLabel(layer, record, sourceField, note)
 end
 
 -- Each getter returns value, trust, source field, note.
-local function TeachesOf(r)
+function ns.TeachesOf(r)
     if r.teaches then return r.teaches, TRUST[r.teachesSource] or 2, "teachesSource" end
 end
 
@@ -56,7 +57,7 @@ end
 
 -- Our data first (accepted community data, plus your unshared notes when
 -- they're at least as trustworthy), else the Hunter's Handbook fallback.
-local function Lookup(npcId, getter)
+function ns.Lookup(npcId, getter)
     if not npcId then return nil end
     local mine, community = PetScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
     local mv, mt, msf, mnote, cv, ct, csf, cnote
@@ -78,7 +79,7 @@ local function AddLines(tooltip, unit)
 
     tooltip:AddLine(HEADER .. " " .. family)
 
-    local speed, speedFrom = Lookup(npcId, SpeedOf)
+    local speed, speedFrom = ns.Lookup(npcId, SpeedOf)
     if speed then
         -- Source goes on the left: long right-hand text got clipped in game.
         tooltip:AddDoubleLine("Attack speed" .. speedFrom, string.format("%.1f", speed), 1, 1, 1, 1, 1, 1)
@@ -86,11 +87,17 @@ local function AddLines(tooltip, unit)
         tooltip:AddLine(GREY .. "Attack speed: unknown, cast Beast Lore to check|r")
     end
 
-    local teaches, teachesFrom = Lookup(npcId, TeachesOf)
+    local teaches, teachesFrom = ns.Lookup(npcId, ns.TeachesOf)
     if teaches and #teaches > 0 then
         local parts = {}
         for _, t in ipairs(teaches) do parts[#parts + 1] = t[1] .. " " .. t[2] end
         tooltip:AddDoubleLine("Teaches" .. teachesFrom, table.concat(parts, ", "), 1, 1, 1, 0.4, 1, 0.4)
+
+        local upgrades, petName = ns.UpgradesFor(teaches)
+        if #upgrades > 0 then
+            tooltip:AddLine(ns.UPGRADE_COLOR .. "Upgrade for " .. petName .. ": " .. table.concat(upgrades, ", ") .. "|r",
+                nil, nil, nil, true)
+        end
     end
 
     local info = ns.FAMILIES[family]
@@ -223,6 +230,9 @@ SlashCmdList.PETSCOUT = function(msg)
     if msg == "export" then
         ShowExport()
         return
+    elseif msg:find("^find") then
+        ns.Find(msg:sub(5))
+        return
     elseif msg == "debug" then
         PetScoutDB.debug = not PetScoutDB.debug
         print(HEADER .. ": debug " .. (PetScoutDB.debug and "on" or "off") .. ".")
@@ -249,5 +259,6 @@ SlashCmdList.PETSCOUT = function(msg)
         .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
     print("  /petscout export - copy your observations   /petscout reset - forget them")
+    print("  /petscout find bite 2 - beasts that teach a skill, ones you can tame first")
     print("  /petscout pet - what PetScout reads from your pet   /petscout debug - narrate tames in chat")
 end
