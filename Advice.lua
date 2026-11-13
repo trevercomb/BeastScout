@@ -239,6 +239,9 @@ end
 
 function ns.Find(query)
     query = query or ""
+    -- "fast cat" / "fastest wolves": sort by attack speed. ("faster attack" stays a skill.)
+    local fast = query:lower():match("^%s*fast%s+") or query:lower():match("^%s*fastest%s+")
+    if fast then query = query:sub(#fast + 1) end
     local family = ParseFamily(query)
     local ability, rank
     if not family then
@@ -284,11 +287,32 @@ function ns.Find(query)
         return
     end
 
-    -- Ones you can tame now first, then the closest, then the best rank.
+    -- 1: you can tame it now, 2: level unknown, 3: above your level.
     local level = UnitLevel("player") or 0
+    local function Group(m)
+        if m.levelMin == 0 then return 2 end
+        return m.levelMin <= level and 1 or 3
+    end
+
+    -- Hide beasts above your level, unless that's all there is (then show
+    -- the lowest ones, greyed, as something to aim for).
+    local hidden, reachable = 0, {}
+    for _, m in ipairs(matches) do
+        if Group(m) < 3 then reachable[#reachable + 1] = m end
+    end
+    if #reachable > 0 then
+        hidden = #matches - #reachable
+        matches = reachable
+    end
+
     table.sort(matches, function(a, b)
-        local aOk, bOk = a.levelMin <= level, b.levelMin <= level
-        if aOk ~= bOk then return aOk end
+        local ga, gb = Group(a), Group(b)
+        if ga ~= gb then return ga < gb end
+        if ga == 3 and a.levelMin ~= b.levelMin then return a.levelMin < b.levelMin end
+        if fast and a.speed ~= b.speed then
+            if not a.speed or not b.speed then return a.speed ~= nil end
+            return a.speed < b.speed
+        end
         if (a.dist ~= nil) ~= (b.dist ~= nil) then return a.dist ~= nil end
         if a.dist and b.dist and a.dist ~= b.dist then return a.dist < b.dist end
         if a.rank ~= b.rank then return a.rank > b.rank end
@@ -296,9 +320,12 @@ function ns.Find(query)
         return a.name < b.name
     end)
 
+    local order = #reachable == 0 and "none you can tame yet, lowest level first"
+        or (fast and "fastest first" or "closest first")
     wipe(results)
     print(HEADER .. ": " .. #matches .. " " .. (family and what or ("beasts teach " .. what))
-        .. (#matches > 8 and ", showing 8" or "") .. ", closest first:")
+        .. (hidden > 0 and (" (" .. hidden .. " above your level hidden)") or "")
+        .. (#matches > 8 and ", showing 8" or "") .. ", " .. order .. ":")
     for i = 1, math.min(8, #matches) do
         local m = matches[i]
         results[i] = m
@@ -307,7 +334,7 @@ function ns.Find(query)
         local where = m.where and (", " .. m.where) or ""
         local far = m.dist and (" " .. Yards(m.dist)) or ""
         local link = m.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or ""
-        local color = m.levelMin <= level and "" or GREY
+        local color = Group(m) == 3 and GREY or ""
         local label
         if family then
             label = m.name .. " (" .. levels .. ")" .. (m.speed and (" " .. string.format("%.1f", m.speed)) or "")

@@ -407,17 +407,40 @@ SlashCmdList.PETSCOUT("find cat")
 found = table.concat(printed, "\n", mark + 1)
 check("find cat lists cats with speed", printed[mark + 1]:find(" Cats", 1, true)
     and found:find("Juvenile Snow Leopard (5-6) 1.5, Dun Morogh", 1, true), found)
-check("unknown level shown as ?", found:find("Nightsaber Guardian (level ?)", 1, true), found)
 check("cat results have no skill prefix", not found:find("Bite", 1, true), found)
 mark = #printed
 SlashCmdList.PETSCOUT("find wolves")
-check("find wolves (plural)", printed[mark + 1]:find(" Wolves, ", 1, true), printed[mark + 1])
+check("find wolves (plural)", printed[mark + 1]:find(" Wolves (", 1, true), printed[mark + 1])
 mark = #printed
 SlashCmdList.PETSCOUT("find birds of prey")
-check("find birds of prey", printed[mark + 1]:find(" Birds of Prey, ", 1, true), printed[mark + 1])
+check("find birds of prey", printed[mark + 1]:find(" Birds of Prey (", 1, true), printed[mark + 1])
 mark = #printed
 SlashCmdList.PETSCOUT("find dragons")
 check("unknown family explained", printed[#printed]:find("find what?", 1, true), printed[#printed])
+
+-- Level filter and "fast".
+units.player = { level = 12 }
+mark = #printed
+SlashCmdList.PETSCOUT("find fast cat")
+found = table.concat(printed, "\n", mark + 1)
+check("fast cat: fastest first", printed[mark + 1]:find("fastest first", 1, true)
+    and printed[mark + 2]:find(") 1.2, ", 1, true), found)
+check("fast cat: hides cats above 12", printed[mark + 1]:find("above your level hidden", 1, true), printed[mark + 1])
+mark = #printed
+SlashCmdList.PETSCOUT("find faster attack 3")
+check("'faster attack' is still a skill", printed[mark + 1]:find("teach Faster Attack 3", 1, true), printed[mark + 1])
+mark = #printed
+SlashCmdList.PETSCOUT("find bite 3")
+found = table.concat(printed, "\n", mark + 1)
+check("nothing tameable: shows lowest, greyed", printed[mark + 1]:find("none you can tame yet", 1, true)
+    and printed[mark + 2]:find("|cff9d9d9d", 1, true), found)
+units.player = { level = 1 }
+mark = #printed
+SlashCmdList.PETSCOUT("find cat")
+found = table.concat(printed, "\n", mark + 1)
+check("unknown level after tameable, shown as ?", found:find("Nightsaber Guardian (level ?)", 1, true)
+    and printed[mark + 2]:find("Young Nightsaber", 1, true), found)
+units.player = { level = 12 }
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

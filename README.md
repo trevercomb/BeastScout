@@ -33,7 +33,8 @@ Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\PetScout`, so 
 ## Commands
 
 - `/petscout`: shows how many beasts each source covers, plus the client's interface version.
-- `/petscout find cat` (or `wolves`, `birds of prey`, ...): lists beasts of a family with their attack speed, closest first, with waypoints like below.
+- `/petscout find cat` (or `wolves`, `birds of prey`, ...): lists beasts of a family with their attack speed, closest first, with waypoints like below. `/petscout find fast cat` sorts by speed instead.
+- Find hides beasts above your level (and says how many). If none are tameable yet, it shows the lowest-level ones greyed out.
 - `/petscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/petscout way 2` to put a waypoint on the map.
 - `/petscout export`: opens a window with your observations, ready to copy.
 - `/petscout pet`: shows what PetScout reads from your current pet (spellbook, swing timer).
