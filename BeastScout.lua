@@ -247,6 +247,9 @@ SlashCmdList.BEASTSCOUT = function(msg)
     elseif msg == "minimap" then
         print(HEADER .. ": minimap button " .. (ns.ToggleMinimapButton() and "shown" or "hidden") .. ".")
         return
+    elseif msg:find("^probe") then
+        ns.ProbeNames(msg:sub(6))
+        return
     elseif msg == "trainer" then
         ns.ProbeTrainer()
         return

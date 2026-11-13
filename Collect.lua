@@ -397,6 +397,47 @@ function ns.ReadBeastTraining()
     Debug("read Beast Training:", n, "entries")
 end
 
+-- Global functions and C_ namespace functions whose name contains any of
+-- words (case-insensitive); a whole C_ namespace counts if its name does.
+function ns.SearchClient(words)
+    local function Matches(name)
+        name = name:lower()
+        for _, w in ipairs(words) do
+            if name:find(w, 1, true) then return true end
+        end
+        return false
+    end
+    local hits, spaces = {}, {}
+    for key, value in pairs(_G) do
+        if type(key) == "string" then
+            if type(value) == "function" and Matches(key) then
+                hits[#hits + 1] = key
+            elseif type(value) == "table" and key:find("^C_") then
+                for fn, f in pairs(value) do
+                    if type(f) == "function" and (Matches(key) or Matches(tostring(fn))) then
+                        spaces[#spaces + 1] = key .. "." .. tostring(fn)
+                    end
+                end
+            end
+        end
+    end
+    table.sort(hits)
+    table.sort(spaces)
+    return hits, spaces
+end
+
+-- /beastscout probe [words]: find game functions by name, e.g. to learn how
+-- Forever tells which food a pet eats. Default words: food, diet, edible, feed, eat.
+function ns.ProbeNames(text)
+    local words = {}
+    for w in (text or ""):lower():gmatch("%S+") do words[#words + 1] = w end
+    if #words == 0 then words = { "food", "diet", "edible", "feed", "eat" } end
+    local hits, spaces = ns.SearchClient(words)
+    print("|cffabd473BeastScout|r probe for " .. table.concat(words, ", ") .. ":")
+    print("  functions: " .. (#hits > 0 and table.concat(hits, ", ") or "none"))
+    print("  in C_ namespaces: " .. (#spaces > 0 and table.concat(spaces, ", ") or "none"))
+end
+
 -- /beastscout trainer: what BeastScout can read from the Beast Training window.
 -- Run it with the window open; the answer decides how to read it for real.
 function ns.ProbeTrainer()
@@ -443,28 +484,8 @@ function ns.ProbeTrainer()
         end
     end
 
-    -- Forever's Beast Training is its own window, so search for it: global
-    -- functions and C_ namespaces with "train"/"beast" in a name, and
-    -- visible frames whose name suggests pet training.
-    local hits, spaces = {}, {}
-    for key, value in pairs(_G) do
-        if type(key) == "string" then
-            local k = key:lower()
-            if type(value) == "function" and (k:find("train") or k:find("beast")) then
-                hits[#hits + 1] = key
-            elseif type(value) == "table" and key:find("^C_") then
-                for fn in pairs(value) do
-                    local f = tostring(fn):lower()
-                    if f:find("train") or f:find("beast") or k:find("train") or k:find("beast")
-                        or (k:find("pet") and f:find("spell")) then
-                        spaces[#spaces + 1] = key .. "." .. tostring(fn)
-                    end
-                end
-            end
-        end
-    end
-    table.sort(hits)
-    table.sort(spaces)
+    -- Forever's Beast Training is its own window, so search for it by name.
+    local hits, spaces = ns.SearchClient({ "train", "beast" })
     print("  functions named train/beast: " .. (#hits > 0 and table.concat(hits, ", ") or "none"))
     print("  in C_ namespaces: " .. (#spaces > 0 and table.concat(spaces, ", ") or "none"))
 

@@ -767,6 +767,19 @@ C_Map = nil
 GetSpellInfo = englishSpellInfo
 units.pet, units.mouseover = nil, nil
 
+-- /beastscout probe: finds functions by name.
+function GetPetFoodTypes() end
+C_PetFood = { IsEdible = function() end }
+mark = #printed
+SlashCmdList.BEASTSCOUT("probe")
+local probeText = table.concat(printed, "\n", mark + 1)
+check("probe finds food functions", probeText:find("GetPetFoodTypes", 1, true)
+    and probeText:find("C_PetFood.IsEdible", 1, true), probeText)
+mark = #printed
+SlashCmdList.BEASTSCOUT("probe stable")
+check("probe takes its own words", printed[mark + 1]:find("probe for stable:", 1, true), printed[mark + 1])
+GetPetFoodTypes, C_PetFood = nil, nil
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()
