@@ -1,6 +1,6 @@
 # How the BigWigs packager builds the release zip (see .github/workflows/release.yml).
 # Players get only the addon: the .toc, the Lua files, LICENSE.
-package-as: PetScout
+package-as: BeastScout
 
 ignore:
   - .github

@@ -1,11 +1,11 @@
 local _, ns = ...
 
--- Advice built from PetScout's data and your current pet:
+-- Advice built from BeastScout's data and your current pet:
 --   ns.UpgradesFor(teaches): what a beast teaches that your pet would gain
 --   ns.Search(query):        beasts by skill, family, speed, tank or upgrades
---   ns.Find(query):          the same, printed to chat (/petscout find)
+--   ns.Find(query):          the same, printed to chat (/beastscout find)
 
-local HEADER = "|cffabd473PetScout|r"
+local HEADER = "|cffabd473BeastScout|r"
 local GREY = "|cff9d9d9d"
 ns.UPGRADE_COLOR = "|cff40ff40"
 
@@ -37,7 +37,7 @@ end
 -- What Beast Training says you can teach (read whenever you open it):
 -- { [rank] = { state, level, cost } } for one ability.
 local function TrainerRanks(ability)
-    local skills = PetScoutDB.trainer and PetScoutDB.trainer.skills
+    local skills = BeastScoutDB.trainer and BeastScoutDB.trainer.skills
     return skills and skills[ability]
 end
 
@@ -115,7 +115,7 @@ function ns.UpgradesFor(teaches, pet)
     return out, p and p.name
 end
 
--- /petscout find ------------------------------------------------------------
+-- /beastscout find ------------------------------------------------------------
 
 local ROMAN = { I = 1, II = 2, III = 3, IV = 4, V = 5, VI = 6, VII = 7, VIII = 8, IX = 9, X = 10 }
 
@@ -132,7 +132,7 @@ local function ParseQuery(query)
 end
 
 local function Field(npcId, key)
-    for _, layer in ipairs({ PetScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
+    for _, layer in ipairs({ BeastScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
         local r = layer[npcId]
         if r and r[key] then return r[key] end
     end
@@ -141,7 +141,7 @@ end
 -- One sighting shouldn't narrow the range, so combine every source.
 local function LevelRange(npcId)
     local low, high
-    for _, layer in ipairs({ PetScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
+    for _, layer in ipairs({ BeastScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
         local r = layer[npcId]
         if r and r.levelMin then low = math.min(low or r.levelMin, r.levelMin) end
         if r and r.levelMax then high = math.max(high or r.levelMax, r.levelMax) end
@@ -224,7 +224,7 @@ end
 
 local function Spots(npcId)
     local out = {}
-    for _, layer in ipairs({ PetScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
+    for _, layer in ipairs({ BeastScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
         local r = layer[npcId]
         for _, spot in ipairs(r and r.spots or {}) do out[#out + 1] = spot end
     end
@@ -238,12 +238,12 @@ end
 
 -- Waypoints ------------------------------------------------------------------------
 
-local results = {} -- the last /petscout find, for /petscout way N and the chat links
+local results = {} -- the last /beastscout find, for /beastscout way N and the chat links
 
 function ns.Waypoint(index)
     local m = results[tonumber(index) or 0]
     if not m then
-        print(HEADER .. ": run /petscout find first, then /petscout way <number>.")
+        print(HEADER .. ": run /beastscout find first, then /beastscout way <number>.")
         return
     end
     if not m.spot then
@@ -271,7 +271,7 @@ end
 
 -- Clickable [Waypoint] in chat. Newer clients pass "addon:" links to
 -- EventRegistry's SetItemRef event; older ones only to SetItemRef itself.
-local LINK = "addon:petscout:way:"
+local LINK = "addon:beastscout:way:"
 
 local function OnLink(...)
     for i = 1, select("#", ...) do
@@ -322,7 +322,7 @@ end
 
 local function AllIds()
     local ids = {}
-    for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, PetScoutDB.npcs }) do
+    for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, BeastScoutDB.npcs }) do
         for npcId in pairs(layer) do ids[npcId] = true end
     end
     return ids
@@ -666,13 +666,13 @@ local function SearchUpgrades(limit)
         title = "best upgrades for " .. who .. " (pet level " .. (pet.level or "?") .. "), by skill, closest first",
         rows = rows,
         note = "Greyed: " .. who .. " is too young to learn it yet."
-            .. (PetScoutDB.trainer and "" or " Open Beast Training once so PetScout knows what you can already teach."),
+            .. (BeastScoutDB.trainer and "" or " Open Beast Training once so BeastScout knows what you can already teach."),
     }
 end
 
--- What PetScout has measured from your pets.
+-- What BeastScout has measured from your pets.
 local function SearchStats()
-    local stats = PetScoutDB.petStats or {}
+    local stats = BeastScoutDB.petStats or {}
     local families = {}
     for family in pairs(stats) do families[#families + 1] = family end
     table.sort(families)
@@ -694,7 +694,7 @@ local function SearchStats()
     return { title = "measured pet stats (lowest seen, so buffs don't count)", rows = rows }
 end
 
--- Run any search. Rows are also kept for /petscout way N and the links.
+-- Run any search. Rows are also kept for /beastscout way N and the links.
 function ns.Search(query, limit)
     query, limit = query or "", limit or 8
     local q = query:lower():gsub("^%s+", ""):gsub("%s+$", "")
@@ -715,25 +715,25 @@ end
 
 -- Forget one pet measurement (a pet you've abandoned, say).
 function ns.ForgetPetStat(family, level)
-    local byLevel = PetScoutDB.petStats and PetScoutDB.petStats[family]
+    local byLevel = BeastScoutDB.petStats and BeastScoutDB.petStats[family]
     if not (byLevel and byLevel[level]) then return false end
     byLevel[level] = nil
-    if not next(byLevel) then PetScoutDB.petStats[family] = nil end
+    if not next(byLevel) then BeastScoutDB.petStats[family] = nil end
     return true
 end
 
--- /petscout forget N: remove row N of the last pet stats list.
+-- /beastscout forget N: remove row N of the last pet stats list.
 function ns.ForgetRow(index)
     local row = results[tonumber(index) or 0]
     if not (row and row.remove) then
-        print(HEADER .. ": run /petscout stats first, then /petscout forget <number>.")
+        print(HEADER .. ": run /beastscout stats first, then /beastscout forget <number>.")
         return
     end
     ns.ForgetPetStat(row.remove.family, row.remove.level)
     print(HEADER .. ": forgot " .. row.text .. ".")
 end
 
--- Chat output: /petscout find ...
+-- Chat output: /beastscout find ...
 function ns.PrintResult(result)
     if result.error then
         print(HEADER .. ": " .. result.error)
@@ -747,7 +747,7 @@ function ns.PrintResult(result)
         print("  " .. i .. ". " .. (row.grey and GREY or "") .. row.text .. (row.grey and "|r" or "") .. link)
     end
     if result.note then print(GREY .. "  " .. result.note .. "|r") end
-    if anySpot then print(GREY .. "  Click [Waypoint] or type /petscout way <number>.|r") end
+    if anySpot then print(GREY .. "  Click [Waypoint] or type /beastscout way <number>.|r") end
 end
 
 function ns.Find(query)

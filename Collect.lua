@@ -1,12 +1,12 @@
 local _, ns = ...
 
--- Our own observations, so PetScout can eventually stand on its own data.
+-- Our own observations, so BeastScout can eventually stand on its own data.
 -- Two sources, most trusted first:
 --   tame: your new pet's spellbook and swing timer right after Tame Beast
 --   lore: ability ranks read from the beast's tooltip after Beast Lore
 -- A wild beast's own swing timer isn't recorded: the pet's comes from its
 -- Faster/Slower Attack passive instead (see ns.PASSIVE_SPEED).
--- Stored in PetScoutDB.npcs[npcId] = { name, family, levelMin, levelMax,
+-- Stored in BeastScoutDB.npcs[npcId] = { name, family, levelMin, levelMax,
 --   speed, speedSource, teaches = { {ability, rank} }, teachesSource }.
 
 local TAME_BEAST_SPELL_ID = 1515
@@ -69,7 +69,7 @@ end
 
 -- zone and spot default to where you are now; a tame passes where it started.
 local function Record(npcId, name, family, level, zone, spot)
-    local db = PetScoutDB.npcs
+    local db = BeastScoutDB.npcs
     local r = db[npcId] or {}
     db[npcId] = r
     r.name, r.family = name or r.name, family or r.family
@@ -193,12 +193,12 @@ end
 
 -- Taming --------------------------------------------------------------------
 
--- /petscout debug: narrate the tame capture in chat.
+-- /beastscout debug: narrate the tame capture in chat.
 function ns.Debug(...)
-    if not (PetScoutDB and PetScoutDB.debug) then return end
+    if not (BeastScoutDB and BeastScoutDB.debug) then return end
     local parts = {}
     for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
-    print("|cffabd473PetScout debug|r: " .. table.concat(parts, " "))
+    print("|cffabd473BeastScout debug|r: " .. table.concat(parts, " "))
 end
 local Debug = ns.Debug
 
@@ -278,7 +278,7 @@ local function TryCaptureTame(final)
     local r = Record(pending.npcId, pending.name, pending.family, pending.level, pending.zone, pending.spot)
     SetTeaches(r, found, "tame")
     SetSpeed(r, UnitAttackSpeed("pet"), "tame")
-    print("|cffabd473PetScout|r: recorded tame of " .. pending.name .. ".")
+    print("|cffabd473BeastScout|r: recorded tame of " .. pending.name .. ".")
     pending = nil
     return true
 end
@@ -303,7 +303,7 @@ end
 
 -- Pet stats ----------------------------------------------------------------------
 -- Family health/armor bonuses aren't published for Forever, so measure them:
--- PetScoutDB.petStats[family][petLevel] = { health, armor, name }. Keep the
+-- BeastScoutDB.petStats[family][petLevel] = { health, armor, name }. Keep the
 -- lowest reading, since buffs only ever add.
 
 function ns.MeasurePet()
@@ -316,9 +316,9 @@ function ns.MeasurePet()
     end
     if not family or not level or level < 1 or not health or health < 1 then return end
 
-    PetScoutDB.petStats = PetScoutDB.petStats or {}
-    local byLevel = PetScoutDB.petStats[family] or {}
-    PetScoutDB.petStats[family] = byLevel
+    BeastScoutDB.petStats = BeastScoutDB.petStats or {}
+    local byLevel = BeastScoutDB.petStats[family] or {}
+    BeastScoutDB.petStats[family] = byLevel
     local s = byLevel[level] or {}
     byLevel[level] = s
     if not s.health or health < s.health then s.health = health end
@@ -344,7 +344,7 @@ end
 -- Forever opens Beast Training in the class trainer window, so the trainer
 -- API lists the pet skills you can teach (seen in game 2026-11-13:
 -- GetTrainerServiceInfo(i) -> "Bite", "unavailable", icon, 8, "Rank 2").
--- PetScoutDB.trainer.skills[ability][rank] = { state, level, cost }.
+-- BeastScoutDB.trainer.skills[ability][rank] = { state, level, cost }.
 -- GetTrainerServiceCost(i) returns the training point cost (matched the
 -- window for all 8 of River's entries in game).
 
@@ -381,11 +381,11 @@ function ns.ReadBeastTraining()
             skills[name][rank] = { state = state, level = level, cost = cost }
         end
     end
-    PetScoutDB.trainer = { skills = skills, at = time and time() or 0 }
+    BeastScoutDB.trainer = { skills = skills, at = time and time() or 0 }
     Debug("read Beast Training:", n, "entries")
 end
 
--- /petscout trainer: what PetScout can read from the Beast Training window.
+-- /beastscout trainer: what BeastScout can read from the Beast Training window.
 -- Run it with the window open; the answer decides how to read it for real.
 function ns.ProbeTrainer()
     local function Show(...)
@@ -398,7 +398,7 @@ function ns.ProbeTrainer()
         "GetTrainerServiceInfo", "GetTrainerServiceCost" }) do
         if type(_G[name]) == "function" then apis[#apis + 1] = name end
     end
-    print("|cffabd473PetScout|r trainer probe. Functions: " .. (#apis > 0 and table.concat(apis, ", ") or "none"))
+    print("|cffabd473BeastScout|r trainer probe. Functions: " .. (#apis > 0 and table.concat(apis, ", ") or "none"))
     for _, space in ipairs({ "C_PetTraining", "C_Trainer", "C_Craft", "C_ClassTrainer" }) do
         local t = _G[space]
         if type(t) == "table" then
@@ -481,8 +481,8 @@ function ns.ProbeTrainer()
     print("  frames showing \"Training Points\": " .. (#found > 0 and table.concat(found, ", ") or "none"))
     pcall(ns.ReadBeastTraining)
     local n = 0
-    for _ in pairs(PetScoutDB.trainer and PetScoutDB.trainer.skills or {}) do n = n + 1 end
-    print("  PetScout has recorded " .. n .. " trainable skills.")
+    for _ in pairs(BeastScoutDB.trainer and BeastScoutDB.trainer.skills or {}) do n = n + 1 end
+    print("  BeastScout has recorded " .. n .. " trainable skills.")
 end
 
 function ns.OnCollectEvent(event, ...)
@@ -517,7 +517,7 @@ end
 
 function ns.ExportLines()
     local ids = {}
-    for npcId, r in pairs(PetScoutDB.npcs) do
+    for npcId, r in pairs(BeastScoutDB.npcs) do
         local speed = r.speedSource == "tame" and r.speed
         if r.name and r.family and (speed or r.teaches) then table.insert(ids, npcId) end
     end
@@ -525,7 +525,7 @@ function ns.ExportLines()
 
     local lines = {}
     for _, npcId in ipairs(ids) do
-        local r = PetScoutDB.npcs[npcId]
+        local r = BeastScoutDB.npcs[npcId]
         local parts = { "name=" .. LuaString(r.name), "family=" .. LuaString(r.family) }
         if r.levelMin then table.insert(parts, "levelMin=" .. r.levelMin) end
         if r.levelMax then table.insert(parts, "levelMax=" .. r.levelMax) end

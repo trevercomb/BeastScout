@@ -1,4 +1,4 @@
-"""Draw PetScout's logo (docs/logo.png): a paw print under a magnifying glass.
+"""Draw BeastScout's logo (docs/logo.png): a paw print under a magnifying glass.
 Original artwork, no game assets. Run: python tools/make_logo.py"""
 
 from pathlib import Path
@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 SIZE, SCALE = 400, 4            # draw at 4x, then shrink for smooth edges
 S = SIZE * SCALE
 BG = (28, 36, 30)
-GREEN = (171, 212, 115)        # PetScout's chat color (|cffabd473)
+GREEN = (171, 212, 115)        # BeastScout's chat color (|cffabd473)
 GOLD = (232, 190, 92)
 GLASS = (60, 78, 66)
 

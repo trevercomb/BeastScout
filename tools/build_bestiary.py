@@ -1,7 +1,7 @@
-"""Build PetScout's two data files.
+"""Build BeastScout's two data files.
 
   Community.lua  ns.COMMUNITY: our own data, merged from contributions/*.lua
-                 (lines from /petscout export). PetScout checks this first.
+                 (lines from /beastscout export). BeastScout checks this first.
   Handbook.lua   ns.HANDBOOK: fallback converted from Hunter's Handbook's
                  BestiaryData.lua (GPLv3, by Wood), vendored in vendor/HuntersHandbook/.
 
@@ -237,7 +237,7 @@ DEFAULT_HANDBOOK = str(ROOT / "vendor" / "HuntersHandbook" / "BestiaryData.lua")
 DEFAULT_TRAINING = str(ROOT / "vendor" / "HuntersHandbook" / "Data.lua")
 TRAINING_BLOCK = re.compile(r'^    (?:\["([^"]+)"\]|(\w+)) = \{\n(.*?)^    \},?$', re.M | re.S)
 RANK_ROW = re.compile(r'\{ rank=(\d+), level=(\d+|nil),\s*cost=(\d+|nil)')
-# Hunter's Handbook's wording for "any family"; PetScout falls back to its own family lists.
+# Hunter's Handbook's wording for "any family"; BeastScout falls back to its own family lists.
 ANY_FAMILY_TEXT = ("many", "all ", "every")
 
 
@@ -295,7 +295,7 @@ def build(contributions=DEFAULT_CONTRIBUTIONS, handbook_path=DEFAULT_HANDBOOK, o
 
     community = merge_contributions(paths)
     write_table(Path(out_dir) / "Community.lua", "COMMUNITY", [
-        "PetScout's own beast data, merged from players' shared observations.",
+        "BeastScout's own beast data, merged from players' shared observations.",
         "Checked before the Hunter's Handbook fallback. Sources: tame > lore.",
     ], community)
 

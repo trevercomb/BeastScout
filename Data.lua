@@ -15,8 +15,8 @@ ns.PASSIVE_SPEED = {
 
 -- Family stat modifiers in CLASSIC (1.x), from Highground Gaming's table,
 -- matching Icy Veins where both list a family. Not confirmed for Forever,
--- which adds Fox, Bird of Prey and Core Hound (unknown here); PetScout
--- measures pets in game (PetScoutDB.petStats) to check them.
+-- which adds Fox, Bird of Prey and Core Hound (unknown here); BeastScout
+-- measures pets in game (BeastScoutDB.petStats) to check them.
 ns.CLASSIC_FAMILY_MODS = {
     ["Bat"]          = { health = 1.00, armor = 1.00, damage = 1.07 },
     ["Bear"]         = { health = 1.08, armor = 1.05, damage = 0.91 },

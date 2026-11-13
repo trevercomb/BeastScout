@@ -1,4 +1,4 @@
--- Offline tests for PetScout with a fake WoW API.
+-- Offline tests for BeastScout with a fake WoW API.
 -- Run from the repo root: lua tests/run.lua
 
 local failures = 0
@@ -88,11 +88,11 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Training.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "PetScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Training.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "BeastScout.lua" }) do
     local chunk = assert(loadfile(file))
-    chunk("PetScout", ns)
+    chunk("BeastScout", ns)
 end
-PetScoutDB = { npcs = {} }
+BeastScoutDB = { npcs = {} }
 
 -- Tests ----------------------------------------------------------------------------
 
@@ -103,7 +103,7 @@ wipe(ns.COMMUNITY)
 check("tame ability list longest first", #ns.TAME_ABILITIES[1] >= #ns.TAME_ABILITIES[#ns.TAME_ABILITIES])
 
 check("IsOwnLine: plain text is not ours", ns.IsOwnLine("Bite (Rank 2)") == false)
-check("IsOwnLine: our header", ns.IsOwnLine("|cffabd473PetScout|r Wolf") == true)
+check("IsOwnLine: our header", ns.IsOwnLine("|cffabd473BeastScout|r Wolf") == true)
 check("IsOwnLine: our Teaches label", ns.IsOwnLine("Teaches") == true)
 check("IsOwnLine: nil", ns.IsOwnLine(nil) == false)
 
@@ -121,16 +121,16 @@ TooltipDataProcessor = { AddTooltipPostCall = function(_, fn) hooked = fn end }
 Enum = { TooltipDataType = { Unit = 1 } }
 local text
 do
-    -- PetScout.lua registered its handler on a fake frame; call the pieces directly.
-    local chunk = assert(loadfile("PetScout.lua"))
+    -- BeastScout.lua registered its handler on a fake frame; call the pieces directly.
+    local chunk = assert(loadfile("BeastScout.lua"))
     local frameScript
     CreateFrame = function()
         local f = fakeFrame()
         rawset(f, "SetScript", function(_, _, fn) frameScript = fn end)
         return f
     end
-    chunk("PetScout", ns)
-    frameScript(fakeFrame(), "ADDON_LOADED", "PetScout")
+    chunk("BeastScout", ns)
+    frameScript(fakeFrame(), "ADDON_LOADED", "BeastScout")
 end
 check("tooltip hook installed", hooked ~= nil)
 
@@ -139,8 +139,8 @@ hooked(tooltip)
 text = tooltipText()
 check("speed from passive, labelled", text:find("|cff9d9d9d (Faster Attack III, Handbook)|r | 1.5", 1, true), text)
 check("teaches on one labelled line", text:find("|cff9d9d9d (Handbook)|r | Bite 1, Faster Attack 3", 1, true), text)
-check("wild swing timer not recorded", PetScoutDB.npcs[2958].speed == nil)
-check("our own lines not learned as lore", PetScoutDB.npcs[2958].teaches == nil)
+check("wild swing timer not recorded", BeastScoutDB.npcs[2958].speed == nil)
+check("our own lines not learned as lore", BeastScoutDB.npcs[2958].teaches == nil)
 
 -- Unknown beast with Beast Lore lines in several formats.
 units.mouseover = { name = "Test Cat", family = "Cat", level = 20, speed = 1.3,
@@ -152,7 +152,7 @@ resetTooltip("mouseover", {
     { "Abilities: Bite 2, Prowl 1" },
 })
 hooked(tooltip)
-local r = PetScoutDB.npcs[999001]
+local r = BeastScoutDB.npcs[999001]
 local taught = {}
 for _, t in ipairs(r and r.teaches or {}) do taught[t[1]] = t[2] end
 check("lore: Claw rank 3", taught.Claw == 3, taught.Claw)
@@ -172,7 +172,7 @@ units.pet = { name = "Test Cat", family = "Cat", level = 20, speed = 1.2, guid =
 petSpells = { { "Claw", "Rank 3" }, { "Faster Attack", "Rank 5" }, { "Growl", "Rank 1" } }
 ns.OnCollectEvent("UNIT_PET", "player")
 runTimers()
-r = PetScoutDB.npcs[999001]
+r = BeastScoutDB.npcs[999001]
 taught = {}
 for _, t in ipairs(r.teaches) do taught[t[1]] = t[2] end
 check("tame replaces lore list", r.teachesSource == "tame" and taught.Claw == 3 and taught["Faster Attack"] == 5
@@ -183,7 +183,7 @@ check("tame announced", printed[#printed] and printed[#printed]:find("recorded t
 -- Lore after a tame must not downgrade it.
 resetTooltip("mouseover", { { "Bite (Rank 9)" } })
 ns.ReadBeastLore(tooltip, "mouseover")
-check("lore can't override tame", PetScoutDB.npcs[999001].teachesSource == "tame")
+check("lore can't override tame", BeastScoutDB.npcs[999001].teachesSource == "tame")
 
 -- Export: same format the build script reads.
 local lines = ns.ExportLines()
@@ -192,7 +192,7 @@ check("export line format", lines[1] == '    [999001] = { name="Test Cat", famil
     .. 'speed=1.2, speedSource="tame", teaches={ {"Claw", 3}, {"Faster Attack", 5} }, teachesSource="tame" },', lines[1])
 
 ns.COMMUNITY[2958] = { name = "Prairie Wolf", family = "Wolf", speed = 1.4, speedSource = "tame", speedReports = 3 }
-PetScoutDB.npcs[2958] = nil
+BeastScoutDB.npcs[2958] = nil
 units.mouseover = { name = "Prairie Wolf", family = "Wolf", level = 6, speed = 9, combat = true,
     guid = "Creature-0-1-2-3-2958-0000ABCD" }
 resetTooltip("mouseover")
@@ -200,13 +200,13 @@ hooked(tooltip)
 text = tooltipText()
 check("community speed beats Handbook", text:find("|cff9d9d9d (players, tamed x3)|r | 1.4", 1, true), text)
 check("teaches still fall back per field", text:find("|cff9d9d9d (Handbook)|r | Bite 1, Faster Attack 3", 1, true), text)
-PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = 1.3, "tame"
+BeastScoutDB.npcs[2958].speed, BeastScoutDB.npcs[2958].speedSource = 1.3, "tame"
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
 check("your notes beat community", text:find("|cff9d9d9d (you, tamed)|r | 1.3", 1, true), text)
-PetScoutDB.npcs[2958].speed, PetScoutDB.npcs[2958].speedSource = nil, nil
-PetScoutDB.npcs[2958].teaches, PetScoutDB.npcs[2958].teachesSource = { { "Faster Attack", 2 } }, "lore"
+BeastScoutDB.npcs[2958].speed, BeastScoutDB.npcs[2958].speedSource = nil, nil
+BeastScoutDB.npcs[2958].teaches, BeastScoutDB.npcs[2958].teachesSource = { { "Faster Attack", 2 } }, "lore"
 resetTooltip("mouseover")
 hooked(tooltip)
 text = tooltipText()
@@ -232,35 +232,35 @@ units.pet = { name = "Cat", family = "Cat", level = 8, speed = 1.961000084877, g
 petSpells = {}
 -- In game UNIT_PET fired twice for one tame; only one capture should run.
 local before = #printed
-PetScoutDB.debug = true
+BeastScoutDB.debug = true
 ns.OnCollectEvent("UNIT_PET", "player")
 ns.OnCollectEvent("UNIT_PET", "player")
 runTimers()
-PetScoutDB.debug = false
+BeastScoutDB.debug = false
 local reads = 0
 for i = before + 1, #printed do
     if printed[i]:find("pet spellbook:", 1, true) then reads = reads + 1 end
 end
 check("double UNIT_PET runs one capture", reads == 5, reads)
-local leo = PetScoutDB.npcs[1201]
+local leo = BeastScoutDB.npcs[1201]
 check("tame via last wild target, empty spellbook", leo and leo.speed == 2 and leo.speedSource == "tame",
     leo and leo.speed)
 check("raw 1.961 snapped to 2.0", leo and leo.speed == 2.0, leo and leo.speed)
 check("tame announced for leopard", printed[#printed]:find("recorded tame of Snow Leopard", 1, true), printed[#printed])
 
 -- Commands run without errors.
-PetScoutDB.debug = false
-SlashCmdList.PETSCOUT("debug")
-check("debug toggles on", PetScoutDB.debug == true)
+BeastScoutDB.debug = false
+SlashCmdList.BEASTSCOUT("debug")
+check("debug toggles on", BeastScoutDB.debug == true)
 ns.Debug("hello")
-check("debug prints", printed[#printed]:find("PetScout debug", 1, true), printed[#printed])
-SlashCmdList.PETSCOUT("debug")
+check("debug prints", printed[#printed]:find("BeastScout debug", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("debug")
 petSpells = { { "Bite", "Rank 1" }, { "Growl", "Rank 1" } }
-SlashCmdList.PETSCOUT("pet")
-check("/petscout pet lists spellbook", printed[#printed]:find("Bite Rank 1, Growl Rank 1", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("pet")
+check("/beastscout pet lists spellbook", printed[#printed]:find("Bite Rank 1, Growl Rank 1", 1, true), printed[#printed])
 units.pet = nil
-SlashCmdList.PETSCOUT("pet")
-check("/petscout pet with no pet", printed[#printed]:find("no pet out", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("pet")
+check("/beastscout pet with no pet", printed[#printed]:find("no pet out", 1, true), printed[#printed])
 
 -- Upgrade hints: Shal'ma (Bite 1, Claw 2, Faster Attack V) hovering a Prowler
 -- (Bite 2, Faster Attack 3) should only flag Bite 2.
@@ -272,7 +272,7 @@ hooked(tooltip)
 text = tooltipText()
 check("upgrade line for Bite 2 only", text:find("Upgrade for Shal'ma: Bite 2 (has 1, 4 TP)|r", 1, true)
     and not text:find("Faster Attack 3 (", 1, true), text)
-check("upgrade line not learned as Beast Lore", PetScoutDB.npcs[118] == nil or PetScoutDB.npcs[118].teaches == nil)
+check("upgrade line not learned as Beast Lore", BeastScoutDB.npcs[118] == nil or BeastScoutDB.npcs[118].teaches == nil)
 
 -- A bear hovering a Young Forest Bear: Slower Attack is never an upgrade,
 -- and a cat can't take a skill outside its family.
@@ -286,26 +286,26 @@ resetTooltip("mouseover")
 hooked(tooltip)
 check("no upgrade line without a pet", not tooltipText():find("Upgrade for", 1, true))
 
--- /petscout find
+-- /beastscout find
 units.player = { level = 12 }
 local mark = #printed
-SlashCmdList.PETSCOUT("find bite 2")
+SlashCmdList.BEASTSCOUT("find bite 2")
 local found = table.concat(printed, "\n", mark + 1)
 check("find lists Prowler with zone", found:find("Bite 2: Prowler (Wolf 9-10), Elwynn Forest", 1, true), found)
 check("find puts tameable first", not printed[mark + 2]:find("|cff9d9d9d", 1, true), printed[mark + 2])
 mark = #printed
-SlashCmdList.PETSCOUT("find faster attack vi")
+SlashCmdList.BEASTSCOUT("find faster attack vi")
 found = table.concat(printed, "\n", mark + 1)
 check("find with roman rank", found:find("Faster Attack 6: The Rake", 1, true), found)
 mark = #printed
-SlashCmdList.PETSCOUT("find nonsense")
+SlashCmdList.BEASTSCOUT("find nonsense")
 check("find explains bad query", printed[#printed]:find("find what?", 1, true), printed[#printed])
 
 -- Zones are recorded where you see a beast.
 GetRealZoneText = function() return "Dun Morogh" end
 units.target = { name = "Winter Wolf", family = "Wolf", level = 7, guid = "Creature-0-1-2-3-1131-0000ABCD" }
 ns.OnCollectEvent("PLAYER_TARGET_CHANGED")
-check("zone recorded", PetScoutDB.npcs[1131].zones and PetScoutDB.npcs[1131].zones[1] == "Dun Morogh")
+check("zone recorded", BeastScoutDB.npcs[1131].zones and BeastScoutDB.npcs[1131].zones[1] == "Dun Morogh")
 GetRealZoneText = nil
 units.target = nil
 
@@ -374,28 +374,28 @@ C_Map = {
 UiMapPoint = { CreateFromCoordinates = function(id, x, y) return { mapID = id, x = x, y = y } end }
 
 mark = #printed
-SlashCmdList.PETSCOUT("find bite 2")
+SlashCmdList.BEASTSCOUT("find bite 2")
 found = table.concat(printed, "\n", mark + 1)
 check("closest first: Starving Winter Wolf", printed[mark + 2]:find("1. Bite 2: Starving Winter Wolf", 1, true), found)
 check("distance shown", printed[mark + 2]:find("~", 1, true) and printed[mark + 2]:find(" yd", 1, true), printed[mark + 2])
-check("clickable waypoint link", printed[mark + 2]:find("|Haddon:petscout:way:1|h[Waypoint]|h", 1, true), printed[mark + 2])
+check("clickable waypoint link", printed[mark + 2]:find("|Haddon:beastscout:way:1|h[Waypoint]|h", 1, true), printed[mark + 2])
 local prowler
 for i = mark + 2, #printed do
     if printed[i]:find("Prowler", 1, true) then prowler = printed[i] end
 end
 check("Prowler further down, about 5k yards away", prowler and prowler:find("k yd", 1, true), prowler)
 
-SlashCmdList.PETSCOUT("way 1")
+SlashCmdList.BEASTSCOUT("way 1")
 check("waypoint set on Dun Morogh", waypoint and waypoint.mapID == 1426 and math.abs(waypoint.x - 0.322) < 0.001,
     waypoint and (waypoint.mapID .. " " .. waypoint.x))
 check("waypoint confirmed in chat", printed[#printed]:find("waypoint set for Starving Winter Wolf", 1, true), printed[#printed])
-SlashCmdList.PETSCOUT("way 99")
-check("bad waypoint number explained", printed[#printed]:find("run /petscout find first", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("way 99")
+check("bad waypoint number explained", printed[#printed]:find("run /beastscout find first", 1, true), printed[#printed])
 
 -- Sightings record where you stood.
 units.target = { name = "Winter Wolf", family = "Wolf", level = 7, guid = "Creature-0-1-2-3-1131-0000ABCD" }
 ns.OnCollectEvent("PLAYER_TARGET_CHANGED")
-local spot = PetScoutDB.npcs[1131].spots and PetScoutDB.npcs[1131].spots[1]
+local spot = BeastScoutDB.npcs[1131].spots and BeastScoutDB.npcs[1131].spots[1]
 check("spawn point recorded", spot and spot[1] == "Dun Morogh" and spot[2] == 33 and spot[3] == 43,
     spot and table.concat(spot, ","))
 units.target, C_Map, UiMapPoint = nil, nil, nil
@@ -403,46 +403,46 @@ units.target, C_Map, UiMapPoint = nil, nil, nil
 -- find by family, with speed in the results.
 units.player = { level = 12 }
 mark = #printed
-SlashCmdList.PETSCOUT("find cat")
+SlashCmdList.BEASTSCOUT("find cat")
 found = table.concat(printed, "\n", mark + 1)
 check("find cat lists cats with speed", printed[mark + 1]:find(" Cats", 1, true)
     and found:find("Juvenile Snow Leopard (5-6) 1.5, Dun Morogh", 1, true), found)
 check("cat results have no skill prefix", not found:find("Bite", 1, true), found)
 mark = #printed
-SlashCmdList.PETSCOUT("find wolves")
+SlashCmdList.BEASTSCOUT("find wolves")
 check("find wolves (plural)", printed[mark + 1]:find(" Wolves (", 1, true), printed[mark + 1])
 mark = #printed
-SlashCmdList.PETSCOUT("find birds of prey")
+SlashCmdList.BEASTSCOUT("find birds of prey")
 check("find birds of prey", printed[mark + 1]:find(" Birds of Prey (", 1, true), printed[mark + 1])
 mark = #printed
-SlashCmdList.PETSCOUT("find dragons")
+SlashCmdList.BEASTSCOUT("find dragons")
 check("unknown family explained", printed[#printed]:find("find what?", 1, true), printed[#printed])
 
 -- Level filter and "fast".
 units.player = { level = 12 }
 mark = #printed
-SlashCmdList.PETSCOUT("find fast cat")
+SlashCmdList.BEASTSCOUT("find fast cat")
 found = table.concat(printed, "\n", mark + 1)
 check("fast cat: fastest first", printed[mark + 1]:find("fastest first", 1, true)
     and printed[mark + 2]:find(") 1.2, ", 1, true), found)
 check("fast cat: hides cats above 12", printed[mark + 1]:find("above your level hidden", 1, true), printed[mark + 1])
 mark = #printed
-SlashCmdList.PETSCOUT("find fast")
+SlashCmdList.BEASTSCOUT("find fast")
 found = table.concat(printed, "\n", mark + 1)
 check("find fast: any family, fastest first", printed[mark + 1]:find(" beasts (", 1, true)
     and printed[mark + 1]:find("fastest first", 1, true) and printed[mark + 2]:find(") 1.2, ", 1, true), found)
 check("find fast names the family", printed[mark + 2]:find("%(%a[%a ]* %d"), printed[mark + 2])
 mark = #printed
-SlashCmdList.PETSCOUT("find faster attack 3")
+SlashCmdList.BEASTSCOUT("find faster attack 3")
 check("'faster attack' is still a skill", printed[mark + 1]:find("teach Faster Attack 3", 1, true), printed[mark + 1])
 mark = #printed
-SlashCmdList.PETSCOUT("find bite 3")
+SlashCmdList.BEASTSCOUT("find bite 3")
 found = table.concat(printed, "\n", mark + 1)
 check("nothing tameable: shows lowest, greyed", printed[mark + 1]:find("none you can tame yet", 1, true)
     and printed[mark + 2]:find("|cff9d9d9d", 1, true), found)
 units.player = { level = 1 }
 mark = #printed
-SlashCmdList.PETSCOUT("find cat")
+SlashCmdList.BEASTSCOUT("find cat")
 found = table.concat(printed, "\n", mark + 1)
 check("unknown level after tameable, shown as ?", found:find("Nightsaber Guardian (level ?)", 1, true)
     and printed[mark + 2]:find("Young Nightsaber", 1, true), found)
@@ -451,7 +451,7 @@ units.player = { level = 12 }
 -- find tank: families ranked by health x armor, closest beast you can tame from each.
 units.player = { level = 12 }
 mark = #printed
-SlashCmdList.PETSCOUT("find tank")
+SlashCmdList.BEASTSCOUT("find tank")
 found = table.concat(printed, "\n", mark + 1)
 check("tank: Bear first", printed[mark + 2]:find("1. Bear (+8% health, +5% armor, Swipe)", 1, true), found)
 check("tank: Boar second", printed[mark + 3]:find("2. Boar (+4% health, +9% armor, Charge)", 1, true), found)
@@ -467,16 +467,16 @@ function UnitArmor() return petArmor end
 ns.MeasurePet()
 petHealth, petArmor = 560, 300 -- a buff
 ns.MeasurePet()
-local s = PetScoutDB.petStats.Cat[10]
+local s = BeastScoutDB.petStats.Cat[10]
 check("pet stats: buffs don't raise the reading", s.health == 500 and s.armor == 300, s.health)
 units.pet.combat = true
 petHealth = 400
 ns.MeasurePet()
-check("pet stats: not measured in combat", PetScoutDB.petStats.Cat[10].health == 500)
+check("pet stats: not measured in combat", BeastScoutDB.petStats.Cat[10].health == 500)
 units.pet.combat = false
 mark = #printed
-SlashCmdList.PETSCOUT("stats")
-check("/petscout stats prints it", printed[mark + 2]:find("Cat level 10: 500 health, 300 armor (Shal'ma)", 1, true),
+SlashCmdList.BEASTSCOUT("stats")
+check("/beastscout stats prints it", printed[mark + 2]:find("Cat level 10: 500 health, 300 armor (Shal'ma)", 1, true),
     printed[mark + 2])
 UnitHealthMax, UnitArmor, units.pet = nil, nil, nil
 
@@ -503,9 +503,9 @@ UIParent = UIFake()
 
 units.player = { level = 12 }
 units.pet = nil
-SlashCmdList.PETSCOUT("")
-local win = _G.PetScoutFrame
-check("window opens on /petscout", win and win._shown)
+SlashCmdList.BEASTSCOUT("")
+local win = _G.BeastScoutFrame
+check("window opens on /beastscout", win and win._shown)
 check("first open without a pet shows the fastest", win and win.title._text:find("fastest first", 1, true), win and win.title._text)
 check("rows filled", win.rows[1]._shown and win.rows[1].text._text:find("^1%. "), win.rows[1].text._text)
 check("waypoint button shown for rows with a spot", win.rows[1].way._shown)
@@ -531,16 +531,16 @@ mark = #printed
 win.rows[1].way._scripts.OnClick(win.rows[1].way)
 check("Go button sets a waypoint (or explains why not)", printed[#printed]:find("waypoint", 1, true), printed[#printed])
 
-SlashCmdList.PETSCOUT("")
-check("/petscout again closes it", not win._shown)
+SlashCmdList.BEASTSCOUT("")
+check("/beastscout again closes it", not win._shown)
 
 Minimap = UIFake()
 ns.CreateMinimapButton()
-check("minimap button created", _G.PetScoutMinimapButton and _G.PetScoutMinimapButton._shown)
-SlashCmdList.PETSCOUT("minimap")
-check("/petscout minimap hides it", not _G.PetScoutMinimapButton._shown and PetScoutDB.minimap.hide == true)
-SlashCmdList.PETSCOUT("minimap")
-check("and shows it again", _G.PetScoutMinimapButton._shown)
+check("minimap button created", _G.BeastScoutMinimapButton and _G.BeastScoutMinimapButton._shown)
+SlashCmdList.BEASTSCOUT("minimap")
+check("/beastscout minimap hides it", not _G.BeastScoutMinimapButton._shown and BeastScoutDB.minimap.hide == true)
+SlashCmdList.BEASTSCOUT("minimap")
+check("and shows it again", _G.BeastScoutMinimapButton._shown)
 Minimap = nil
 
 -- Rank levels: River (bear, pet level 8, knows Claw 1) and Claw 3, which needs pet level 16.
@@ -594,15 +594,15 @@ resetTooltip("mouseover")
 hooked(tooltip)
 check("Faster Attack isn't offered as an upgrade", not tooltipText():find("Upgrade for River: Faster Attack", 1, true), tooltipText())
 
--- /petscout trainer runs even when none of the training APIs exist (and with fake ones).
+-- /beastscout trainer runs even when none of the training APIs exist (and with fake ones).
 mark = #printed
-SlashCmdList.PETSCOUT("trainer")
+SlashCmdList.BEASTSCOUT("trainer")
 check("trainer probe without APIs", printed[mark + 1]:find("Functions: none", 1, true), printed[mark + 1])
 function GetNumCrafts() return 2 end
 function GetCraftDisplaySkillLine() return "Beast Training" end
 function GetCraftInfo(i) return ({ "Bite", "Claw" })[i], "Rank 2", "available", 0, nil, 4, 8 end
 mark = #printed
-SlashCmdList.PETSCOUT("trainer")
+SlashCmdList.BEASTSCOUT("trainer")
 local probe = table.concat(printed, "\n", mark + 1)
 check("trainer probe lists crafts", probe:find("Beast Training", 1, true) and probe:find("1: Bite | Rank 2 | available | 0 | nil | 4 | 8", 1, true), probe)
 GetNumCrafts, GetCraftDisplaySkillLine, GetCraftInfo, units.pet, units.mouseover = nil, nil, nil, nil, nil
@@ -610,7 +610,7 @@ GetNumCrafts, GetCraftDisplaySkillLine, GetCraftInfo, units.pet, units.mouseover
 function GetPetTrainingSkills() return {} end
 C_PetTrain = { GetSkills = function() end }
 mark = #printed
-SlashCmdList.PETSCOUT("trainer")
+SlashCmdList.BEASTSCOUT("trainer")
 probe = table.concat(printed, "\n", mark + 1)
 check("probe finds training functions", probe:find("GetPetTrainingSkills", 1, true) and probe:find("C_PetTrain.GetSkills", 1, true), probe)
 GetPetTrainingSkills, C_PetTrain = nil, nil
@@ -620,7 +620,7 @@ local window = { IsShown = function() return true end, GetRegions = function() r
     GetDebugName = function() return "ForeverBeastTraining" end }
 EnumerateFrames = function(f) if f == nil then return window end end
 mark = #printed
-SlashCmdList.PETSCOUT("trainer")
+SlashCmdList.BEASTSCOUT("trainer")
 check("probe finds the window by its label", printed[#printed - 1]:find('ForeverBeastTraining ("Training Points: 0")', 1, true), printed[#printed - 1])
 EnumerateFrames = nil
 
@@ -635,18 +635,18 @@ function GetNumTrainerServices() return #services end
 function GetTrainerServiceInfo(i) return table.unpack(services[i]) end
 local costs = { 0, 5, 1, 4, 3, 0, 10, 5 } -- as Forever returned them
 function GetTrainerServiceCost(i) return costs[i] end
-PetScoutDB.trainer = nil
+BeastScoutDB.trainer = nil
 ns.ReadBeastTraining()
-local tr = PetScoutDB.trainer and PetScoutDB.trainer.skills
+local tr = BeastScoutDB.trainer and BeastScoutDB.trainer.skills
 check("trainer read: Bite 2 at pet level 8", tr and tr.Bite and tr.Bite[2] and tr.Bite[2].level == 8)
 check("trainer read: Claw 2 at pet level 8", tr and tr.Claw and tr.Claw[2] and tr.Claw[2].level == 8)
 check("trainer rank", ns.TrainerRank("Bite") == 2 and ns.TrainerRank("Cower") == 0)
 
 -- Not when talking to a real class trainer.
 units.npc = { name = "Regnus Thundergranite" }
-PetScoutDB.trainer = nil
+BeastScoutDB.trainer = nil
 ns.ReadBeastTraining()
-check("ignores real class trainers", PetScoutDB.trainer == nil)
+check("ignores real class trainers", BeastScoutDB.trainer == nil)
 units.npc = nil
 ns.ReadBeastTraining()
 
@@ -684,11 +684,11 @@ check("Claw 2 costs 3 TP, from Beast Training (Handbook says 4)", trainNow:find(
 GetNumTrainerServices, GetTrainerServiceInfo, GetTrainerServiceCost, units.pet = nil, nil, nil, nil
 
 -- Removing a pet measurement (old River, abandoned).
-PetScoutDB.petStats = {
+BeastScoutDB.petStats = {
     Bear = { [7] = { health = 250, armor = 397, name = "River" }, [8] = { health = 268, armor = 478, name = "River" } },
     Cat = { [10] = { health = 289, armor = 708, name = "Shalma" } },
 }
-local sw = _G.PetScoutFrame
+local sw = _G.BeastScoutFrame
 ns.ToggleUI("stats")
 local bear8
 for _, row in ipairs(sw.rows) do
@@ -696,7 +696,7 @@ for _, row in ipairs(sw.rows) do
 end
 check("stats rows get a Remove button", bear8 and bear8.way._shown and bear8.way._text == "Remove")
 bear8.way._scripts.OnClick(bear8.way)
-check("Remove forgets that measurement", PetScoutDB.petStats.Bear[8] == nil and PetScoutDB.petStats.Bear[7] ~= nil)
+check("Remove forgets that measurement", BeastScoutDB.petStats.Bear[8] == nil and BeastScoutDB.petStats.Bear[7] ~= nil)
 local stillThere = false
 for _, row in ipairs(sw.rows) do
     if row._shown and row.text._text:find("Bear level 8", 1, true) then stillThere = true end
@@ -704,13 +704,13 @@ end
 check("the list refreshes without it", not stillThere)
 
 -- Same from chat.
-SlashCmdList.PETSCOUT("stats")
-SlashCmdList.PETSCOUT("forget 1") -- Bear level 7 is now first
-check("/petscout forget N", PetScoutDB.petStats.Bear == nil and printed[#printed]:find("forgot Bear level 7", 1, true),
+SlashCmdList.BEASTSCOUT("stats")
+SlashCmdList.BEASTSCOUT("forget 1") -- Bear level 7 is now first
+check("/beastscout forget N", BeastScoutDB.petStats.Bear == nil and printed[#printed]:find("forgot Bear level 7", 1, true),
     printed[#printed])
-SlashCmdList.PETSCOUT("find fast")
-SlashCmdList.PETSCOUT("forget 1")
-check("forget only works on stats rows", printed[#printed]:find("run /petscout stats first", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("find fast")
+SlashCmdList.BEASTSCOUT("forget 1")
+check("forget only works on stats rows", printed[#printed]:find("run /beastscout stats first", 1, true), printed[#printed])
 
 -- Search results get Go, not Remove.
 ns.ToggleUI("bite 2")

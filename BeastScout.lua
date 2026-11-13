@@ -1,13 +1,13 @@
 local ADDON, ns = ...
 
-local HEADER = "|cffabd473PetScout|r"
+local HEADER = "|cffabd473BeastScout|r"
 local GREY = "|cff9d9d9d"
 
 -- Lines we add, so Beast Lore reading can skip them.
 function ns.IsOwnLine(text)
     if type(text) ~= "string" then return false end
     return text:find("^Attack speed") ~= nil or text:find("^Teaches") ~= nil
-        or text:find("^|cffabd473PetScout") ~= nil or text:find("^|cff9d9d9d") ~= nil
+        or text:find("^|cffabd473BeastScout") ~= nil or text:find("^|cff9d9d9d") ~= nil
         or text:find("^" .. ns.UPGRADE_COLOR) ~= nil
 end
 
@@ -59,7 +59,7 @@ end
 -- they're at least as trustworthy), else the Hunter's Handbook fallback.
 function ns.Lookup(npcId, getter)
     if not npcId then return nil end
-    local mine, community = PetScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
+    local mine, community = BeastScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
     local mv, mt, msf, mnote, cv, ct, csf, cnote
     if mine then mv, mt, msf, mnote = getter(mine) end
     if community then cv, ct, csf, cnote = getter(community) end
@@ -160,7 +160,7 @@ local function HookTooltip()
 end
 
 local exportFrame
-local SHARE_URL = "github.com/trevercomb/PetScout/issues/new?template=observations.yml"
+local SHARE_URL = "github.com/trevercomb/BeastScout/issues/new?template=observations.yml"
 
 function ns.ShowExport()
     local lines = ns.ExportLines()
@@ -169,7 +169,7 @@ function ns.ShowExport()
         return
     end
     if not exportFrame then
-        local f = CreateFrame("Frame", "PetScoutExportFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+        local f = CreateFrame("Frame", "BeastScoutExportFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
         f:SetSize(560, 380)
         f:SetPoint("CENTER")
         f:SetFrameStrata("DIALOG")
@@ -178,7 +178,7 @@ function ns.ShowExport()
         bg:SetColorTexture(0, 0, 0, 0.85)
         local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         title:SetPoint("TOPLEFT", 12, -10)
-        title:SetText("PetScout export: press Ctrl+C to copy, then share it at")
+        title:SetText("BeastScout export: press Ctrl+C to copy, then share it at")
         -- Edit box so the address can be selected and copied too.
         local url = CreateFrame("EditBox", nil, f)
         url:SetPoint("TOPLEFT", 12, -28)
@@ -203,7 +203,7 @@ function ns.ShowExport()
         edit:SetScript("OnEscapePressed", function() f:Hide() end)
         scroll:SetScrollChild(edit)
         f.edit = edit
-        table.insert(UISpecialFrames, "PetScoutExportFrame")
+        table.insert(UISpecialFrames, "BeastScoutExportFrame")
         exportFrame = f
     end
     exportFrame.edit:SetText(table.concat(lines, "\n"))
@@ -217,8 +217,8 @@ f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
         if ... ~= ADDON then return end
-        PetScoutDB = PetScoutDB or {}
-        PetScoutDB.npcs = PetScoutDB.npcs or {}
+        BeastScoutDB = BeastScoutDB or {}
+        BeastScoutDB.npcs = BeastScoutDB.npcs or {}
 
         if select(2, UnitClass("player")) ~= "HUNTER" then return end
         HookTooltip()
@@ -229,8 +229,8 @@ f:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
-SLASH_PETSCOUT1 = "/petscout"
-SlashCmdList.PETSCOUT = function(msg)
+SLASH_BEASTSCOUT1 = "/beastscout"
+SlashCmdList.BEASTSCOUT = function(msg)
     msg = msg and msg:lower() or ""
     if msg == "" then
         ns.ToggleUI()
@@ -257,11 +257,11 @@ SlashCmdList.PETSCOUT = function(msg)
         ns.Find(msg:sub(5))
         return
     elseif msg == "debug" then
-        PetScoutDB.debug = not PetScoutDB.debug
-        print(HEADER .. ": debug " .. (PetScoutDB.debug and "on" or "off") .. ".")
+        BeastScoutDB.debug = not BeastScoutDB.debug
+        print(HEADER .. ": debug " .. (BeastScoutDB.debug and "on" or "off") .. ".")
         return
     elseif msg == "pet" then
-        -- What PetScout can read from your current pet, for checking tames.
+        -- What BeastScout can read from your current pet, for checking tames.
         if not UnitExists("pet") then
             print(HEADER .. ": no pet out.")
             return
@@ -275,18 +275,18 @@ SlashCmdList.PETSCOUT = function(msg)
     elseif msg == "help" then
         -- falls through to the status and command list below
     elseif msg == "reset" then
-        wipe(PetScoutDB.npcs)
+        wipe(BeastScoutDB.npcs)
         print(HEADER .. ": cleared your recorded beasts.")
         return
     end
     local function Count(t) local n = 0 for _ in pairs(t) do n = n + 1 end return n end
-    print(HEADER .. ": " .. Count(PetScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
+    print(HEADER .. ": " .. Count(BeastScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
         .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
-    print("  /petscout - open the PetScout window   /petscout minimap - hide or show its minimap button")
-    print("  /petscout export - copy your observations   /petscout reset - forget them")
-    print("  /petscout find bite 2 - beasts that teach a skill, closest first   /petscout way 1 - waypoint to one")
-    print("  /petscout find tank - best tank families   /petscout stats - your pets' measured health and armor")
-    print("  /petscout forget 2 - remove row 2 of the stats list (e.g. a pet you abandoned)")
-    print("  /petscout pet - what PetScout reads from your pet   /petscout debug - narrate tames in chat")
+    print("  /beastscout - open the BeastScout window   /beastscout minimap - hide or show its minimap button")
+    print("  /beastscout export - copy your observations   /beastscout reset - forget them")
+    print("  /beastscout find bite 2 - beasts that teach a skill, closest first   /beastscout way 1 - waypoint to one")
+    print("  /beastscout find tank - best tank families   /beastscout stats - your pets' measured health and armor")
+    print("  /beastscout forget 2 - remove row 2 of the stats list (e.g. a pet you abandoned)")
+    print("  /beastscout pet - what BeastScout reads from your pet   /beastscout debug - narrate tames in chat")
 end

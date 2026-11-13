@@ -1,4 +1,4 @@
-# PetScout
+# BeastScout
 
 A small World of Warcraft: Forever addon for hunters. Hover over a wild beast and its tooltip shows what you'd get by taming it:
 
@@ -25,22 +25,22 @@ Hovering a beast shows its pet attack speed, what it teaches and where each valu
 
 Hovering your own pet shows its loyalty, happiness and training points, and what the next loyalty step is worth.
 
-<img src="docs/screenshots/window-upgrades.png" alt="The PetScout window showing the best upgrades for a pet, grouped by skill, with Go buttons">
+<img src="docs/screenshots/window-upgrades.png" alt="The BeastScout window showing the best upgrades for a pet, grouped by skill, with Go buttons">
 
-`/petscout` opens the window. Here: the best upgrades for a level 7 bear, grouped by skill, with the closest beasts first. Greyed rows are ranks the pet is too young for, and skills you've already learned say to train them at Beast Training.
+`/beastscout` opens the window. Here: the best upgrades for a level 7 bear, grouped by skill, with the closest beasts first. Greyed rows are ranks the pet is too young for, and skills you've already learned say to train them at Beast Training.
 
-<img src="docs/screenshots/map-waypoint.jpg" alt="The world map with a PetScout waypoint set on Loch Modan">
+<img src="docs/screenshots/map-waypoint.jpg" alt="The world map with a BeastScout waypoint set on Loch Modan">
 
 Go (or a [Waypoint] link in chat) puts a waypoint on your map.
 
 ## Where the data comes from
 
-PetScout's own data comes first; Hunter's Handbook only fills in what we haven't tracked yet. The tooltip says where each value came from, e.g. `1.5 (players, tamed x3)`.
+BeastScout's own data comes first; Hunter's Handbook only fills in what we haven't tracked yet. The tooltip says where each value came from, e.g. `1.5 (players, tamed x3)`.
 
-1. **You:** what PetScout recorded on your account but you haven't shared yet. It's used over the community data only when it's at least as reliable (a tame beats Beast Lore). Shown as `(you)`, `(you, tamed)` or `(you, Beast Lore)`.
+1. **You:** what BeastScout recorded on your account but you haven't shared yet. It's used over the community data only when it's at least as reliable (a tame beats Beast Lore). Shown as `(you)`, `(you, tamed)` or `(you, Beast Lore)`.
    - **Taming:** right after Tame Beast, it reads your new pet's abilities and swing timer. This is the most reliable source.
    - **Beast Lore:** it reads ability ranks from the beast's tooltip after you cast Beast Lore.
-2. **Players:** PetScout's own data in `Community.lua`: every observation we've accepted, including yours once shared. Shown with how it was observed and how many reports agree, e.g. `(players, tamed x3)`.
+2. **Players:** BeastScout's own data in `Community.lua`: every observation we've accepted, including yours once shared. Shown with how it was observed and how many reports agree, e.g. `(players, tamed x3)`.
 3. **Hunter's Handbook:** the fallback in `Handbook.lua`, 660 beasts converted from [Hunter's Handbook](https://www.curseforge.com/wow/addons/hunters-handbook) by Wood (GPLv3). Thanks to them for the research. Shown as `(Handbook)`.
 
 As players share more, the community data fills in and the fallback is needed less.
@@ -49,11 +49,11 @@ Family abilities and diets are from [Seemeta](https://seemeta.com/en/wow-forever
 
 ## Install
 
-Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\PetScout`, so that `PetScout.toc` sits directly inside it.
+Copy this folder to `World of Warcraft\_forever_\Interface\AddOns\BeastScout`, so that `BeastScout.toc` sits directly inside it.
 
-## The PetScout window
+## The BeastScout window
 
-Type `/petscout` or click the minimap button (paw icon; drag it to move, `/petscout minimap` hides it). The window has:
+Type `/beastscout` or click the minimap button (paw icon; drag it to move, `/beastscout minimap` hides it). The window has:
 
 - a search box that takes anything `find` does: a skill (`bite 2`), a family (`cat`), `fast`, `fast cat`, `tank` or `upgrades`
 - quick buttons for **Fastest**, **Tank** and **Upgrades for my pet** (beasts at your level that would teach your current pet something new)
@@ -67,24 +67,24 @@ It opens on your pet's upgrades when a pet is out, otherwise on the fastest beas
 Everything in the window also works in chat:
 
 
-- `/petscout`: opens the window. `/petscout help` lists the commands and how many beasts each source covers.
-- `/petscout find upgrades`: beasts at your level that would teach your current pet something new. Grouped by skill: the best rank your pet can learn now from the 2 closest beasts (plus a weaker rank if it's closer), and, greyed, a higher rank within your level that your pet is too young for, with the pet level it needs. Shows training point costs. Skills you've already learned say **train it at Beast Training** instead of naming a beast: PetScout reads the Beast Training window whenever you open it (Forever shows it in the class trainer window), and uses its pet level requirements over Hunter's Handbook's.
-- `/petscout find cat` (or `wolves`, `birds of prey`, ...): lists beasts of a family with their attack speed, closest first, with waypoints like below. `/petscout find fast cat` sorts by speed instead, and plain `/petscout find fast` lists the fastest beasts of any family.
-- `/petscout find tank`: tank families ranked by health and armor bonus (Bear, Boar, Turtle, ...), each with the closest beast you can tame. The bonuses are Classic's ([Highground Gaming](https://www.highgroundgaming.com/best-hunter-pets-in-wow-classic/)); Forever's aren't published yet.
-- `/petscout stats`: your pets' health and armor as PetScout measured them, by family and level. These are being collected to check the Classic bonuses against Forever.
+- `/beastscout`: opens the window. `/beastscout help` lists the commands and how many beasts each source covers.
+- `/beastscout find upgrades`: beasts at your level that would teach your current pet something new. Grouped by skill: the best rank your pet can learn now from the 2 closest beasts (plus a weaker rank if it's closer), and, greyed, a higher rank within your level that your pet is too young for, with the pet level it needs. Shows training point costs. Skills you've already learned say **train it at Beast Training** instead of naming a beast: BeastScout reads the Beast Training window whenever you open it (Forever shows it in the class trainer window), and uses its pet level requirements over Hunter's Handbook's.
+- `/beastscout find cat` (or `wolves`, `birds of prey`, ...): lists beasts of a family with their attack speed, closest first, with waypoints like below. `/beastscout find fast cat` sorts by speed instead, and plain `/beastscout find fast` lists the fastest beasts of any family.
+- `/beastscout find tank`: tank families ranked by health and armor bonus (Bear, Boar, Turtle, ...), each with the closest beast you can tame. The bonuses are Classic's ([Highground Gaming](https://www.highgroundgaming.com/best-hunter-pets-in-wow-classic/)); Forever's aren't published yet.
+- `/beastscout stats`: your pets' health and armor as BeastScout measured them, by family and level. These are being collected to check the Classic bonuses against Forever.
 - Find hides beasts above your level (and says how many). If none are tameable yet, it shows the lowest-level ones greyed out.
-- `/petscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/petscout way 2` to put a waypoint on the map.
-- `/petscout export`: opens a window with your observations, ready to copy.
-- `/petscout pet`: shows what PetScout reads from your current pet (spellbook, swing timer).
-- `/petscout debug`: reports each step of a tame in chat, for troubleshooting.
-- `/petscout reset`: forgets your observations.
+- `/beastscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/beastscout way 2` to put a waypoint on the map.
+- `/beastscout export`: opens a window with your observations, ready to copy.
+- `/beastscout pet`: shows what BeastScout reads from your current pet (spellbook, swing timer).
+- `/beastscout debug`: reports each step of a tame in chat, for troubleshooting.
+- `/beastscout reset`: forgets your observations.
 
 ## Share your observations
 
 Your observations improve everyone's tooltips once they're merged into a release.
 
-1. In game, type `/petscout export`. The text is already selected: press Ctrl+C.
-2. Open [Share beast observations](https://github.com/trevercomb/PetScout/issues/new?template=observations.yml) (needs a free GitHub account), paste, and submit.
+1. In game, type `/beastscout export`. The text is already selected: press Ctrl+C.
+2. Open [Share beast observations](https://github.com/trevercomb/BeastScout/issues/new?template=observations.yml) (needs a free GitHub account), paste, and submit.
 
 ## Maintainer: merging shared observations
 
@@ -108,7 +108,7 @@ Run the tests before releasing: `lua tests/run.lua`, `python tests/test_build.py
 
 ### Your own observations, without the form
 
-If you play with the addon folder linked to this repo, `tools/sync_local.py` reads PetScout's saved data straight from your WoW folder, writes it to `contributions/local.lua` and rebuilds `Community.lua`. The game saves on `/reload` and logout, so a second `/reload` shows the result.
+If you play with the addon folder linked to this repo, `tools/sync_local.py` reads BeastScout's saved data straight from your WoW folder, writes it to `contributions/local.lua` and rebuilds `Community.lua`. The game saves on `/reload` and logout, so a second `/reload` shows the result.
 
 ```
 python tools/sync_local.py --wtf "<WoW>/_forever_/WTF"   # first time; remembered in tools/local.json (not committed)
@@ -124,10 +124,10 @@ Releases are built by `.github/workflows/release.yml` with the [BigWigs packager
 One-time setup:
 
 1. Create the project on CurseForge (WoW Forever) and note its **Project ID**.
-2. Add `## X-Curse-Project-ID: <id>` to `PetScout.toc`.
+2. Add `## X-Curse-Project-ID: <id>` to `BeastScout.toc`.
 3. Create a CurseForge API token (account settings, API tokens) and save it in this repo as the secret `CF_API_KEY` (Settings, Secrets and variables, Actions).
 
-Then each release is: bump `## Version` in `PetScout.toc`, commit, and push a tag:
+Then each release is: bump `## Version` in `BeastScout.toc`, commit, and push a tag:
 
 ```
 git tag v0.11.0
@@ -138,4 +138,4 @@ The workflow runs the tests, builds the zip, makes a GitHub release and uploads 
 
 ## License
 
-GPLv3, since PetScout includes data from Hunter's Handbook. See `LICENSE`.
+GPLv3, since BeastScout includes data from Hunter's Handbook. See `LICENSE`.

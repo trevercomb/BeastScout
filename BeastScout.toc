@@ -1,9 +1,9 @@
 ## Interface: 16001
-## Title: PetScout
+## Title: BeastScout
 ## Notes: Hunter taming info on beast tooltips: attack speed, skills taught, family abilities and diet.
 ## Author: Tony
 ## Version: 0.10.0
-## SavedVariables: PetScoutDB
+## SavedVariables: BeastScoutDB
 
 Data.lua
 Training.lua
@@ -12,4 +12,4 @@ Handbook.lua
 Collect.lua
 Advice.lua
 UI.lua
-PetScout.lua
+BeastScout.lua

@@ -1,18 +1,18 @@
 name: Share beast observations
-description: Paste your /petscout export so everyone's tooltips get your data.
+description: Paste your /beastscout export so everyone's tooltips get your data.
 title: "Observations from "
 labels: ["observations"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping! In game, type `/petscout export`, press Ctrl+A then Ctrl+C in the window, and paste below.
+        Thanks for helping! In game, type `/beastscout export`, press Ctrl+A then Ctrl+C in the window, and paste below.
         You only need to change the title: put your character or realm name after "Observations from".
   - type: textarea
     id: export
     attributes:
       label: Export
-      description: The text from /petscout export, unchanged.
+      description: The text from /beastscout export, unchanged.
       render: lua
       placeholder: '    [2958] = { name="Prairie Wolf", family="Wolf", levelMin=6, levelMax=6, speed=1.5, teaches={ {"Bite", 1}, {"Faster Attack", 3} } },'
     validations:
@@ -26,4 +26,4 @@ body:
     id: notes
     attributes:
       label: Notes (optional)
-      description: Anything odd, like a beast that seemed to swing faster than PetScout says.
+      description: Anything odd, like a beast that seemed to swing faster than BeastScout says.

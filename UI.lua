@@ -1,8 +1,8 @@
 local _, ns = ...
 
--- The PetScout window: one search box plus quick buttons, showing the same
--- results as /petscout find (ns.Search), with a waypoint button per row.
--- Opened by /petscout or the minimap button.
+-- The BeastScout window: one search box plus quick buttons, showing the same
+-- results as /beastscout find (ns.Search), with a waypoint button per row.
+-- Opened by /beastscout or the minimap button.
 
 local ROWS = 14
 local WIDTH, HEIGHT = 520, 440
@@ -13,7 +13,7 @@ local frame
 
 local function SavePosition(f)
     local point, _, relativePoint, x, y = f:GetPoint(1)
-    PetScoutDB.ui = { point = point, relativePoint = relativePoint, x = x, y = y }
+    BeastScoutDB.ui = { point = point, relativePoint = relativePoint, x = x, y = y }
 end
 
 local function Button(parent, text, width)
@@ -62,15 +62,15 @@ end
 
 local function UpdateFooter()
     local n = 0
-    for _ in pairs(PetScoutDB.npcs) do n = n + 1 end
+    for _ in pairs(BeastScoutDB.npcs) do n = n + 1 end
     frame.footer:SetText(n .. " beasts recorded by you")
 end
 
 local function Make()
-    local f = CreateFrame("Frame", "PetScoutFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    local f = CreateFrame("Frame", "BeastScoutFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     frame = f
     f:SetSize(WIDTH, HEIGHT)
-    local pos = PetScoutDB.ui
+    local pos = BeastScoutDB.ui
     if pos and pos.point then
         f:SetPoint(pos.point, UIParent, pos.relativePoint or pos.point, pos.x or 0, pos.y or 0)
     else
@@ -99,15 +99,15 @@ local function Make()
         bg:SetAllPoints()
         bg:SetColorTexture(0.05, 0.05, 0.05, 0.92)
     end
-    table.insert(UISpecialFrames, "PetScoutFrame") -- Escape closes it
+    table.insert(UISpecialFrames, "BeastScoutFrame") -- Escape closes it
 
     local heading = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     heading:SetPoint("TOPLEFT", 16, -14)
-    heading:SetText("|cffabd473PetScout|r")
+    heading:SetText("|cffabd473BeastScout|r")
     local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", 0, 0)
 
-    -- Search box: anything /petscout find understands.
+    -- Search box: anything /beastscout find understands.
     local search = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
     f.search = search
     search:SetSize(330, 22)
@@ -216,20 +216,20 @@ function ns.ToggleUI(query)
 end
 
 -- Minimap button ---------------------------------------------------------------
--- Drag it around the minimap; /petscout minimap hides or shows it.
+-- Drag it around the minimap; /beastscout minimap hides or shows it.
 
 local minimapButton
 
 local function PlaceMinimapButton()
-    local angle = math.rad(PetScoutDB.minimap.angle or 200)
+    local angle = math.rad(BeastScoutDB.minimap.angle or 200)
     minimapButton:ClearAllPoints()
     minimapButton:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * 80, math.sin(angle) * 80)
 end
 
 function ns.CreateMinimapButton()
-    PetScoutDB.minimap = PetScoutDB.minimap or {}
+    BeastScoutDB.minimap = BeastScoutDB.minimap or {}
     if minimapButton or not Minimap then return end
-    local b = CreateFrame("Button", "PetScoutMinimapButton", Minimap)
+    local b = CreateFrame("Button", "BeastScoutMinimapButton", Minimap)
     minimapButton = b
     b:SetSize(31, 31)
     b:SetFrameStrata("MEDIUM")
@@ -252,25 +252,25 @@ function ns.CreateMinimapButton()
             local cx, cy = GetCursorPosition()
             local scale = Minimap:GetEffectiveScale()
             local atan2 = math.atan2 or math.atan
-            PetScoutDB.minimap.angle = math.deg(atan2(cy / scale - my, cx / scale - mx))
+            BeastScoutDB.minimap.angle = math.deg(atan2(cy / scale - my, cx / scale - mx))
             PlaceMinimapButton()
         end)
     end)
     b:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
     b:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:SetText("|cffabd473PetScout|r")
+        GameTooltip:SetText("|cffabd473BeastScout|r")
         GameTooltip:AddLine("Click to open, drag to move.", 1, 1, 1)
-        GameTooltip:AddLine("/petscout minimap hides this button.", 0.62, 0.62, 0.62)
+        GameTooltip:AddLine("/beastscout minimap hides this button.", 0.62, 0.62, 0.62)
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PlaceMinimapButton()
-    b:SetShown(not PetScoutDB.minimap.hide)
+    b:SetShown(not BeastScoutDB.minimap.hide)
 end
 
 function ns.ToggleMinimapButton()
-    PetScoutDB.minimap.hide = not PetScoutDB.minimap.hide
-    if minimapButton then minimapButton:SetShown(not PetScoutDB.minimap.hide) end
-    return not PetScoutDB.minimap.hide
+    BeastScoutDB.minimap.hide = not BeastScoutDB.minimap.hide
+    if minimapButton then minimapButton:SetShown(not BeastScoutDB.minimap.hide) end
+    return not BeastScoutDB.minimap.hide
 end

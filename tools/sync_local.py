@@ -1,7 +1,7 @@
 """Maintainer shortcut: turn your own in-game observations into community data
-without /petscout export or the issue form.
+without /beastscout export or the issue form.
 
-Reads PetScout's SavedVariables from your WoW folder (written whenever you
+Reads BeastScout's SavedVariables from your WoW folder (written whenever you
 /reload or log out), writes contributions/local.lua, and rebuilds Community.lua.
 If the addon folder is linked to this repo, a /reload in game picks it up.
 
@@ -105,7 +105,7 @@ def read_saved_variables(text):
 # --- Sync ----------------------------------------------------------------------------------
 
 def saved_files(wtf):
-    return sorted(Path(wtf).glob("Account/*/SavedVariables/PetScout.lua"))
+    return sorted(Path(wtf).glob("Account/*/SavedVariables/BeastScout.lua"))
 
 
 def to_beast(r):
@@ -140,14 +140,14 @@ def combine(old, new):
 def sync(wtf):
     files = saved_files(wtf)
     if not files:
-        print(f"No PetScout saved data under {wtf} yet. Log in with PetScout enabled, then /reload.")
+        print(f"No BeastScout saved data under {wtf} yet. Log in with BeastScout enabled, then /reload.")
         return False
 
     families, abilities = known_names()
     beasts, skipped = {}, 0
     for path in files:
         saved = read_saved_variables(path.read_text(encoding="utf-8", errors="replace"))
-        for npc_id, r in ((saved.get("PetScoutDB") or {}).get("npcs") or {}).items():
+        for npc_id, r in ((saved.get("BeastScoutDB") or {}).get("npcs") or {}).items():
             b = to_beast(r)
             if not (b["name"] and b["family"] and (b["speed"] or b["teaches"])):
                 continue

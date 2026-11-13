@@ -10,7 +10,7 @@ import sync_local  # noqa: E402
 
 # Shaped like WoW's own SavedVariables output.
 ACCOUNT_A = r'''
-PetScoutDB = {
+BeastScoutDB = {
 ["npcs"] = {
 [2958] = {
 ["family"] = "Wolf",
@@ -43,7 +43,7 @@ PetScoutDB = {
 '''
 
 ACCOUNT_B = r'''
-PetScoutDB = {
+BeastScoutDB = {
 ["npcs"] = {
 [2958] = {
 ["family"] = "Wolf",
@@ -75,7 +75,7 @@ def main():
     for account, text in (("ACCOUNT_A", ACCOUNT_A), ("ACCOUNT_B", ACCOUNT_B)):
         sv = wtf / "Account" / account / "SavedVariables"
         sv.mkdir(parents=True)
-        (sv / "PetScout.lua").write_text(text, encoding="utf-8")
+        (sv / "BeastScout.lua").write_text(text, encoding="utf-8")
 
     out_dir = tmp / "addon"
     out_dir.mkdir()
@@ -83,7 +83,7 @@ def main():
     sync_local.build = lambda: build_bestiary.build(str(tmp / "contributions" / "*.lua"),
                                                     build_bestiary.DEFAULT_HANDBOOK, out_dir)
 
-    parsed = sync_local.read_saved_variables(ACCOUNT_A)["PetScoutDB"]["npcs"]
+    parsed = sync_local.read_saved_variables(ACCOUNT_A)["BeastScoutDB"]["npcs"]
     first = sync_local.sync(str(wtf))
     local = sync_local.OUT.read_text(encoding="utf-8")
     community = (out_dir / "Community.lua").read_text(encoding="utf-8")
