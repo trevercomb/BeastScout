@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- BeastScout's own logo as its icon in the AddOns list and on the minimap button.
+
 ## 0.10.1
 
 - The export window now says up front that sharing is private: your name isn't kept with your data, and your submission is deleted once it's merged.

@@ -39,3 +39,17 @@ for cx, cy, rx, ry in ((112, 160, 19, 25), (146, 124, 20, 27), (194, 124, 20, 27
 out = Path(__file__).resolve().parent.parent / "docs" / "logo.png"
 img.resize((SIZE, SIZE), Image.LANCZOS).save(out, optimize=True)
 print(out)
+
+# In-game icons. WoW can't load PNG; 32-bit TGA at a power-of-two size works
+# everywhere. The square one is the AddOns list icon (## IconTexture); the
+# round one, transparent outside the circle, sits inside the minimap button's ring.
+media = Path(__file__).resolve().parent.parent / "Media"
+media.mkdir(exist_ok=True)
+big = img.convert("RGBA")
+big.resize((64, 64), Image.LANCZOS).save(media / "icon.tga")
+mask = Image.new("L", (S, S), 0)
+ImageDraw.Draw(mask).ellipse((0, 0, S - 1, S - 1), fill=255)
+round_icon = big.copy()
+round_icon.putalpha(mask)
+round_icon.resize((64, 64), Image.LANCZOS).save(media / "icon-round.tga")
+print(media / "icon.tga", media / "icon-round.tga")
