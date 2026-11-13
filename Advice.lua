@@ -115,6 +115,31 @@ function ns.UpgradesFor(teaches, pet)
     return out, p and p.name
 end
 
+-- Tooltip lines for your summoned pet and every pet you've had out
+-- (BeastScoutDB.pets), e.g. "Upgrade for River: Claw 2 (has 1, 3 TP)".
+function ns.UpgradeLines(teaches)
+    local lines, activeKey = {}, nil
+    local function Add(pet)
+        local ups = ns.UpgradesFor(teaches, pet)
+        if #ups > 0 then lines[#lines + 1] = "Upgrade for " .. pet.name .. ": " .. table.concat(ups, ", ") end
+    end
+    local ok, active = ReadPet()
+    if ok then
+        activeKey = ns.PetKey(active.name, active.family)
+        Add(active)
+    end
+    local keys = {}
+    for key in pairs(BeastScoutDB.pets or {}) do
+        if key ~= activeKey then keys[#keys + 1] = key end
+    end
+    table.sort(keys)
+    for _, key in ipairs(keys) do
+        local p = BeastScoutDB.pets[key]
+        Add({ known = p.known or {}, name = p.name, family = p.family, level = p.level })
+    end
+    return lines
+end
+
 -- /beastscout find ------------------------------------------------------------
 
 local ROMAN = { I = 1, II = 2, III = 3, IV = 4, V = 5, VI = 6, VII = 7, VIII = 8, IX = 9, X = 10 }
@@ -690,10 +715,38 @@ local function SearchStats()
             local s = stats[family][lvl]
             rows[#rows + 1] = { text = family .. " level " .. lvl .. ": " .. (s.health or "?") .. " health, "
                 .. (s.armor or "?") .. " armor" .. (s.name and (" (" .. s.name .. ")") or ""),
-                remove = { family = family, level = lvl } }
+                forget = function() ns.ForgetPetStat(family, lvl) end, forgetTip = "Forget this measurement" }
         end
     end
     return { title = "measured pet stats (lowest seen, so buffs don't count)", rows = rows }
+end
+
+-- Every pet BeastScout remembers, with its skills; Remove forgets one (a pet
+-- you've abandoned, say).
+local function SearchPets()
+    local pets, keys = BeastScoutDB.pets or {}, {}
+    for key in pairs(pets) do keys[#keys + 1] = key end
+    table.sort(keys)
+    if #keys == 0 then
+        return { error = "no pets remembered yet. Summon each of your pets once." }
+    end
+    local rows = {}
+    for _, key in ipairs(keys) do
+        local p = pets[key]
+        local skills = {}
+        for ability, rank in pairs(p.known or {}) do skills[#skills + 1] = ability .. " " .. rank end
+        table.sort(skills)
+        rows[#rows + 1] = {
+            text = p.name .. " (" .. p.family .. " " .. (p.level or "?") .. "): "
+                .. (#skills > 0 and table.concat(skills, ", ") or "no skills yet"),
+            forget = function() BeastScoutDB.pets[key] = nil end, forgetTip = "Forget this pet",
+        }
+    end
+    return {
+        title = "your pets, as last seen",
+        rows = rows,
+        note = "Summon a pet once to update it. Upgrade lines in beast tooltips cover all of these.",
+    }
 end
 
 -- Run any search. Rows are also kept for /beastscout way N and the links.
@@ -707,6 +760,8 @@ function ns.Search(query, limit)
         result = SearchUpgrades(limit)
     elseif q == "stats" then
         result = SearchStats()
+    elseif q == "pets" or q == "my pets" then
+        result = SearchPets()
     else
         result = SearchBeasts(query, limit)
     end
@@ -727,11 +782,11 @@ end
 -- /beastscout forget N: remove row N of the last pet stats list.
 function ns.ForgetRow(index)
     local row = results[tonumber(index) or 0]
-    if not (row and row.remove) then
+    if not (row and row.forget) then
         print(HEADER .. ": run /beastscout stats first, then /beastscout forget <number>.")
         return
     end
-    ns.ForgetPetStat(row.remove.family, row.remove.level)
+    row.forget()
     print(HEADER .. ": forgot " .. row.text .. ".")
 end
 

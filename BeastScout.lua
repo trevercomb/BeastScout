@@ -93,10 +93,9 @@ local function AddLines(tooltip, unit)
         for _, t in ipairs(teaches) do parts[#parts + 1] = t[1] .. " " .. t[2] end
         tooltip:AddDoubleLine("Teaches" .. teachesFrom, table.concat(parts, ", "), 1, 1, 1, 0.4, 1, 0.4)
 
-        local upgrades, petName = ns.UpgradesFor(teaches)
-        if #upgrades > 0 then
-            tooltip:AddLine(ns.UPGRADE_COLOR .. "Upgrade for " .. petName .. ": " .. table.concat(upgrades, ", ") .. "|r",
-                nil, nil, nil, true)
+        -- Your summoned pet and every pet you've had out.
+        for _, line in ipairs(ns.UpgradeLines(teaches)) do
+            tooltip:AddLine(ns.UPGRADE_COLOR .. line .. "|r", nil, nil, nil, true)
         end
     end
 

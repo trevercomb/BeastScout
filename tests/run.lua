@@ -262,6 +262,8 @@ units.pet = nil
 SlashCmdList.BEASTSCOUT("pet")
 check("/beastscout pet with no pet", printed[#printed]:find("no pet out", 1, true), printed[#printed])
 
+-- These check the summoned pet only, so forget pets remembered by earlier tests.
+BeastScoutDB.pets = nil
 -- Upgrade hints: Shal'ma (Bite 1, Claw 2, Faster Attack V) hovering a Prowler
 -- (Bite 2, Faster Attack 3) should only flag Bite 2.
 units.pet = { name = "Shal'ma", family = "Cat", level = 11, speed = 1.3, guid = "Pet-0-1-2-3-165189-SHAL" }
@@ -779,6 +781,50 @@ mark = #printed
 SlashCmdList.BEASTSCOUT("probe stable")
 check("probe takes its own words", printed[mark + 1]:find("probe for stable:", 1, true), printed[mark + 1])
 GetPetFoodTypes, C_PetFood = nil, nil
+
+-- Remembered pets: upgrade lines for pets that aren't out, and the My pets view.
+BeastScoutDB.pets = nil
+CreateFrame = function(_, name) return UIFake(name) end -- the window fake (defined above)
+units.pet = { name = "Shal'ma", family = "Cat", level = 11, guid = "Pet-0-1-2-3-165189-SHAL" }
+petSpells = { { "Bite", "Rank 1" }, { "Claw", "Rank 2" }, { "Faster Attack V", "" } }
+ns.RememberPet()
+units.pet = { name = "River", family = "Bear", level = 8, guid = "Pet-0-1-2-3-165189-RIVER" }
+petSpells = { { "Claw", "Rank 1" } }
+ns.RememberPet()
+check("pets remembered", BeastScoutDB.pets["Shal'ma|Cat"] and BeastScoutDB.pets["River|Bear"]
+    and BeastScoutDB.pets["Shal'ma|Cat"].known.Claw == 2)
+
+-- River is out; hovering a Windsong Crawler (Claw 2) helps River, not Shal'ma (has Claw 2).
+units.mouseover = { name = "Windsong Crawler", family = "Crab", level = 8, guid = "Creature-0-1-2-3-254588-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("upgrade line for the summoned pet", text:find("Upgrade for River: Claw 2", 1, true), text)
+check("no line for a stabled pet that already has it", not text:find("Upgrade for Shal'ma", 1, true), text)
+
+-- A Prowler (Bite 2): useful for both, one line each, with River not even out.
+units.pet = nil
+units.mouseover = { name = "Prowler", family = "Wolf", level = 9, guid = "Creature-0-1-2-3-118-0000ABCD" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("stabled pets get upgrade lines too", text:find("Upgrade for River: Bite 2", 1, true)
+    and text:find("Upgrade for Shal'ma: Bite 2", 1, true), text)
+
+-- My pets view, with Remove.
+ns.ToggleUI("pets")
+local pw = _G.BeastScoutFrame
+local riverRow
+for _, row in ipairs(pw.rows) do
+    if row._shown and row.text._text and row.text._text:find("River (Bear 8): Claw 1", 1, true) then riverRow = row end
+end
+check("My pets lists River with its skills", riverRow ~= nil)
+check("My pets rows have Remove", riverRow and riverRow.way._text == "Remove")
+riverRow.way._scripts.OnClick(riverRow.way)
+check("Remove forgets the pet", BeastScoutDB.pets["River|Bear"] == nil and BeastScoutDB.pets["Shal'ma|Cat"] ~= nil)
+check("view refreshes after Remove", not pw.rows[2]._shown or not pw.rows[2].text._text:find("River", 1, true))
+BeastScoutDB.pets, units.mouseover = nil, nil
+check("no pets: My pets explains", ns.Search("pets").error:find("Summon each", 1, true))
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

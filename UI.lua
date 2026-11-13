@@ -46,9 +46,9 @@ local function Show(result)
         end
         -- One button per row: Remove for pet stats, Go for a known spot.
         row.data = data
-        row.way:SetText(data.remove and "Remove" or "Go")
-        row.way:SetWidth(data.remove and 70 or 40)
-        row.way:SetShown(data.remove ~= nil or data.spot ~= nil)
+        row.way:SetText(data.forget and "Remove" or "Go")
+        row.way:SetWidth(data.forget and 70 or 40)
+        row.way:SetShown(data.forget ~= nil or data.spot ~= nil)
         row:Show()
     end
     f.note:SetText(result.note or "")
@@ -120,7 +120,7 @@ local function Make()
     find:SetScript("OnClick", function() Run(search:GetText()) end)
     local hint = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", search, "BOTTOMLEFT", -4, -2)
-    hint:SetText("A skill (bite 2), a family (cat), fast, fast cat, tank or upgrades")
+    hint:SetText("A skill (bite 2), a family (cat), fast, fast cat, tank, upgrades or pets")
 
     local quick = { { "Fastest", "fast", 90 }, { "Tank", "tank", 70 }, { "Upgrades for my pet", "upgrades", 150 } }
     local last
@@ -155,16 +155,16 @@ local function Make()
         way:SetPoint("RIGHT")
         way:SetScript("OnClick", function()
             local data = row.data
-            if data and data.remove then
-                ns.ForgetPetStat(data.remove.family, data.remove.level)
-                Run("stats")
+            if data and data.forget then
+                data.forget()
+                Run(frame.search:GetText())
             else
                 ns.Waypoint(i)
             end
         end)
         way:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(row.data and row.data.remove and "Forget this measurement" or "Set a map waypoint")
+            GameTooltip:SetText(row.data and row.data.forgetTip or "Set a map waypoint")
             GameTooltip:Show()
         end)
         way:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -196,6 +196,9 @@ local function Make()
     local stats = Button(f, "Pet stats", 90)
     stats:SetPoint("RIGHT", export, "LEFT", -6, 0)
     stats:SetScript("OnClick", function() Run("stats") end)
+    local pets = Button(f, "My pets", 80)
+    pets:SetPoint("RIGHT", stats, "LEFT", -6, 0)
+    pets:SetScript("OnClick", function() Run("pets") end)
 end
 
 function ns.ToggleUI(query)

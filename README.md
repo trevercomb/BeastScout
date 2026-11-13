@@ -58,7 +58,7 @@ Type `/beastscout` or click the minimap button (paw icon; drag it to move, `/bea
 - a search box that takes anything `find` does: a skill (`bite 2`), a family (`cat`), `fast`, `fast cat`, `tank` or `upgrades`
 - quick buttons for **Fastest**, **Tank** and **Upgrades for my pet** (beasts at your level that would teach your current pet something new)
 - results with a **Go** button that sets a map waypoint; hover a row to see it in full
-- **Export** and **Pet stats** buttons
+- **My pets** (each pet you've had out, with its skills, and Remove), **Pet stats** and **Export** buttons
 
 It opens on your pet's upgrades when a pet is out, otherwise on the fastest beasts.
 
