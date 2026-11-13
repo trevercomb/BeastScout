@@ -311,6 +311,26 @@ local function ScheduleTameCapture()
     C_Timer.After(0.35, function() Try(1) end)
 end
 
+-- Your pets --------------------------------------------------------------------------
+-- The game only shows a pet's skills while it's summoned, so remember each
+-- pet whenever it's out: BeastScoutDB.pets["name|family"] = { name, family,
+-- level, known = { [ability] = rank } }. Pets are keyed by name and family
+-- because a pet's GUID can change between summons.
+
+function ns.PetKey(name, family)
+    return tostring(name) .. "|" .. tostring(family)
+end
+
+function ns.RememberPet()
+    if not UnitExists("pet") then return end
+    local name, family, level = UnitName("pet"), ns.FamilyOf("pet"), UnitLevel("pet")
+    if not name or IsSecret(name) or not family or IsSecret(level) then return end
+    local known = {}
+    for _, spell in ipairs(PetSpellbook()) do FindAbilities(spell, known) end
+    BeastScoutDB.pets = BeastScoutDB.pets or {}
+    BeastScoutDB.pets[ns.PetKey(name, family)] = { name = name, family = family, level = level, known = known }
+end
+
 -- Pet stats ----------------------------------------------------------------------
 -- Family health/armor bonuses aren't published for Forever, so measure them:
 -- BeastScoutDB.petStats[family][petLevel] = { health, armor, name }. Keep the
@@ -528,14 +548,22 @@ function ns.OnCollectEvent(event, ...)
         OnTameSpell(event, select(3, ...)) -- unit, castGUID, spellID
     elseif event == "UNIT_PET" then
         ScheduleTameCapture()
-        C_Timer.After(1.5, function() pcall(ns.MeasurePet) end)
+        C_Timer.After(1.5, function()
+            pcall(ns.MeasurePet)
+            pcall(ns.RememberPet)
+        end)
     elseif event == "PLAYER_REGEN_ENABLED" or event == "UNIT_LEVEL" then
         pcall(ns.MeasurePet)
+        pcall(ns.RememberPet)
     elseif event:find("CRAFT") or event:find("TRAINER") then
         Debug("training window event:", event)
         if event == "TRAINER_SHOW" or event == "TRAINER_UPDATE" then
-            -- The list fills a moment after the window opens.
-            C_Timer.After(0.2, function() pcall(ns.ReadBeastTraining) end)
+            -- The list fills a moment after the window opens; training a
+            -- skill also updates the pet we remember.
+            C_Timer.After(0.2, function()
+                pcall(ns.ReadBeastTraining)
+                pcall(ns.RememberPet)
+            end)
         end
     end
 end
