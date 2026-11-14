@@ -21,6 +21,8 @@ local function SourceLabel(layer, record, sourceField, note)
     local text
     if layer == "mine" then
         text = how and ("you, " .. how) or "you"
+    elseif layer == "guild" and sourceField and record[sourceField:gsub("Source$", "PassedOn")] then
+        text = "shared, passed on"
     elseif layer == "community" or layer == "guild" then
         local reports = record[(sourceField or ""):gsub("Source$", "Reports")]
         text = (layer == "guild" and "shared" or "players") .. (how and (", " .. how .. " x" .. (reports or 1)) or "")
@@ -32,7 +34,10 @@ end
 
 -- Each getter returns value, trust, source field, note.
 function ns.TeachesOf(r)
-    if r.teaches then return r.teaches, TRUST[r.teachesSource] or 2, "teachesSource" end
+    -- Passed-on data (heard second-hand) ranks just below the same source seen first-hand.
+    if r.teaches then
+        return r.teaches, (TRUST[r.teachesSource] or 2) - (r.teachesPassedOn and 0.5 or 0), "teachesSource"
+    end
 end
 
 -- A pet's swing timer comes from its Faster/Slower Attack passive, so the

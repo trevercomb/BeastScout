@@ -1111,6 +1111,88 @@ do
     time = realTime
 end
 
+-- Passing on agreed data.
+do
+    local realTime = time
+    time = function() return 200000 end
+    local saveCommunity = ns.COMMUNITY
+    ns.COMMUNITY = {}
+    BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+    local rec = "R1;1201;Snow Leopard;Cat;7;8;t;;Bite1,Faster Attack5;Dun Morogh,41,50"
+    ns.ReceiveRecord("Arwen", rec)
+    ns.ReceiveRecord("Boromir", rec)
+    check("two players agree: counted as 2", BeastScoutDB.guild[1201].teachesReports == 2)
+
+    -- Our catch-up passes it on, marked P1.
+    local sent = {}
+    C_ChatInfo = { SendAddonMessage = function(_, m, kind) sent[#sent + 1] = m end }
+    IsInGuild = function() return true end
+    BeastScoutDB.sharedAt = nil
+    ns.ShareAll()
+    runTimers()
+    local passedMsg
+    for _, m in ipairs(sent) do if m:find("^P1;1201;") then passedMsg = m end end
+    check("agreed beast is passed on", passedMsg ~= nil, table.concat(sent, " | "))
+
+    -- A lone report isn't passed on, and neither is passed-on data.
+    BeastScoutDB.guildReports[1196] = {}
+    ns.ReceiveRecord("Gollum", "R1;1196;Ice Claw Bear;Bear;9;9;t;;Claw2;")
+    ns.ReceiveRecord("Faramir", "P1;1197;Winter Wolf;Wolf;9;9;t;;Bite2;")
+    ns.ReceiveRecord("Eowyn", "P1;1197;Winter Wolf;Wolf;9;9;t;;Bite2;")
+    sent = {}
+    BeastScoutDB.sharedAt = nil
+    ns.ShareAll()
+    runTimers()
+    local lone, again = false, false
+    for _, m in ipairs(sent) do
+        if m:find("^P1;1196;") then lone = true end
+        if m:find("^P1;1197;") then again = true end
+    end
+    check("a lone report isn't passed on", not lone)
+    check("passed-on data isn't passed on again", not again)
+
+    -- Receiving passed-on data: kept per passer, labelled, ranked below first-hand.
+    check("passed-on report kept apart", BeastScoutDB.guildReports[1197]["~Faramir"] ~= nil
+        and BeastScoutDB.guildReports[1197]["~Faramir"].passed == true)
+    local g = BeastScoutDB.guild[1197]
+    check("passed-on only: no player count, marked passed on", g.teachesReports == nil and g.teachesPassedOn == true)
+    local _, from = ns.Lookup(1197, ns.TeachesOf)
+    check("tooltip says passed on", from and from:find("shared, passed on", 1, true), from)
+    ns.COMMUNITY[1197] = { name = "Winter Wolf", family = "Wolf", teaches = { { "Bite", 1 } }, teachesSource = "lore" }
+    _, from = ns.Lookup(1197, ns.TeachesOf)
+    check("passed-on tame still beats bundled Beast Lore", from:find("passed on", 1, true), from)
+    ns.COMMUNITY[1197].teachesSource = "tame"
+    _, from = ns.Lookup(1197, ns.TeachesOf)
+    check("bundled tame beats passed-on tame", from:find("players", 1, true), from)
+    ns.COMMUNITY[1197] = nil
+
+    -- Outvoting: two players who saw it beat three who only passed something else on.
+    BeastScoutDB.guildReports[1198] = {}
+    ns.ReceiveRecord("Merry", "R1;1198;Ridge Stalker;Cat;9;9;l;;Claw2;")
+    ns.ReceiveRecord("Pippin", "R1;1198;Ridge Stalker;Cat;9;9;l;;Claw2;")
+    for _, who in ipairs({ "Fake1", "Fake2", "Fake3" }) do
+        ns.ReceiveRecord(who, "P1;1198;Ridge Stalker;Cat;9;9;l;;Claw3;")
+    end
+    check("first-hand players outvote passed-on reports", BeastScoutDB.guild[1198].teaches[1][2] == 2,
+        BeastScoutDB.guild[1198].teaches[1][2])
+    -- And a real tame beats any number of Beast Lore reports.
+    ns.ReceiveRecord("Sam", "R1;1198;Ridge Stalker;Cat;9;9;t;;Claw1;")
+    check("a tame beats Beast Lore", BeastScoutDB.guild[1198].teaches[1][2] == 1)
+
+    -- When a beast's list is full, passed-on reports go first.
+    BeastScoutDB.guildReports[1199] = {}
+    ns.ReceiveRecord("Old", "P1;1199;Frost Leopard;Cat;9;9;t;;Bite1;")
+    for i = 1, 10 do ns.ReceiveRecord("Hunter" .. i, "R1;1199;Frost Leopard;Cat;9;9;t;;Bite1;") end
+    check("full list drops passed-on reports first", BeastScoutDB.guildReports[1199]["~Old"] == nil
+        and BeastScoutDB.guildReports[1199].Hunter1 ~= nil)
+
+    C_ChatInfo, IsInGuild = nil, nil
+    BeastScoutDB.sharedAt = nil
+    ns.ForgetGuildData()
+    ns.COMMUNITY = saveCommunity
+    time = realTime
+end
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

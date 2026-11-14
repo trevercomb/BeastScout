@@ -11,7 +11,8 @@ local unpack = unpack or table.unpack
 --   in BeastScoutDB.guildReports and merged into BeastScoutDB.guild, which
 --   tooltips and find use after your notes and the bundled player data, and
 --   before the Hunter's Handbook.
--- Only your own observations are sent, never what others shared with you,
+-- Your own observations are sent, plus beasts at least two other players
+-- saw themselves and agreed on (passed on, counted half), never passed-on data,
 -- and guild data never goes into /beastscout export. /beastscout sharing
 -- turns it all off.
 
@@ -23,6 +24,7 @@ local SEND_GAP = 1.2           -- seconds between messages, under the client's t
 local FULL_SHARE_EVERY = 1200  -- seconds between sending everything you know
 local MAX_PER_SENDER = 400     -- new or changed records accepted from one player per session
 local MAX_REPORTS = 10         -- players' reports kept per beast (newest), so saved data stays small
+local MAX_PASS_ON = 150        -- agreed beasts passed on per full share
 
 function ns.SharingOn()
     return BeastScoutDB.sharing ~= false
@@ -35,12 +37,14 @@ end
 
 -- Encoding ------------------------------------------------------------------------
 -- R1;npcId;name;family;levelMin;levelMax;source;speed;Bite2,Claw1;Zone,x,y
+-- P1;... is the same, passed on: what at least two other players agreed on.
+local PASSED = "P1"
 
 local function Clean(text)
     return (tostring(text or ""):gsub("[;|,\n]", ""):sub(1, 40))
 end
 
-function ns.EncodeRecord(npcId, r)
+function ns.EncodeRecord(npcId, r, passed)
     if not (r and r.name and r.family) then return nil end
     local speed = r.speedSource == "tame" and r.speed or nil
     if not (speed or r.teaches) then return nil end
@@ -48,7 +52,7 @@ function ns.EncodeRecord(npcId, r)
     for _, t in ipairs(r.teaches or {}) do teaches[#teaches + 1] = Clean(t[1]) .. t[2] end
     local spot = r.spots and r.spots[#r.spots]
     local where = spot and (Clean(spot[1]) .. "," .. spot[2] .. "," .. spot[3]) or Clean(r.zones and r.zones[1])
-    return table.concat({ VERSION, npcId, Clean(r.name), Clean(r.family), r.levelMin or "", r.levelMax or "",
+    return table.concat({ passed and PASSED or VERSION, npcId, Clean(r.name), Clean(r.family), r.levelMin or "", r.levelMax or "",
         r.teaches and (r.teachesSource == "tame" and "t" or "l") or "", speed or "",
         table.concat(teaches, ","), where }, SEP)
 end
@@ -72,11 +76,12 @@ end
 function ns.DecodeRecord(msg)
     local f = {}
     for field in (msg .. SEP):gmatch("(.-)" .. SEP) do f[#f + 1] = field end
-    if f[1] ~= VERSION or #f < 10 then return nil end
+    if (f[1] ~= VERSION and f[1] ~= PASSED) or #f < 10 then return nil end
     local npcId = tonumber(f[2])
     if not npcId or npcId < 1 or npcId ~= math.floor(npcId) then return nil end
     if f[3] == "" or not ns.FAMILIES[f[4]] then return nil end
-    local report = { name = f[3], family = f[4], levelMin = Level(f[5]), levelMax = Level(f[6]) }
+    local report = { name = f[3], family = f[4], levelMin = Level(f[5]), levelMax = Level(f[6]),
+        passed = f[1] == PASSED or nil }
     if report.levelMin and report.levelMax and report.levelMin > report.levelMax then
         report.levelMin, report.levelMax = report.levelMax, report.levelMin
     end
@@ -114,6 +119,8 @@ local function TeachesKey(teaches)
 end
 
 -- Rebuild BeastScoutDB.guild[npcId] from every player's latest report.
+-- A passed-on report counts half as much as one from a player who saw it,
+-- so real findings outvote passed-on ones; most players wins among equals.
 local function Merge(npcId)
     local reports = BeastScoutDB.guildReports[npcId]
     if not reports or not next(reports) then
@@ -142,11 +149,13 @@ local function Merge(npcId)
         end
         if rep.teaches then
             local key = rep.source .. ":" .. TeachesKey(rep.teaches)
-            local entry = lists[key] or { teaches = rep.teaches, source = rep.source, count = 0, time = 0 }
-            entry.count, entry.time = entry.count + 1, math.max(entry.time, rep.time or 0)
+            local entry = lists[key] or { teaches = rep.teaches, source = rep.source, count = 0, direct = 0, time = 0 }
+            entry.count = entry.count + (rep.passed and 0.5 or 1)
+            entry.direct = entry.direct + (rep.passed and 0 or 1)
+            entry.time = math.max(entry.time, rep.time or 0)
             lists[key] = entry
         end
-        if rep.speed then speeds[rep.speed] = (speeds[rep.speed] or 0) + 1 end
+        if rep.speed then speeds[rep.speed] = (speeds[rep.speed] or 0) + (rep.passed and 0.5 or 1) end
     end
     -- Teaches: most trusted source, then most players, then newest.
     local best
@@ -157,10 +166,18 @@ local function Merge(npcId)
             best = e
         end
     end
-    if best then r.teaches, r.teachesSource, r.teachesReports = best.teaches, best.source, best.count end
-    for speed, count in pairs(speeds) do
-        if not r.speedReports or count > r.speedReports then r.speed, r.speedReports = speed, count end
+    if best then
+        -- Reports counts players who saw it themselves; passedOn marks data
+        -- that only reached you second-hand.
+        r.teaches, r.teachesSource = best.teaches, best.source
+        r.teachesReports = best.direct > 0 and best.direct or nil
+        r.teachesPassedOn = best.direct == 0 or nil
     end
+    local bestSpeed
+    for speed, count in pairs(speeds) do
+        if not bestSpeed or count > bestSpeed then r.speed, bestSpeed = speed, count end
+    end
+    if r.speed then r.speedReports = math.max(1, math.floor(bestSpeed)) end
     if r.speed then r.speedSource = "tame" end
     BeastScoutDB.guild[npcId] = r
 end
@@ -170,6 +187,7 @@ local accepted = {}
 function ns.ReceiveRecord(sender, msg)
     local npcId, report = ns.DecodeRecord(msg)
     if not npcId then return false end
+    if report.passed then sender = "~" .. sender end -- passed on by sender, not seen by them
     report.time = time and time() or 0
     local old = BeastScoutDB.guildReports and BeastScoutDB.guildReports[npcId]
     old = old and old[sender]
@@ -182,10 +200,12 @@ function ns.ReceiveRecord(sender, msg)
     report.raw = msg
     local list = BeastScoutDB.guildReports[npcId]
     if list and not list[sender] then
+        -- Full: drop the oldest passed-on report first, else the oldest.
         local count, oldestName, oldestTime = 0, nil, math.huge
         for name, rep in pairs(list) do
             count = count + 1
-            if (rep.time or 0) < oldestTime then oldestName, oldestTime = name, rep.time or 0 end
+            local age = (rep.time or 0) - (rep.passed and 1e12 or 0)
+            if age < oldestTime then oldestName, oldestTime = name, age end
         end
         if count >= MAX_REPORTS then list[oldestName] = nil end
     end
@@ -240,18 +260,23 @@ local function Pump()
         pumping = false
         return
     end
-    queued[item.npcId .. item.channel] = nil
-    local msg = ns.EncodeRecord(item.npcId, BeastScoutDB.npcs[item.npcId])
+    queued[item.key] = nil
+    local msg
+    if item.passed then
+        msg = ns.EncodeRecord(item.npcId, (BeastScoutDB.guild or {})[item.npcId], true)
+    else
+        msg = ns.EncodeRecord(item.npcId, BeastScoutDB.npcs[item.npcId])
+    end
     if msg and ns.SharingOn() then Send(msg, item.channel) end
     C_Timer.After(SEND_GAP, Pump)
 end
 
-local function Enqueue(npcId, channels)
+local function Enqueue(npcId, channels, passed)
     for _, channel in ipairs(channels) do
-        local key = npcId .. channel
+        local key = npcId .. channel .. (passed and "P" or "")
         if not queued[key] then
             queued[key] = true
-            queue[#queue + 1] = { npcId = npcId, channel = channel }
+            queue[#queue + 1] = { npcId = npcId, channel = channel, passed = passed, key = key }
         end
     end
     if not pumping and #queue > 0 then
@@ -281,7 +306,19 @@ function ns.ShareAll(force)
     end
     table.sort(ids)
     for _, npcId in ipairs(ids) do Enqueue(npcId, channels) end
-    return #ids
+    -- Then pass on what at least two other players saw for themselves and
+    -- agreed on. Passed-on data is never passed on again (it needs direct
+    -- reports), so everything is at most one step from someone who saw it.
+    local passing = {}
+    for npcId, g in pairs(BeastScoutDB.guild or {}) do
+        local mine = BeastScoutDB.npcs[npcId]
+        if (g.teachesReports or 0) >= 2 and not (mine and mine.teaches) and ns.EncodeRecord(npcId, g, true) then
+            passing[#passing + 1] = npcId
+        end
+    end
+    table.sort(passing)
+    for i = 1, math.min(#passing, MAX_PASS_ON) do Enqueue(passing[i], channels, true) end
+    return #ids + math.min(#passing, MAX_PASS_ON)
 end
 
 -- Events --------------------------------------------------------------------------

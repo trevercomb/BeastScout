@@ -60,6 +60,22 @@ BeastScoutDB = {
 ["teaches"] = { { "Bite", 9 } }, ["source"] = "lore", ["time"] = 7,
 },
 },
+[1197] = {
+["~Faramir"] = {
+["name"] = "Winter Wolf", ["family"] = "Wolf",
+["teaches"] = { { "Bite", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 9,
+},
+["~Eowyn"] = {
+["name"] = "Winter Wolf", ["family"] = "Wolf",
+["teaches"] = { { "Bite", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 9,
+},
+},
+[1198] = {
+["~Merry"] = {
+["name"] = "Ridge Stalker", ["family"] = "Cat",
+["teaches"] = { { "Claw", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 9,
+},
+},
 [1196] = {
 ["Gollum"] = {
 ["name"] = "Ice Claw Bear", ["family"] = "Bear",
@@ -127,11 +143,13 @@ def main():
         "invalid family rejected": "999001" not in local,
         "Community.lua rebuilt": "[2958]" in community and 'speedSource="tame"' in community,
         "unchanged save does nothing": second is False,
-        "two agreeing players: one file each": len(shared) == 2 and shared_text.count("[1201]") == 2,
+        "agreeing players: one file each": len(shared) == 4 and shared_text.count("[1201]") == 2,
         "shared authors are hashed, not names": "Arwen" not in shared_text and "-- author: p-" in shared_text,
         "a lone report isn't bundled": "[1196]" not in shared_text and "Bite\", 9" not in shared_text,
         "agreed beast reaches Community.lua, counted twice": "teachesReports=2" in community
             and "[1201]" in community,
+        "two players passing on the same thing: bundled": shared_text.count("[1197]") == 2,
+        "one player passing on: not bundled": "[1198]" not in shared_text,
     }
     for name, ok in checks.items():
         print(("ok   " if ok else "FAIL ") + name)

@@ -6,6 +6,8 @@ Reads BeastScout's SavedVariables from your WoW folder (written whenever you
 What other players shared in game (BeastScoutDB.guildReports) goes into
 contributions/shared-<player hash>.lua, but only for beasts at least two
 players agree on, so one bad report can't reach everyone.
+Passed-on reports (what a player heard from others) count only when two
+players passed on the same thing and nobody's first-hand reports agree.
 If the addon folder is linked to this repo, a /reload in game picks it up.
 
 First run (remembers the path in tools/local.json, which is not committed):
@@ -181,17 +183,22 @@ def shared_files(saved_list, salt, families, abilities):
                     reports.setdefault(npc_id, {})[sender] = shared_beast(rep)
     out = {}
     for npc_id, by_sender in reports.items():
-        groups = {}
+        # First-hand reports, and passed-on ones (sender "~Name"), kept apart.
+        groups = {False: {}, True: {}}
         for sender, b in by_sender.items():
             if b["name"] and b["family"] and (b["speed"] or b["teaches"]) \
                     and not problems(npc_id, b, families, abilities):
-                groups.setdefault(agreement_key(b), []).append((sender, b))
-        for members in groups.values():
-            if len(members) < MIN_AGREEING:
-                continue
-            for sender, b in members:
-                # "wow:" keeps character names apart from GitHub logins.
-                out.setdefault(author_hash("wow:" + sender, salt), {})[npc_id] = b
+                passed = sender.startswith("~")
+                groups[passed].setdefault(agreement_key(b), []).append((sender.lstrip("~"), b))
+        # Passed-on data only when no first-hand agreement exists for the beast.
+        for passed in (False, True):
+            agreed = [m for m in groups[passed].values() if len(m) >= MIN_AGREEING]
+            for members in agreed:
+                for sender, b in members:
+                    # "wow:" keeps character names apart from GitHub logins.
+                    out.setdefault(author_hash("wow:" + sender, salt), {})[npc_id] = b
+            if agreed:
+                break
     return out
 
 

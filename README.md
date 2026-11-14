@@ -91,8 +91,8 @@ Everyone running BeastScout shares automatically, guild or not, through hidden a
 
 - Each new tame or Beast Lore finding goes out right away to every BeastScout player online.
 - When you log in, you send everything you've recorded, and a handful of players online (picked at random, so it stays light however many people use BeastScout) send theirs, so you catch up.
-- Only your own observations are sent, never what others shared with you, and shared data stays out of `/beastscout export`.
-- Junk is dropped: unknown skills, impossible ranks or families. Each beast keeps the newest reports from up to 10 players, and a tame beats Beast Lore, then whatever most players agree on.
+- Your own observations are sent, plus beasts at least two other players saw for themselves and agreed on, so findings keep spreading after the player who made them logs off. Passed-on data is never passed on again, counts half as much as a first-hand report, and shows as `(shared, passed on)`. Shared data stays out of `/beastscout export`.
+- Junk is dropped: unknown skills, impossible ranks or families. Each beast keeps the newest reports from up to 10 players. A tame beats Beast Lore, then whatever most players agree on, so real players outvote a bad report.
 - Addon messages carry your character name like any chat, so BeastScout can count one report per player. `/beastscout sharing` turns it off and leaves the channel.
 - If the channel can't be joined, BeastScout shares with your guild and group instead.
 
@@ -134,7 +134,7 @@ python tools/sync_local.py --watch                       # keep running while yo
 
 Your observations go through the same checks and merge rules as shared ones, and `contributions/local.lua` gets committed like any other contribution.
 
-The sync also picks up what other players shared with you in game. Beasts where at least two players agree go into `contributions/shared-<player hash>.lua`, one file per player so each counts once; single reports stay in your game only. Player names are hashed with the salt in `tools/local.json`, like GitHub logins.
+The sync also picks up what other players shared with you in game. Beasts where at least two players agree go into `contributions/shared-<player hash>.lua`, one file per player so each counts once; single reports stay in your game only. Player names are hashed with the salt in `tools/local.json`, like GitHub logins. Passed-on data is bundled only when two players passed on the same thing and no first-hand reports agree.
 
 ### Releasing
 
