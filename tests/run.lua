@@ -1087,15 +1087,17 @@ do
     -- Your own echo, sent with a surname the client's UnitName doesn't include.
     units.player = units.player or {}
     units.player.name = "Sylvia"
+    GetUnitName = function(_, full) return full and "Sylvia Featherstep" or "Sylvia" end -- as Forever returned them
     ns.OnAddonMessage("BeastScout", rec, "CHANNEL", "Sylvia Featherstep", nil, nil, nil, "BeastScoutData")
     check("own echo with a surname is ignored", BeastScoutDB.guildReports[1201]["Sylvia Featherstep"] == nil)
     check("IsMe: other players aren't you", not ns.IsMe("Sylvanas") and not ns.IsMe("Legolas")
-        and ns.IsMe("Sylvia-Realm") and ns.IsMe("sylvia featherstep"))
+        and not ns.IsMe("Sylvia Moonbrook") and ns.IsMe("Sylvia-Realm") and ns.IsMe("sylvia featherstep"))
     -- Echoes saved by the older version are cleaned up at startup.
     BeastScoutDB.guildReports[1201]["Sylvia Featherstep"] = { name = "Snow Leopard", family = "Cat",
         teaches = { { "Bite", 1 } }, source = "tame", time = 1 }
     ns.StartSharing({ RegisterEvent = function() end })
     check("old own echoes forgotten at startup", BeastScoutDB.guildReports[1201]["Sylvia Featherstep"] == nil)
+    GetUnitName = nil
     -- Sharing off leaves the channel.
     local left
     LeaveChannelByName = function(name) left = name end

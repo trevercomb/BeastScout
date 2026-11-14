@@ -287,9 +287,9 @@ end
 -- Events --------------------------------------------------------------------------
 
 -- Is this message from you? You hear your own channel messages. Forever
--- sends them as "Sylvia Featherstep" while UnitName("player") may give a
--- shorter or different form, so compare every name the client offers, and
--- a sender that starts with your name plus a space (an added surname).
+-- sends them as "Sylvia Featherstep": UnitName("player") gives "Sylvia",
+-- GetUnitName("player", true) the full "Sylvia Featherstep" (seen in game
+-- 2026-11-14). So compare against every name the client offers.
 local function Names()
     local names = {}
     local function add(n)
@@ -307,7 +307,7 @@ local function IsMe(sender)
     if type(sender) ~= "string" then return false end
     sender = (sender:match("^[^-]+") or sender):lower()
     for _, name in ipairs(Names()) do
-        if sender == name or sender:sub(1, #name + 1) == name .. " " or name:sub(1, #sender + 1) == sender .. " " then
+        if sender == name then
             return true
         end
     end
