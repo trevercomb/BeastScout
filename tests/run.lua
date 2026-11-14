@@ -686,6 +686,26 @@ local trainNow = {}
 for _, row in ipairs(ur.rows) do trainNow[#trainNow + 1] = row.text end
 trainNow = table.concat(trainNow, "\n")
 check("Claw 2 costs 3 TP, from Beast Training (Handbook says 4)", trainNow:find("Claw 2 (train it, 3 TP)", 1, true), trainNow)
+-- Beast tooltips skip ranks you can already train: the beast adds nothing.
+units.mouseover = { name = "Coyote", family = "Wolf", level = 10, guid = "Creature-0-1-2-3-1201-0000ABCD" }
+ns.COMMUNITY[1201] = { name = "Coyote", family = "Wolf", teaches = { { "Bite", 2 } }, teachesSource = "tame" }
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("no tooltip upgrade for a rank you can already train", not text:find("Upgrade for River: Bite 2", 1, true), text)
+ns.COMMUNITY[1201], units.mouseover = nil, nil
+
+-- With Shalma out (knows Bite 2), Beast Training says Bite 2 costs 0: keep the real 4.
+services[4][2] = "used"
+costs[4] = 0
+ns.ReadBeastTraining()
+check("a known rank keeps the cost seen before", BeastScoutDB.trainer.skills.Bite[2].cost == 4,
+    tostring(BeastScoutDB.trainer.skills.Bite[2].cost))
+BeastScoutDB.trainer = nil
+ns.ReadBeastTraining()
+local _, biteCost = nil, BeastScoutDB.trainer.skills.Bite[2].cost
+check("never seen unknown: falls back to the Handbook cost, not 0", biteCost == nil)
+services[4][2], costs[4] = "unavailable", 4
 GetNumTrainerServices, GetTrainerServiceInfo, GetTrainerServiceCost, units.pet = nil, nil, nil, nil
 
 -- Removing a pet measurement (old River, abandoned).
@@ -786,7 +806,8 @@ check("probe takes its own words", printed[mark + 1]:find("probe for stable:", 1
 GetPetFoodTypes, C_PetFood = nil, nil
 
 -- Remembered pets: upgrade lines for pets that aren't out, and the My pets view.
-BeastScoutDB.pets = nil
+-- No Beast Training read yet, so nothing counts as already trainable.
+BeastScoutDB.pets, BeastScoutDB.trainer = nil, nil
 CreateFrame = function(_, name) return UIFake(name) end -- the window fake (defined above)
 units.pet = { name = "Shal'ma", family = "Cat", level = 11, guid = "Pet-0-1-2-3-165189-SHAL" }
 petSpells = { { "Bite", "Rank 1" }, { "Claw", "Rank 2" }, { "Faster Attack V", "" } }

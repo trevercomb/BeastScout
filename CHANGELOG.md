@@ -1,5 +1,11 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Beast tooltips no longer call a skill an upgrade when you can already teach that rank at Beast Training.
+- Fixed skill costs showing as 0 TP after opening Beast Training with a pet that already knows the skill.
+- Shadowgale Ursera teaches Claw 2, not Claw 3 (confirmed by a tame).
+
 ## 0.11.0
 
 - BeastScout's own logo as its icon in the AddOns list and on the minimap button.

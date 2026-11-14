@@ -107,11 +107,15 @@ function ns.DescribeUpgrade(o)
     return o.ability .. " " .. o.rank .. " (" .. table.concat(parts, ", ") .. ")"
 end
 
--- For the tooltip: every upgrade, including ranks your pet is too young for.
+-- For the tooltip: every upgrade, including ranks your pet is too young for,
+-- but not ranks you can already teach at Beast Training: taming this beast
+-- wouldn't add those.
 function ns.UpgradesFor(teaches, pet)
     local options, p = ns.UpgradeOptions(teaches, pet)
     local out = {}
-    for _, o in ipairs(options) do out[#out + 1] = ns.DescribeUpgrade(o) end
+    for _, o in ipairs(options) do
+        if not o.trainable then out[#out + 1] = ns.DescribeUpgrade(o) end
+    end
     return out, p and p.name
 end
 

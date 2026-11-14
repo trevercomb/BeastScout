@@ -381,7 +381,8 @@ end
 -- GetTrainerServiceInfo(i) -> "Bite", "unavailable", icon, 8, "Rank 2").
 -- BeastScoutDB.trainer.skills[ability][rank] = { state, level, cost }.
 -- GetTrainerServiceCost(i) returns the training point cost (matched the
--- window for all 8 of River's entries in game).
+-- window for all 8 of River's entries in game). For a rank the pet out
+-- already knows ("used") it returns 0, so those keep the cost seen before.
 
 function ns.ReadBeastTraining()
     if not (GetNumTrainerServices and GetTrainerServiceInfo) then return end
@@ -390,6 +391,7 @@ function ns.ReadBeastTraining()
     n = ok and tonumber(n) or 0
     if n == 0 then return end
     local skills = {}
+    local before = BeastScoutDB.trainer and BeastScoutDB.trainer.skills or {}
     for i = 1, n do
         local info = { pcall(GetTrainerServiceInfo, i) }
         local name, state = info[2], info[3]
@@ -414,6 +416,10 @@ function ns.ReadBeastTraining()
                 if okCost and not IsSecret(c) then cost = tonumber(c) end
             end
             name = ns.EnglishAbility(name) -- "Biss" -> "Bite"
+            if state == "used" then
+                local old = before[name] and before[name][rank]
+                cost = old and old.cost or nil
+            end
             skills[name] = skills[name] or {}
             skills[name][rank] = { state = state, level = level, cost = cost }
         end
