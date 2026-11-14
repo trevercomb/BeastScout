@@ -987,6 +987,34 @@ do
     ns.COMMUNITY = saveCommunity
 end
 
+-- /beastscout channeltest: join, send, hear it back, leave.
+do
+    local left
+    GetTime = GetTime or function() return 0 end
+    JoinTemporaryChannel = function() return 1, "BeastScoutData" end
+    GetChannelName = function(name) return name == "BeastScoutData" and 5 or 0 end
+    LeaveChannelByName = function(name) left = name end
+    C_ChatInfo = { SendAddonMessage = function(prefix, m, kind, target)
+        ns.OnAddonMessage(prefix, m, kind, "Sylvia-Realm", nil, nil, nil, "BeastScoutData")
+        return 0
+    end }
+    local mark = #printed
+    SlashCmdList.BEASTSCOUT("channeltest")
+    runTimers()
+    local out = table.concat(printed, " ", mark + 1)
+    check("channel test hears its own message", out:find("Channel sharing works!", 1, true), out)
+    check("channel test leaves the channel", left == "BeastScoutData" and out:find("left the test channel", 1, true), out)
+    check("channel test ping isn't taken as data", not (BeastScoutDB.guildReports or {})[0])
+    -- Nothing comes back: says so.
+    C_ChatInfo = { SendAddonMessage = function() return 9 end }
+    mark = #printed
+    SlashCmdList.BEASTSCOUT("channeltest")
+    runTimers()
+    out = table.concat(printed, " ", mark + 1)
+    check("channel test reports silence", out:find("nothing came back", 1, true) and out:find("send -> 9", 1, true), out)
+    JoinTemporaryChannel, GetChannelName, LeaveChannelByName, C_ChatInfo = nil, nil, nil, nil
+end
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

@@ -265,6 +265,9 @@ SlashCmdList.BEASTSCOUT = function(msg)
     elseif msg == "sharing" then
         print(HEADER .. ": sharing with your guild and group " .. (ns.ToggleSharing() and "on" or "off") .. ".")
         return
+    elseif msg == "channeltest" then
+        ns.ProbeChannel()
+        return
     elseif msg == "share" then
         local n = ns.ShareAll(true)
         print(HEADER .. ": " .. (ns.SharingOn() and (IsInGuild and IsInGuild())

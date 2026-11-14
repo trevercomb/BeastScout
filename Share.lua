@@ -1,4 +1,5 @@
 local _, ns = ...
+local unpack = unpack or table.unpack
 
 -- In-game sharing: guildmates (and your group) running BeastScout swap what
 -- they've tamed and Beast Lore'd, as hidden addon messages.
@@ -251,7 +252,15 @@ local function Me()
     return type(name) == "string" and name or ""
 end
 
-function ns.OnAddonMessage(prefix, msg, channel, sender)
+local probe -- /beastscout channeltest in progress
+
+function ns.OnAddonMessage(prefix, msg, channel, sender, _, _, _, channelName)
+    if probe and prefix == PREFIX and type(msg) == "string" and not ns.IsSecret(msg) and msg == probe.ping then
+        probe.say("received it back on " .. tostring(channel) .. " " .. tostring(channelName)
+            .. " from " .. tostring(sender) .. " after " .. string.format("%.1f", GetTime() - probe.at) .. "s. Channel sharing works!")
+        probe.heard = true
+        return
+    end
     if prefix ~= PREFIX or not ns.SharingOn() then return end
     if channel ~= "GUILD" and channel ~= "PARTY" and channel ~= "RAID" then return end
     if ns.IsSecret(msg) or ns.IsSecret(sender) or type(msg) ~= "string" or type(sender) ~= "string" then return end
@@ -281,4 +290,45 @@ end
 
 function ns.ForgetGuildData()
     BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+end
+
+-- /beastscout channeltest: can addon messages go over a custom chat channel
+-- in Forever? Joins a hidden channel, sends one message to it and listens
+-- for it coming back (you hear your own channel messages). Leaves after.
+local PROBE_CHANNEL = "BeastScoutData"
+
+function ns.ProbeChannel()
+    local say = function(text) print("|cffabd473BeastScout|r channel test: " .. text) end
+    local function show(...)
+        local parts = {}
+        for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+        return table.concat(parts, ", ")
+    end
+    local join = JoinTemporaryChannel or JoinChannelByName
+    if not join then say("no way to join a channel on this client.") return end
+    local okJoin, joinResult = pcall(join, PROBE_CHANNEL)
+    say("join -> " .. (okJoin and show(joinResult) or ("error: " .. tostring(joinResult))))
+    -- Joining takes a moment; send after the server has us in the channel.
+    C_Timer.After(2, function()
+        local id = GetChannelName and GetChannelName(PROBE_CHANNEL)
+        say("channel number: " .. tostring(id))
+        if not id or id == 0 then
+            say("couldn't join the channel, so addon messages can't use it.")
+            return
+        end
+        -- Keep it out of the chat window.
+        if ChatFrame_RemoveChannel and DEFAULT_CHAT_FRAME then pcall(ChatFrame_RemoveChannel, DEFAULT_CHAT_FRAME, PROBE_CHANNEL) end
+        probe = { ping = "PING;" .. math.random(100000, 999999), at = GetTime(), say = say }
+        local send = (C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
+        local results = { pcall(send, PREFIX, probe.ping, "CHANNEL", id) }
+        say("send -> " .. (results[1] and show(select(2, unpack(results))) or ("error: " .. tostring(results[2]))))
+        C_Timer.After(6, function()
+            if probe and not probe.heard then
+                say("nothing came back after 6s, so Forever doesn't deliver addon messages on custom channels (or delays them).")
+            end
+            probe = nil
+            if LeaveChannelByName then pcall(LeaveChannelByName, PROBE_CHANNEL) end
+            say("left the test channel.")
+        end)
+    end)
 end
