@@ -1,6 +1,7 @@
 # Pushing a version tag (e.g. v0.10.0) builds the addon zip with the BigWigs
 # packager and publishes it: a GitHub release always, and CurseForge once the
-# CF_API_KEY secret is set and the .toc has an X-Curse-Project-ID line.
+# CF_API_KEY secret is set and the .toc has an X-Curse-Project-ID line, and
+# WoWInterface once WOWI_API_TOKEN is set and the .toc has an X-WoWI-ID line.
 name: Release
 
 on:
@@ -16,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }} # WoWInterface, with X-WoWI-ID in the .toc
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out (full history, for the changelog)
