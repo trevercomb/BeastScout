@@ -1193,6 +1193,22 @@ do
     time = realTime
 end
 
+-- After a game patch: one notice per new interface number.
+do
+    local toc = io.open("BeastScout.toc"):read("a")
+    check("BUILT_FOR matches the .toc", tonumber(toc:match("## Interface: (%d+)")) == ns.BUILT_FOR)
+    check("same interface: no notice", ns.CheckInterface() == false)
+    local realBuild = GetBuildInfo
+    GetBuildInfo = function() return "1.61.0", "0", "", 16100 end
+    BeastScoutDB.warnedInterface = nil
+    local mark = #printed
+    check("new interface: notice", ns.CheckInterface() == true
+        and printed[mark + 1]:find("interface 16100, but BeastScout was built for 16001", 1, true), printed[mark + 1])
+    check("only once per interface", ns.CheckInterface() == false)
+    GetBuildInfo = realBuild
+    BeastScoutDB.warnedInterface = nil
+end
+
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()

@@ -231,6 +231,22 @@ function ns.ShowExport()
     exportFrame.edit:HighlightText()
 end
 
+-- The client interface BeastScout was built and tested for. Keep it equal to
+-- "## Interface" in BeastScout.toc (a test checks). After a game patch the
+-- client's number changes; say so once per new version, so players know an
+-- update may be on the way rather than thinking BeastScout is broken.
+local BUILT_FOR = 16001
+
+function ns.CheckInterface()
+    local client = tonumber((select(4, GetBuildInfo())))
+    if not client or client == BUILT_FOR or BeastScoutDB.warnedInterface == client then return false end
+    BeastScoutDB.warnedInterface = client
+    print(HEADER .. ": this client is interface " .. client .. ", but BeastScout was built for " .. BUILT_FOR
+        .. ". Most things should still work; if anything looks off, check CurseForge for an update.")
+    return true
+end
+ns.BUILT_FOR = BUILT_FOR
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(self, event, ...)
@@ -244,6 +260,8 @@ f:SetScript("OnEvent", function(self, event, ...)
         ns.StartCollecting(self)
         ns.StartSharing(self)
         ns.CreateMinimapButton()
+        -- After the login chat spam, so it isn't lost.
+        if C_Timer then C_Timer.After(8, ns.CheckInterface) end
     elseif event == "CHAT_MSG_ADDON" then
         ns.OnAddonMessage(...)
     else

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- After a game patch, BeastScout says once in chat if the client is newer than the version it was built for, so you know an update may be coming.
 - `/beastscout help` says "bundled from players" for the data that ships with BeastScout, to tell it apart from data shared in game.
 
 ## 0.12.1

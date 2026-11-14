@@ -155,6 +155,8 @@ git push origin v0.11.0
 
 The workflow runs the tests, builds the zip, makes a GitHub release and uploads to CurseForge.
 
+After a game patch changes the client's interface number (shown at the end of `/beastscout help`, and BeastScout says so once in chat), update `## Interface` in `BeastScout.toc` and `BUILT_FOR` in `BeastScout.lua` together; a test fails if they differ.
+
 ## License
 
 GPLv3, since BeastScout includes data from Hunter's Handbook. See `LICENSE`.
