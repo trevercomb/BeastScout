@@ -326,7 +326,7 @@ SlashCmdList.BEASTSCOUT = function(msg)
     end
     local function Count(t) local n = 0 for _ in pairs(t) do n = n + 1 end return n end
     print(HEADER .. ": " .. Count(BeastScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
-        .. " from players, " .. Count(BeastScoutDB.guild or {}) .. " shared in game, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
+        .. " bundled from players, " .. Count(BeastScoutDB.guild or {}) .. " shared in game, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
     print("  " .. ns.ShareStatus())
     print("  /bs works as a short form of /beastscout for every command.")

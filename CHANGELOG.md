@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- `/beastscout help` says "bundled from players" for the data that ships with BeastScout, to tell it apart from data shared in game.
+
 ## 0.12.1
 
 - Shared findings keep spreading after the player who made them logs off: BeastScout also passes on beasts at least two other players agreed on. Passed-on data counts for less than first-hand reports, is never passed on again, and shows as `(shared, passed on)`.
