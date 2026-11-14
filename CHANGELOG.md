@@ -48,5 +48,3 @@ First release.
 - Records your tames and Beast Lore so your own data can improve on the built-in data; share it with /beastscout export.
 
 ---
-
-Co-authored with Claude Opus 5.5.
