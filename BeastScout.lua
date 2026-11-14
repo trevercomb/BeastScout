@@ -323,6 +323,7 @@ SlashCmdList.BEASTSCOUT = function(msg)
     print(HEADER .. ": " .. Count(BeastScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
         .. " from players, " .. Count(BeastScoutDB.guild or {}) .. " shared in game, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
+    print("  " .. ns.ShareStatus())
     print("  /bs works as a short form of /beastscout for every command.")
     print("  /beastscout - open the BeastScout window   /beastscout minimap - hide or show its minimap button")
     print("  /beastscout export - copy your observations   /beastscout reset - forget them")

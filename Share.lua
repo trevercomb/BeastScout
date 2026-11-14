@@ -392,6 +392,18 @@ function ns.ToggleSharing()
     return ns.SharingOn()
 end
 
+-- One line for /beastscout help: is sharing on, which channel, who's around.
+function ns.ShareStatus()
+    if not ns.SharingOn() then return "Sharing: off (/beastscout sharing turns it on)." end
+    local id = ChannelID()
+    local where = id and ("channel " .. id .. ". " .. CHANNEL_NAME)
+        or "not in the BeastScoutData channel yet (it's joined 20s after login), so guild and group only"
+    local n = 0
+    for _ in pairs(BeastScoutDB.guild or {}) do n = n + 1 end
+    return "Sharing: on, " .. where .. ". Heard from " .. Peers() .. " BeastScout players this hour; "
+        .. n .. " beasts shared with you."
+end
+
 function ns.ForgetGuildData()
     BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
 end

@@ -1083,6 +1083,7 @@ do
     local before = BeastScoutDB.guildReports[1201].Ranger12.raw
     check("a repeated report is recognised", ns.ReceiveRecord("Ranger12", before) == true)
 
+    check("status names the channel", ns.ShareStatus():find("channel 7. BeastScoutData", 1, true), ns.ShareStatus())
     -- Sharing off leaves the channel.
     local left
     LeaveChannelByName = function(name) left = name end
@@ -1090,6 +1091,7 @@ do
     check("sharing off leaves the channel", left == "BeastScoutData")
     ns.ToggleSharing()
     JoinTemporaryChannel, GetChannelName, LeaveChannelByName, C_ChatInfo, IsInGuild = nil, nil, nil, nil, nil
+    check("status without the channel says so", ns.ShareStatus():find("not in the BeastScoutData channel yet", 1, true))
     BeastScoutDB.npcs[1201], BeastScoutDB.sharedAt = nil, nil
     ns.ForgetGuildData()
     time = realTime
