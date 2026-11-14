@@ -42,4 +42,6 @@ Built-in data: beast data from **Hunter's Handbook** by Wood (GPLv3), family abi
 
 /beastscout (window) · /beastscout find &lt;skill, family, fast, tank, upgrades&gt; · /beastscout way &lt;number&gt; · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
 
+Short form: **/bs** works for every command (/bs find tank).
+
 Source, issues and sharing observations: [github.com/trevercomb/BeastScout](https://github.com/trevercomb/BeastScout)

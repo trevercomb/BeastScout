@@ -66,7 +66,7 @@ It opens on your pet's upgrades when a pet is out, otherwise on the fastest beas
 
 ## Commands
 
-Everything in the window also works in chat:
+Everything in the window also works in chat. `/bs` is a short form of `/beastscout` for every command (`/bs find tank`).
 
 
 - `/beastscout`: opens the window. `/beastscout help` lists the commands and how many beasts each source covers.

@@ -244,6 +244,7 @@ f:SetScript("OnEvent", function(self, event, ...)
 end)
 
 SLASH_BEASTSCOUT1 = "/beastscout"
+SLASH_BEASTSCOUT2 = "/bs" -- short form; every command works with either
 SlashCmdList.BEASTSCOUT = function(msg)
     msg = msg and msg:lower() or ""
     if msg == "" then
@@ -316,6 +317,7 @@ SlashCmdList.BEASTSCOUT = function(msg)
     print(HEADER .. ": " .. Count(BeastScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
         .. " from players, " .. Count(BeastScoutDB.guild or {}) .. " from your guild, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
+    print("  /bs works as a short form of /beastscout for every command.")
     print("  /beastscout - open the BeastScout window   /beastscout minimap - hide or show its minimap button")
     print("  /beastscout export - copy your observations   /beastscout reset - forget them")
     print("  /beastscout find bite 2 - beasts that teach a skill, closest first   /beastscout way 1 - waypoint to one")

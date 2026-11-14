@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `/bs` works as a short form of `/beastscout` for every command.
 - Beast tooltips no longer call a skill an upgrade when you can already teach that rank at Beast Training.
 - Fixed skill costs showing as 0 TP after opening Beast Training with a pet that already knows the skill.
 - Shadowgale Ursera teaches Claw 2, not Claw 3 (confirmed by a tame).
