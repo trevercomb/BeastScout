@@ -157,7 +157,7 @@ local function ParseQuery(query)
 end
 
 local function Field(npcId, key)
-    for _, layer in ipairs({ BeastScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
+    for _, layer in ipairs(ns.Layers()) do
         local r = layer[npcId]
         if r and r[key] then return r[key] end
     end
@@ -166,7 +166,7 @@ end
 -- One sighting shouldn't narrow the range, so combine every source.
 local function LevelRange(npcId)
     local low, high
-    for _, layer in ipairs({ BeastScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
+    for _, layer in ipairs(ns.Layers()) do
         local r = layer[npcId]
         if r and r.levelMin then low = math.min(low or r.levelMin, r.levelMin) end
         if r and r.levelMax then high = math.max(high or r.levelMax, r.levelMax) end
@@ -252,7 +252,7 @@ end
 
 local function Spots(npcId)
     local out = {}
-    for _, layer in ipairs({ BeastScoutDB.npcs, ns.COMMUNITY, ns.HANDBOOK }) do
+    for _, layer in ipairs(ns.Layers()) do
         local r = layer[npcId]
         for _, spot in ipairs(r and r.spots or {}) do out[#out + 1] = spot end
     end
@@ -350,7 +350,7 @@ end
 
 local function AllIds()
     local ids = {}
-    for _, layer in ipairs({ ns.HANDBOOK, ns.COMMUNITY, BeastScoutDB.npcs }) do
+    for _, layer in ipairs(ns.Layers()) do
         for npcId in pairs(layer) do ids[npcId] = true end
     end
     return ids

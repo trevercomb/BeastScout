@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Training.lua", "Locale.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "Food.lua", "UI.lua", "BeastScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Training.lua", "Locale.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "Food.lua", "Share.lua", "UI.lua", "BeastScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("BeastScout", ns)
 end
@@ -862,6 +862,94 @@ C_PetInfo.CanPetEatItem = function() return true end
 text = itemTooltip(117)
 check("no pet, no food line", not text:find("eat this", 1, true), text)
 C_PetInfo, C_Item = nil, nil
+
+-- In-game sharing.
+do
+    local saveCommunity = ns.COMMUNITY
+    ns.COMMUNITY = {}
+    local r = { name = "Snow Leopard", family = "Cat", levelMin = 7, levelMax = 8, speed = 1.3,
+        speedSource = "tame", teaches = { { "Bite", 1 }, { "Faster Attack", 5 } }, teachesSource = "tame",
+        zones = { "Dun Morogh" }, spots = { { "Dun Morogh", 41.2, 50 } } }
+    local msg = ns.EncodeRecord(1201, r)
+    check("record fits one message", msg and #msg < 255, msg)
+    local id, rep = ns.DecodeRecord(msg)
+    check("record round trip", id == 1201 and rep.family == "Cat" and rep.speed == 1.3 and rep.source == "tame"
+        and rep.teaches[2][1] == "Faster Attack" and rep.teaches[2][2] == 5 and rep.spot[2] == 41.2
+        and rep.levelMin == 7 and rep.levelMax == 8, msg)
+    check("seen-only speed isn't sent", ns.EncodeRecord(1, { name = "X", family = "Cat", speed = 2, speedSource = "seen" }) == nil)
+    check("junk rejected: unknown ability", ns.DecodeRecord("R1;5;X;Cat;1;2;t;;Lasers3;") == nil)
+    check("junk rejected: rank it doesn't have", ns.DecodeRecord("R1;5;X;Cat;1;2;t;;Bite20;") == nil)
+    check("junk rejected: unknown family", ns.DecodeRecord("R1;5;X;Dragon;1;2;t;;Bite1;") == nil)
+    check("junk rejected: other version", ns.DecodeRecord("R9;5;X;Cat;1;2;t;;Bite1;") == nil)
+    check("unknown zone dropped, record kept", select(2, ns.DecodeRecord("R1;5;X;Cat;1;2;t;;Bite1;Mars,1,2")).spot == nil)
+
+    -- Receiving: two guildmates agree, one lore report disagrees.
+    BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+    local function lore(list) return "R1;1201;Snow Leopard;Cat;9;9;l;;" .. list .. ";Dun Morogh,60,40" end
+    ns.OnAddonMessage("BeastScout", msg, "GUILD", "Arwen-Realm")
+    ns.OnAddonMessage("BeastScout", msg, "GUILD", "Boromir")
+    ns.OnAddonMessage("BeastScout", lore("Bite2"), "GUILD", "Celeborn")
+    ns.OnAddonMessage("BeastScout", lore("Claw9"), "WHISPER", "Denethor")
+    ns.OnAddonMessage("Other", msg, "GUILD", "Eowyn")
+    local g = BeastScoutDB.guild[1201]
+    check("tame beats lore, counted per player", g and g.teachesSource == "tame" and g.teachesReports == 2
+        and g.teaches[1][2] == 1, g and g.teachesSource)
+    check("levels widen, spots merge", g.levelMin == 7 and g.levelMax == 9 and #g.spots == 2)
+    check("whispers and other prefixes ignored", BeastScoutDB.guildReports[1201].Denethor == nil
+        and BeastScoutDB.guildReports[1201].Eowyn == nil)
+    check("realm stripped from sender", BeastScoutDB.guildReports[1201].Arwen ~= nil)
+    ns.OnAddonMessage("BeastScout", msg, "GUILD", "Arwen")
+    check("same player again replaces, not adds", BeastScoutDB.guild[1201].teachesReports == 2)
+    units.player = units.player or {}
+    units.player.name = "Sylvia"
+    ns.OnAddonMessage("BeastScout", lore("Bite2"), "GUILD", "Sylvia-Realm")
+    check("own messages ignored", BeastScoutDB.guildReports[1201].Sylvia == nil)
+
+    -- Tooltip lookups use it, labelled guild, under your own notes.
+    BeastScoutDB.npcs[1201] = nil
+    local speed, from = ns.Lookup(1201, ns.SpeedOf)
+    check("guild data on tooltips", speed == 1.3 and from:find("guild, tamed x2", 1, true), from)
+    ns.COMMUNITY[1201] = { name = "Snow Leopard", family = "Cat", teaches = { { "Bite", 1 } }, teachesSource = "lore" }
+    local _, from2 = ns.Lookup(1201, ns.TeachesOf)
+    check("guild tame beats community lore", from2:find("guild", 1, true), from2)
+    ns.COMMUNITY[1201].teachesSource = "tame"
+    _, from2 = ns.Lookup(1201, ns.TeachesOf)
+    check("community wins a tie", from2:find("players", 1, true), from2)
+    ns.COMMUNITY[1201] = nil
+    local found = false
+    for _, row in ipairs(ns.Search("bite 1", 50).rows or {}) do found = found or row.text:find("Snow Leopard", 1, true) ~= nil end
+    check("find sees guild beasts", found)
+    check("export leaves guild data out", not table.concat(ns.ExportLines(), " "):find("1201", 1, true))
+
+    -- Sending: queued, one at a time, to guild and group.
+    local sent = {}
+    C_ChatInfo = { SendAddonMessage = function(prefix, m, channel) sent[#sent + 1] = { prefix, m, channel } end }
+    IsInGuild, IsInGroup = function() return true end, function() return true end
+    BeastScoutDB.npcs[1201] = r
+    ns.QueueShare(1201)
+    ns.QueueShare(1201)
+    runTimers()
+    check("new finding sent to guild and party, once each", #sent == 2 and sent[1][3] == "GUILD"
+        and sent[2][3] == "PARTY" and sent[1][1] == "BeastScout" and sent[1][2] == msg, #sent)
+    sent = {}
+    BeastScoutDB.sharedAt = nil
+    check("daily share sends everything", ns.ShareAll() >= 1)
+    runTimers()
+    local n = #sent
+    check("daily share only once a day", ns.ShareAll() == 0 and n >= 1)
+    check("sharing off", ns.ToggleSharing() == false)
+    sent = {}
+    ns.QueueShare(1201)
+    runTimers()
+    ns.OnAddonMessage("BeastScout", lore("Bite2"), "GUILD", "Faramir")
+    check("off: nothing sent or taken", #sent == 0 and BeastScoutDB.guildReports[1201].Faramir == nil)
+    ns.ToggleSharing()
+    ns.ForgetGuildData()
+    check("forget guild data", next(BeastScoutDB.guild) == nil)
+    C_ChatInfo, IsInGuild, IsInGroup = nil, nil, nil
+    BeastScoutDB.npcs[1201], BeastScoutDB.sharedAt = nil, nil
+    ns.COMMUNITY = saveCommunity
+end
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")

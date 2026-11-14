@@ -106,9 +106,9 @@ local function SetSpeed(r, speed, source)
 end
 
 local function SetTeaches(r, found, source)
-    if not next(found) then return end
+    if not next(found) then return false end
     local current = r.teachesSource and TRUST[r.teachesSource] or 0
-    if TRUST[source] < current then return end
+    if TRUST[source] < current then return false end
     -- Beast Lore may show only part of the list, so lore merges into lore;
     -- a tame replaces everything since the spellbook is the full list.
     local merged = {}
@@ -118,7 +118,7 @@ local function SetTeaches(r, found, source)
         for ability, rank in pairs(found) do
             if merged[ability] ~= rank then changed = true end
         end
-        if not changed then return end
+        if not changed then return false end
         if source == "tame" then merged = {} end
     end
     for ability, rank in pairs(found) do merged[ability] = rank end
@@ -126,6 +126,7 @@ local function SetTeaches(r, found, source)
     for ability, rank in pairs(merged) do table.insert(r.teaches, { ability, rank }) end
     table.sort(r.teaches, function(a, b) return a[1] < b[1] end)
     r.teachesSource = source
+    return true
 end
 
 function ns.Observe(unit)
@@ -159,6 +160,7 @@ local function RealRank(ability, rank)
     if training and next(training.ranks) then return training.ranks[rank] ~= nil end
     return rank >= 1 and rank <= 10
 end
+ns.RealRank = RealRank
 
 -- Finds abilities by their English or local name; found is keyed in English.
 local function FindAbilities(text, found)
@@ -197,7 +199,9 @@ function ns.ReadBeastLore(tooltip, unit)
         if readOk and text then pcall(FindAbilities, text, found) end
     end
     if next(found) then
-        SetTeaches(Record(npcId, UnitName(unit), family), found, "lore")
+        if SetTeaches(Record(npcId, UnitName(unit), family), found, "lore") and ns.QueueShare then
+            ns.QueueShare(npcId)
+        end
     end
 end
 
@@ -289,6 +293,7 @@ local function TryCaptureTame(final)
     SetTeaches(r, found, "tame")
     SetSpeed(r, UnitAttackSpeed("pet"), "tame")
     print("|cffabd473BeastScout|r: recorded tame of " .. pending.name .. ".")
+    if ns.QueueShare then ns.QueueShare(pending.npcId) end
     pending = nil
     return true
 end

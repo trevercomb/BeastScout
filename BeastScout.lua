@@ -21,9 +21,9 @@ local function SourceLabel(layer, record, sourceField, note)
     local text
     if layer == "mine" then
         text = how and ("you, " .. how) or "you"
-    elseif layer == "community" then
+    elseif layer == "community" or layer == "guild" then
         local reports = record[(sourceField or ""):gsub("Source$", "Reports")]
-        text = "players" .. (how and (", " .. how .. " x" .. (reports or 1)) or "")
+        text = (layer == "guild" and "guild" or "players") .. (how and (", " .. how .. " x" .. (reports or 1)) or "")
     else
         text = "Handbook"
     end
@@ -56,7 +56,8 @@ function ns.SpeedOf(r)
 end
 
 -- Our data first (accepted community data, plus your unshared notes when
--- they're at least as trustworthy), else the Hunter's Handbook fallback.
+-- they're at least as trustworthy), then what guildmates shared in game
+-- (when it beats the community data), else the Hunter's Handbook fallback.
 function ns.Lookup(npcId, getter)
     if not npcId then return nil end
     local mine, community = BeastScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
@@ -64,6 +65,10 @@ function ns.Lookup(npcId, getter)
     if mine then mv, mt, msf, mnote = getter(mine) end
     if community then cv, ct, csf, cnote = getter(community) end
     if mv and (not cv or mt >= ct) then return mv, SourceLabel("mine", mine, msf, mnote) end
+    local guild = BeastScoutDB.guild and BeastScoutDB.guild[npcId]
+    local gv, gt, gsf, gnote
+    if guild then gv, gt, gsf, gnote = getter(guild) end
+    if gv and (not cv or gt > ct) then return gv, SourceLabel("guild", guild, gsf, gnote) end
     if cv then return cv, SourceLabel("community", community, csf, cnote) end
     local handbook = ns.HANDBOOK[npcId]
     if handbook then
@@ -229,7 +234,10 @@ f:SetScript("OnEvent", function(self, event, ...)
         if select(2, UnitClass("player")) ~= "HUNTER" then return end
         HookTooltip()
         ns.StartCollecting(self)
+        ns.StartSharing(self)
         ns.CreateMinimapButton()
+    elseif event == "CHAT_MSG_ADDON" then
+        ns.OnAddonMessage(...)
     else
         ns.OnCollectEvent(event, ...)
     end
@@ -249,6 +257,19 @@ SlashCmdList.BEASTSCOUT = function(msg)
         return
     elseif msg:find("^probe") then
         ns.ProbeNames(msg:sub(6))
+        return
+    elseif msg == "sharing" then
+        print(HEADER .. ": sharing with your guild and group " .. (ns.ToggleSharing() and "on" or "off") .. ".")
+        return
+    elseif msg == "share" then
+        local n = ns.ShareAll(true)
+        print(HEADER .. ": " .. (ns.SharingOn() and (IsInGuild and IsInGuild())
+            and ("sending " .. n .. " beasts to your guild, about one a second.")
+            or "you need a guild and sharing on (/beastscout sharing)."))
+        return
+    elseif msg == "forget guild" then
+        ns.ForgetGuildData()
+        print(HEADER .. ": forgot what guildmates shared.")
         return
     elseif msg:find("^food") then
         ns.ProbeFood(msg:match("%d+"))
@@ -293,13 +314,16 @@ SlashCmdList.BEASTSCOUT = function(msg)
     end
     local function Count(t) local n = 0 for _ in pairs(t) do n = n + 1 end return n end
     print(HEADER .. ": " .. Count(BeastScoutDB.npcs) .. " beasts recorded by you, " .. Count(ns.COMMUNITY)
-        .. " from players, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
+        .. " from players, " .. Count(BeastScoutDB.guild or {}) .. " from your guild, " .. Count(ns.HANDBOOK) .. " from Hunter's Handbook. Client interface: "
         .. select(4, GetBuildInfo()))
     print("  /beastscout - open the BeastScout window   /beastscout minimap - hide or show its minimap button")
     print("  /beastscout export - copy your observations   /beastscout reset - forget them")
     print("  /beastscout find bite 2 - beasts that teach a skill, closest first   /beastscout way 1 - waypoint to one")
     print("  /beastscout find tank - best tank families   /beastscout stats - your pets' measured health and armor")
     print("  /beastscout forget 2 - remove row 2 of the stats list (e.g. a pet you abandoned)")
+    print("  /beastscout sharing - turn guild and group sharing " .. (ns.SharingOn() and "off" or "on")
+        .. "   /beastscout share - send everything you've recorded to your guild now")
+    print("  /beastscout forget guild - forget what guildmates shared")
     print("  /beastscout food - check pet food: hover an item first, or add an item ID")
     print("  /beastscout pet - what BeastScout reads from your pet   /beastscout debug - narrate tames in chat")
 end

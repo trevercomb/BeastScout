@@ -34,12 +34,12 @@ Type **/beastscout** or click the minimap button:
 
 ## Data that gets better as you play
 
-BeastScout records what it sees: your tames (the pet's real abilities and swing timer), Beast Lore, and your Beast Training list with real costs. Your own observations override the bundled data. Share them with **/beastscout export** and they're merged into everyone's next update. Sharing is private: your name isn't stored with your data, and your submission is deleted once it's merged.
+BeastScout records what it sees: your tames (the pet's real abilities and swing timer), Beast Lore, and your Beast Training list with real costs. Your own observations override the bundled data. Share them with **/beastscout export** and they're merged into everyone's next update. Guildmates running BeastScout also share with each other in game automatically (**/beastscout sharing** turns it off). Sharing through export is private: your name isn't stored with your data, and your submission is deleted once it's merged.
 
 Built-in data: beast data from **Hunter's Handbook** by Wood (GPLv3), family abilities from Seemeta, Classic family bonuses from Highground Gaming. Thanks to all of them.
 
 ## Commands
 
-/beastscout (window) · /beastscout find &lt;skill, family, fast, tank, upgrades&gt; · /beastscout way &lt;number&gt; · /beastscout export · /beastscout stats · /beastscout minimap · /beastscout help
+/beastscout (window) · /beastscout find &lt;skill, family, fast, tank, upgrades&gt; · /beastscout way &lt;number&gt; · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
 
 Source, issues and sharing observations: [github.com/trevercomb/BeastScout](https://github.com/trevercomb/BeastScout)
