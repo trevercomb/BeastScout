@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- In-game sharing now reaches every BeastScout player online, not just your guild: BeastScout joins a hidden chat channel for it. When you log in, a few players online send what they know so you catch up, kept light however many people use BeastScout. Shown on tooltips as `(shared, tamed x2)`.
+
 ## 0.11.1
 
 - Attack speed: a confirmed Faster/Slower Attack rank now sets the speed, so one odd swing timer reading at tame time (e.g. a Slower Attack II bear at 2.1 instead of 2.5) no longer sticks.

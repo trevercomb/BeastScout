@@ -42,7 +42,7 @@ BeastScout's own data comes first; Hunter's Handbook only fills in what we haven
    - **Taming:** right after Tame Beast, it reads your new pet's abilities and swing timer. This is the most reliable source.
    - **Beast Lore:** it reads ability ranks from the beast's tooltip after you cast Beast Lore.
 2. **Players:** BeastScout's own data in `Community.lua`: every observation we've accepted, including yours once shared. Shown with how it was observed and how many reports agree, e.g. `(players, tamed x3)`.
-3. **Your guild:** what guildmates running BeastScout found, shared in game (see below). Used over the players' data only when it's more reliable. Shown as e.g. `(guild, tamed x2)`.
+3. **Shared in game:** what other BeastScout players online found, shared automatically (see below). Used over the players' data only when it's more reliable. Shown as e.g. `(shared, tamed x2)`.
 4. **Hunter's Handbook:** the fallback in `Handbook.lua`, 660 beasts converted from [Hunter's Handbook](https://www.curseforge.com/wow/addons/hunters-handbook) by Wood (GPLv3). Thanks to them for the research. Shown as `(Handbook)`.
 
 As players share more, the community data fills in and the fallback is needed less.
@@ -81,18 +81,20 @@ Everything in the window also works in chat. `/bs` is a short form of `/beastsco
 - `/beastscout pet`: shows what BeastScout reads from your current pet (spellbook, swing timer).
 - `/beastscout debug`: reports each step of a tame in chat, for troubleshooting.
 - `/beastscout reset`: forgets your observations.
-- `/beastscout sharing`: turns in-game sharing with your guild and group off (or back on).
-- `/beastscout share`: sends everything you've recorded to your guild now.
-- `/beastscout forget guild`: forgets what guildmates shared.
+- `/beastscout sharing`: turns in-game sharing off (or back on).
+- `/beastscout share`: sends everything you've recorded now.
+- `/beastscout forget shared`: forgets what other players shared.
 
 ## Sharing in game
 
-Guildmates running BeastScout share automatically through hidden addon messages, so you don't need to wait for a release:
+Everyone running BeastScout shares automatically, guild or not, through hidden addon messages on a chat channel BeastScout joins for you (`BeastScoutData`, hidden from your chat windows). You don't need to wait for a release:
 
-- Each new tame or Beast Lore finding goes to your guild (and your group) right away.
-- Once a day, everything you've recorded goes to your guild, so new members catch up.
-- Only your own observations are sent, never what others shared with you, and guild data stays out of `/beastscout export`.
-- Addon messages carry your character name like any guild chat, so guildmates' BeastScout can count one report per player. `/beastscout sharing` turns it off.
+- Each new tame or Beast Lore finding goes out right away to every BeastScout player online.
+- When you log in, you send everything you've recorded, and a handful of players online (picked at random, so it stays light however many people use BeastScout) send theirs, so you catch up.
+- Only your own observations are sent, never what others shared with you, and shared data stays out of `/beastscout export`.
+- Junk is dropped: unknown skills, impossible ranks or families. Each beast keeps the newest reports from up to 10 players, and a tame beats Beast Lore, then whatever most players agree on.
+- Addon messages carry your character name like any chat, so BeastScout can count one report per player. `/beastscout sharing` turns it off and leaves the channel.
+- If the channel can't be joined, BeastScout shares with your guild and group instead.
 
 ## Share your observations
 
@@ -131,6 +133,8 @@ python tools/sync_local.py --watch                       # keep running while yo
 ```
 
 Your observations go through the same checks and merge rules as shared ones, and `contributions/local.lua` gets committed like any other contribution.
+
+The sync also picks up what other players shared with you in game. Beasts where at least two players agree go into `contributions/shared-<player hash>.lua`, one file per player so each counts once; single reports stay in your game only. Player names are hashed with the salt in `tools/local.json`, like GitHub logins.
 
 ### Releasing
 

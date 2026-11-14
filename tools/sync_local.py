@@ -3,6 +3,9 @@ without /beastscout export or the issue form.
 
 Reads BeastScout's SavedVariables from your WoW folder (written whenever you
 /reload or log out), writes contributions/local.lua, and rebuilds Community.lua.
+What other players shared in game (BeastScoutDB.guildReports) goes into
+contributions/shared-<player hash>.lua, but only for beasts at least two
+players agree on, so one bad report can't reach everyone.
 If the addon folder is linked to this repo, a /reload in game picks it up.
 
 First run (remembers the path in tools/local.json, which is not committed):
@@ -15,6 +18,7 @@ Afterwards:
 import argparse
 import json
 import re
+import secrets
 import sys
 import time
 from pathlib import Path
@@ -22,10 +26,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 from build_bestiary import TRUST, build, to_line  # noqa: E402
-from pull_contributions import known_names, problems  # noqa: E402
+from pull_contributions import author_hash, known_names, problems  # noqa: E402
 
 CONFIG = ROOT / "tools" / "local.json"
 OUT = ROOT / "contributions" / "local.lua"
+SHARED_DIR = ROOT / "contributions"
+SHARED_GLOB = "shared-*.lua"
+MIN_AGREEING = 2  # players who must report the same thing before it's bundled
 
 # --- SavedVariables reader --------------------------------------------------------
 # WoW writes plain Lua tables: NAME = { ["key"] = value, -- [1] comments, ... }
@@ -137,6 +144,78 @@ def combine(old, new):
     return old
 
 
+def shared_beast(rep):
+    """One player's report as heard over the in-game channel (BeastScoutDB.guildReports)."""
+    spot = rep.get("spot")
+    return {
+        "name": rep.get("name"),
+        "family": rep.get("family"),
+        "levelMin": rep.get("levelMin"),
+        "levelMax": rep.get("levelMax"),
+        "speed": rep.get("speed"),
+        "speedSource": "tame" if rep.get("speed") else None,
+        "teaches": [(t[0], int(t[1])) for t in rep.get("teaches") or [] if len(t) == 2],
+        "teachesSource": rep.get("source") if rep.get("teaches") else None,
+        "zones": [rep["zone"]] if rep.get("zone") else [],
+        "spots": [(spot[0], float(spot[1]), float(spot[2]))] if spot and len(spot) == 3 else [],
+    }
+
+
+def agreement_key(b):
+    if b["teaches"]:
+        return ("teaches", b["teachesSource"], tuple(sorted(b["teaches"])))
+    return ("speed", b["speed"])
+
+
+def shared_files(saved_list, salt, families, abilities):
+    """Reports other players shared in game, kept only where at least MIN_AGREEING
+    players agree, grouped into one file per (hashed) player so the merge counts
+    each player once. Returns {author: {npc_id: beast}}."""
+    reports = {}  # npc_id -> sender -> beast
+    for saved in saved_list:
+        for npc_id, by_sender in ((saved.get("BeastScoutDB") or {}).get("guildReports") or {}).items():
+            if not isinstance(by_sender, dict):
+                continue
+            for sender, rep in by_sender.items():
+                if isinstance(rep, dict) and isinstance(sender, str):
+                    reports.setdefault(npc_id, {})[sender] = shared_beast(rep)
+    out = {}
+    for npc_id, by_sender in reports.items():
+        groups = {}
+        for sender, b in by_sender.items():
+            if b["name"] and b["family"] and (b["speed"] or b["teaches"]) \
+                    and not problems(npc_id, b, families, abilities):
+                groups.setdefault(agreement_key(b), []).append((sender, b))
+        for members in groups.values():
+            if len(members) < MIN_AGREEING:
+                continue
+            for sender, b in members:
+                # "wow:" keeps character names apart from GitHub logins.
+                out.setdefault(author_hash("wow:" + sender, salt), {})[npc_id] = b
+    return out
+
+
+def write_shared(by_author):
+    """Rewrites contributions/shared-*.lua; returns whether anything changed."""
+    old = {f.name: f.read_text(encoding="utf-8") for f in SHARED_DIR.glob(SHARED_GLOB)}
+    new = {}
+    for author, beasts in by_author.items():
+        lines = ["-- Shared in game by another BeastScout player, synced by tools/sync_local.py.",
+                 "-- Only beasts at least two players agreed on. Regenerated on every sync.",
+                 "-- author: " + author]
+        lines += [to_line(i, beasts[i]) for i in sorted(beasts)]
+        new[f"shared-{author}.lua"] = "\n".join(lines) + "\n"
+    if new == old:
+        return False
+    for name in old:
+        if name not in new:
+            (SHARED_DIR / name).unlink()
+    SHARED_DIR.mkdir(exist_ok=True)
+    for name, text in new.items():
+        (SHARED_DIR / name).write_text(text, encoding="utf-8", newline="\n")
+    return True
+
+
 def sync(wtf):
     files = saved_files(wtf)
     if not files:
@@ -145,8 +224,10 @@ def sync(wtf):
 
     families, abilities = known_names()
     beasts, skipped = {}, 0
+    saved_list = []
     for path in files:
         saved = read_saved_variables(path.read_text(encoding="utf-8", errors="replace"))
+        saved_list.append(saved)
         for npc_id, r in ((saved.get("BeastScoutDB") or {}).get("npcs") or {}).items():
             b = to_beast(r)
             if not (b["name"] and b["family"] and (b["speed"] or b["teaches"])):
@@ -161,13 +242,24 @@ def sync(wtf):
              "-- author: maintainer"]
     lines += [to_line(i, beasts[i]) for i in sorted(beasts)]
     text = "\n".join(lines) + "\n"
-    if OUT.exists() and OUT.read_text(encoding="utf-8") == text:
-        print(f"{time.strftime('%H:%M:%S')} no new observations ({len(beasts)} beasts)")
+
+    config = json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
+    if not config.get("author_salt"):
+        config["author_salt"] = secrets.token_hex(16)
+        CONFIG.write_text(json.dumps(config, indent=2) + "\n")
+    shared = shared_files(saved_list, config["author_salt"], families, abilities)
+    shared_changed = write_shared(shared)
+    shared_count = len({i for beasts_ in shared.values() for i in beasts_})
+
+    if OUT.exists() and OUT.read_text(encoding="utf-8") == text and not shared_changed:
+        print(f"{time.strftime('%H:%M:%S')} no new observations ({len(beasts)} beasts"
+              f", {shared_count} shared)")
         return False
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(text, encoding="utf-8", newline="\n")
     print(f"{time.strftime('%H:%M:%S')} synced {len(beasts)} beasts"
-          + (f" ({skipped} skipped as invalid)" if skipped else ""))
+          + (f" ({skipped} skipped as invalid)" if skipped else "")
+          + f", {shared_count} shared by other players")
     build()
     print("/reload in game to see it.")
     return True

@@ -944,10 +944,10 @@ do
     -- Tooltip lookups use it, labelled guild, under your own notes.
     BeastScoutDB.npcs[1201] = nil
     local speed, from = ns.Lookup(1201, ns.SpeedOf)
-    check("guild data on tooltips", speed == 1.3 and from:find("guild, tamed x2", 1, true), from)
+    check("shared data on tooltips", speed == 1.3 and from:find("shared, tamed x2", 1, true), from)
     ns.COMMUNITY[1201] = { name = "Snow Leopard", family = "Cat", teaches = { { "Bite", 1 } }, teachesSource = "lore" }
     local _, from2 = ns.Lookup(1201, ns.TeachesOf)
-    check("guild tame beats community lore", from2:find("guild", 1, true), from2)
+    check("shared tame beats community lore", from2:find("shared", 1, true), from2)
     ns.COMMUNITY[1201].teachesSource = "tame"
     _, from2 = ns.Lookup(1201, ns.TeachesOf)
     check("community wins a tie", from2:find("players", 1, true), from2)
@@ -992,10 +992,10 @@ do
     local left
     GetTime = GetTime or function() return 0 end
     JoinTemporaryChannel = function() return 1, "BeastScoutData" end
-    GetChannelName = function(name) return name == "BeastScoutData" and 5 or 0 end
+    GetChannelName = function(name) return name == "BeastScoutDataTest" and 5 or 0 end
     LeaveChannelByName = function(name) left = name end
     C_ChatInfo = { SendAddonMessage = function(prefix, m, kind, target)
-        ns.OnAddonMessage(prefix, m, kind, "Sylvia-Realm", nil, nil, nil, "BeastScoutData")
+        ns.OnAddonMessage(prefix, m, kind, "Sylvia-Realm", nil, nil, nil, "BeastScoutDataTest")
         return 0
     end }
     local mark = #printed
@@ -1003,7 +1003,7 @@ do
     runTimers()
     local out = table.concat(printed, " ", mark + 1)
     check("channel test hears its own message", out:find("Channel sharing works!", 1, true), out)
-    check("channel test leaves the channel", left == "BeastScoutData" and out:find("left the test channel", 1, true), out)
+    check("channel test leaves the channel", left == "BeastScoutDataTest" and out:find("left the test channel", 1, true), out)
     check("channel test ping isn't taken as data", not (BeastScoutDB.guildReports or {})[0])
     -- Nothing comes back: says so.
     C_ChatInfo = { SendAddonMessage = function() return 9 end }
@@ -1013,6 +1013,86 @@ do
     out = table.concat(printed, " ", mark + 1)
     check("channel test reports silence", out:find("nothing came back", 1, true) and out:find("send -> 9", 1, true), out)
     JoinTemporaryChannel, GetChannelName, LeaveChannelByName, C_ChatInfo = nil, nil, nil, nil
+end
+
+-- Server-wide sharing over the BeastScoutData channel.
+do
+    local realTime = time
+    time = function() return 100000 end
+    local sent = {}
+    local joined
+    JoinTemporaryChannel = function(name) joined = name end
+    GetChannelName = function(name) return (joined == name and name == "BeastScoutData") and 7 or 0 end
+    C_ChatInfo = { SendAddonMessage = function(prefix, m, kind, target) sent[#sent + 1] = { m, kind, target } end }
+    IsInGuild = function() return true end
+    BeastScoutDB.sharedAt = nil
+    BeastScoutDB.npcs[1201] = { name = "Snow Leopard", family = "Cat", levelMin = 7, levelMax = 8,
+        teaches = { { "Bite", 1 } }, teachesSource = "tame" }
+    ns.JoinShareChannel()
+    runTimers()
+    check("joins the sharing channel", joined == "BeastScoutData")
+    check("says hello on the channel", sent[1] and sent[1][1] == "HI;1" and sent[1][2] == "CHANNEL" and sent[1][3] == 7,
+        sent[1] and sent[1][1])
+    local onChannel, onGuild = 0, 0
+    for _, m in ipairs(sent) do
+        if m[2] == "CHANNEL" and m[1]:find("^R1;1201;") then onChannel = onChannel + 1 end
+        if m[2] == "GUILD" then onGuild = onGuild + 1 end
+    end
+    check("shares everything on the channel, not also to the guild", onChannel == 1 and onGuild == 0, onChannel .. "/" .. onGuild)
+
+    -- Receiving: our channel yes, any other channel no.
+    BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+    local rec = "R1;1201;Snow Leopard;Cat;7;8;t;;Bite1;"
+    ns.OnAddonMessage("BeastScout", rec, "CHANNEL", "Legolas", nil, nil, nil, "BeastScoutData")
+    ns.OnAddonMessage("BeastScout", rec, "CHANNEL", "Gimli", nil, nil, nil, "Trade")
+    check("takes records from the sharing channel", BeastScoutDB.guildReports[1201].Legolas ~= nil)
+    check("ignores the same prefix on other channels", BeastScoutDB.guildReports[1201].Gimli == nil)
+
+    -- Catch-up replies: always with few players around, rarely with many.
+    local realRandom = math.random
+    math.random = function(a, b) if a then return a end return 0.5 end
+    sent = {}
+    BeastScoutDB.sharedAt = nil
+    ns.OnAddonMessage("BeastScout", "HI;1", "CHANNEL", "Frodo", nil, nil, nil, "BeastScoutData")
+    runTimers()
+    check("few players: answers a hello", #sent >= 1, #sent)
+    for i = 1, 40 do ns.OnAddonMessage("BeastScout", "R1;1;X;Cat;1;1;t;;Bite1;", "CHANNEL", "Hobbit" .. i, nil, nil, nil, "BeastScoutData") end
+    check("counts players heard from", ns.SharePeers() >= 40, ns.SharePeers())
+    runTimers()
+    sent = {}
+    BeastScoutDB.sharedAt = nil
+    ns.OnAddonMessage("BeastScout", "HI;1", "CHANNEL", "Sam", nil, nil, nil, "BeastScoutData")
+    runTimers()
+    check("many players: a hello usually gets no answer from us", #sent == 0, #sent)
+    math.random = realRandom
+    -- And never more than once per 20 minutes, however many hellos.
+    sent = {}
+    BeastScoutDB.sharedAt = time()
+    check("no second full share within 20 minutes", ns.ShareAll() == 0)
+
+    -- Each beast keeps the newest 10 players' reports.
+    BeastScoutDB.guildReports[1201] = {}
+    for i = 1, 12 do
+        ns.ReceiveRecord("Ranger" .. i, "R1;1201;Snow Leopard;Cat;7;" .. (7 + i % 3) .. ";t;;Bite1;")
+        BeastScoutDB.guildReports[1201]["Ranger" .. i].time = i
+    end
+    local count = 0
+    for _ in pairs(BeastScoutDB.guildReports[1201]) do count = count + 1 end
+    check("at most 10 reports per beast", count == 10, count)
+    -- The same report again doesn't count against the sender's limit.
+    local before = BeastScoutDB.guildReports[1201].Ranger12.raw
+    check("a repeated report is recognised", ns.ReceiveRecord("Ranger12", before) == true)
+
+    -- Sharing off leaves the channel.
+    local left
+    LeaveChannelByName = function(name) left = name end
+    ns.ToggleSharing()
+    check("sharing off leaves the channel", left == "BeastScoutData")
+    ns.ToggleSharing()
+    JoinTemporaryChannel, GetChannelName, LeaveChannelByName, C_ChatInfo, IsInGuild = nil, nil, nil, nil, nil
+    BeastScoutDB.npcs[1201], BeastScoutDB.sharedAt = nil, nil
+    ns.ForgetGuildData()
+    time = realTime
 end
 
 local out = io.open("tests/export_sample.lua", "w")

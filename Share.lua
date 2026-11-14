@@ -1,10 +1,12 @@
 local _, ns = ...
 local unpack = unpack or table.unpack
 
--- In-game sharing: guildmates (and your group) running BeastScout swap what
--- they've tamed and Beast Lore'd, as hidden addon messages.
---   Sending: each new tame or Beast Lore finding, right away; and once a day,
---   everything you've recorded, so new guildmates catch up.
+-- In-game sharing: everyone running BeastScout swaps what they've tamed and
+-- Beast Lore'd, as hidden addon messages on the BeastScoutData chat channel
+-- (guild and group when the channel can't be joined).
+--   Sending: each new tame or Beast Lore finding, right away; and everything
+--   you've recorded when you join, and when someone else joins (at most once
+--   every 20 minutes), so players catch up.
 --   Receiving: one report per player per beast (newer replaces older), kept
 --   in BeastScoutDB.guildReports and merged into BeastScoutDB.guild, which
 --   tooltips and find use after your notes and the bundled player data, and
@@ -18,8 +20,9 @@ local VERSION = "R1"
 local SEP = ";"
 local TRUST = { lore = 2, tame = 3 }
 local SEND_GAP = 1.2           -- seconds between messages, under the client's throttle
-local FULL_SHARE_EVERY = 86400 -- seconds
-local MAX_PER_SENDER = 400     -- records accepted from one player per session
+local FULL_SHARE_EVERY = 1200  -- seconds between sending everything you know
+local MAX_PER_SENDER = 400     -- new or changed records accepted from one player per session
+local MAX_REPORTS = 10         -- players' reports kept per beast (newest), so saved data stays small
 
 function ns.SharingOn()
     return BeastScoutDB.sharing ~= false
@@ -167,9 +170,25 @@ local accepted = {}
 function ns.ReceiveRecord(sender, msg)
     local npcId, report = ns.DecodeRecord(msg)
     if not npcId then return false end
+    report.time = time and time() or 0
+    local old = BeastScoutDB.guildReports and BeastScoutDB.guildReports[npcId]
+    old = old and old[sender]
+    if old and old.raw == msg then
+        old.time = report.time -- the same report again (a catch-up): still current
+        return true
+    end
     accepted[sender] = (accepted[sender] or 0) + 1
     if accepted[sender] > MAX_PER_SENDER then return false end
-    report.time = time and time() or 0
+    report.raw = msg
+    local list = BeastScoutDB.guildReports[npcId]
+    if list and not list[sender] then
+        local count, oldestName, oldestTime = 0, nil, math.huge
+        for name, rep in pairs(list) do
+            count = count + 1
+            if (rep.time or 0) < oldestTime then oldestName, oldestTime = name, rep.time or 0 end
+        end
+        if count >= MAX_REPORTS then list[oldestName] = nil end
+    end
     BeastScoutDB.guild = BeastScoutDB.guild or {}
     BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
     BeastScoutDB.guildReports[npcId] = BeastScoutDB.guildReports[npcId] or {}
@@ -179,10 +198,21 @@ function ns.ReceiveRecord(sender, msg)
 end
 
 -- Sending -------------------------------------------------------------------------
+-- Everyone running BeastScout joins a hidden chat channel, so sharing reaches
+-- every BeastScout user online on the server, guild or not. If the channel
+-- can't be joined, guild and group are used instead.
 
+local CHANNEL_NAME = "BeastScoutData"
 local queue, queued, pumping = {}, {}, false
 
+local function ChannelID()
+    if not GetChannelName then return nil end
+    local ok, id = pcall(GetChannelName, CHANNEL_NAME)
+    return ok and type(id) == "number" and id > 0 and id or nil
+end
+
 local function Channels()
+    if ChannelID() then return { "CHANNEL" } end
     local out = {}
     if IsInGuild and IsInGuild() then out[#out + 1] = "GUILD" end
     if IsInRaid and IsInRaid() then
@@ -195,7 +225,13 @@ end
 
 local function Send(msg, channel)
     local send = (C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
-    if send then pcall(send, PREFIX, msg, channel) end
+    if not send then return end
+    if channel == "CHANNEL" then
+        local id = ChannelID()
+        if id then pcall(send, PREFIX, msg, "CHANNEL", id) end
+    else
+        pcall(send, PREFIX, msg, channel)
+    end
 end
 
 local function Pump()
@@ -224,15 +260,18 @@ local function Enqueue(npcId, channels)
     end
 end
 
--- A new tame or Beast Lore finding: guild and group.
+-- A new tame or Beast Lore finding: right away.
 function ns.QueueShare(npcId)
     if not ns.SharingOn() or not BeastScoutDB.npcs[npcId] then return end
     Enqueue(npcId, Channels())
 end
 
--- Everything you've recorded, to the guild, at most once a day.
+-- Everything you've recorded, at most once every FULL_SHARE_EVERY seconds:
+-- when you join, and when someone else joins and asks to catch up.
 function ns.ShareAll(force)
-    if not ns.SharingOn() or not (IsInGuild and IsInGuild()) then return 0 end
+    if not ns.SharingOn() then return 0 end
+    local channels = Channels()
+    if #channels == 0 then return 0 end
     local now = time and time() or 0
     if not force and BeastScoutDB.sharedAt and now - BeastScoutDB.sharedAt < FULL_SHARE_EVERY then return 0 end
     BeastScoutDB.sharedAt = now
@@ -241,7 +280,7 @@ function ns.ShareAll(force)
         if ns.EncodeRecord(npcId, r) then ids[#ids + 1] = npcId end
     end
     table.sort(ids)
-    for _, npcId in ipairs(ids) do Enqueue(npcId, { "GUILD" }) end
+    for _, npcId in ipairs(ids) do Enqueue(npcId, channels) end
     return #ids
 end
 
@@ -252,7 +291,32 @@ local function Me()
     return type(name) == "string" and name or ""
 end
 
+local HELLO = "HI;1" -- "I just joined: share what you have"
+
+-- Scaling: with hundreds of users online, every one of them answering every
+-- login would flood the channel. So each login gets about REPLIERS answers,
+-- picked at random: everyone answers with chance REPLIERS / (players heard
+-- from in the last hour). Each player also answers at most once every
+-- FULL_SHARE_EVERY seconds. Traffic per login stays about the same however
+-- many people run BeastScout.
+local REPLIERS = 5
+local PEER_WINDOW = 3600
+local lastHeard = {}
+
+local function Peers()
+    local now, n = GetTime(), 0
+    for name, at in pairs(lastHeard) do
+        if now - at < PEER_WINDOW then n = n + 1 else lastHeard[name] = nil end
+    end
+    return n
+end
+ns.SharePeers = Peers
 local probe -- /beastscout channeltest in progress
+
+local function OurChannel(channelName)
+    return type(channelName) == "string" and not ns.IsSecret(channelName)
+        and channelName:lower():find(CHANNEL_NAME:lower(), 1, true) ~= nil
+end
 
 function ns.OnAddonMessage(prefix, msg, channel, sender, _, _, _, channelName)
     if probe and prefix == PREFIX and type(msg) == "string" and not ns.IsSecret(msg) and msg == probe.ping then
@@ -262,11 +326,48 @@ function ns.OnAddonMessage(prefix, msg, channel, sender, _, _, _, channelName)
         return
     end
     if prefix ~= PREFIX or not ns.SharingOn() then return end
-    if channel ~= "GUILD" and channel ~= "PARTY" and channel ~= "RAID" then return end
+    if channel == "CHANNEL" then
+        if not OurChannel(channelName) then return end
+    elseif channel ~= "GUILD" and channel ~= "PARTY" and channel ~= "RAID" then
+        return
+    end
     if ns.IsSecret(msg) or ns.IsSecret(sender) or type(msg) ~= "string" or type(sender) ~= "string" then return end
     sender = sender:match("^[^-]+") or sender
     if sender == Me() then return end
+    lastHeard[sender] = GetTime()
+    if msg == HELLO then
+        if math.random() * math.max(Peers(), 1) > REPLIERS then return end
+        -- Spread the replies out so a login doesn't get everyone answering at once.
+        C_Timer.After(5 + math.random(0, 25), function() ns.ShareAll() end)
+        return
+    end
     ns.ReceiveRecord(sender, msg)
+end
+
+-- Keep the channel out of every chat window.
+local function HideChannel()
+    if not ChatFrame_RemoveChannel then return end
+    for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        local chat = _G["ChatFrame" .. i]
+        if chat then pcall(ChatFrame_RemoveChannel, chat, CHANNEL_NAME) end
+    end
+end
+
+function ns.JoinShareChannel()
+    if not ns.SharingOn() then return end
+    local join = JoinTemporaryChannel or JoinChannelByName
+    if join and not ChannelID() then pcall(join, CHANNEL_NAME) end
+    -- The server needs a moment before the channel can be used.
+    C_Timer.After(3, function()
+        if not ChannelID() then
+            ns.Debug("couldn't join " .. CHANNEL_NAME .. "; sharing with guild and group only")
+            ns.ShareAll()
+            return
+        end
+        HideChannel()
+        Send(HELLO, "CHANNEL")
+        ns.ShareAll()
+    end)
 end
 
 function ns.StartSharing(frame)
@@ -275,15 +376,18 @@ function ns.StartSharing(frame)
     local register = (C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix) or RegisterAddonMessagePrefix
     if register then pcall(register, PREFIX) end
     frame:RegisterEvent("CHAT_MSG_ADDON")
-    -- Give the guild roster time to load before the daily share.
-    if C_Timer then C_Timer.After(30, function() ns.ShareAll() end) end
+    -- Join after the usual General/Trade channels so their numbers don't move.
+    if C_Timer then C_Timer.After(20, ns.JoinShareChannel) end
 end
 
 function ns.ToggleSharing()
     BeastScoutDB.sharing = not ns.SharingOn()
-    if not ns.SharingOn() then
+    if ns.SharingOn() then
+        ns.JoinShareChannel()
+    else
         wipe(queue)
         wipe(queued)
+        if LeaveChannelByName and ChannelID() then pcall(LeaveChannelByName, CHANNEL_NAME) end
     end
     return ns.SharingOn()
 end
@@ -295,7 +399,7 @@ end
 -- /beastscout channeltest: can addon messages go over a custom chat channel
 -- in Forever? Joins a hidden channel, sends one message to it and listens
 -- for it coming back (you hear your own channel messages). Leaves after.
-local PROBE_CHANNEL = "BeastScoutData"
+local PROBE_CHANNEL = CHANNEL_NAME .. "Test"
 
 function ns.ProbeChannel()
     local say = function(text) print("|cffabd473BeastScout|r channel test: " .. text) end
