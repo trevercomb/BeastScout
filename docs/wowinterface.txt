@@ -1,3 +1,6 @@
+[color=orange][size=4][b]For WoW Forever only — not Classic Era.[/b][/size][/color]
+WoWInterface has no Forever game version yet, so this is listed under 1.15.7 Classic. It won't work in Classic Era: it's built for Forever's client.
+
 [b]BeastScout[/b] shows hunters what a wild beast would make as a pet, right in its tooltip, and helps you find the best beasts and upgrades near you.
 
 [img]https://raw.githubusercontent.com/trevercomb/BeastScout/main/docs/screenshots/tooltip-tamed.png[/img] [img]https://raw.githubusercontent.com/trevercomb/BeastScout/main/docs/screenshots/tooltip-upgrade.png[/img]
