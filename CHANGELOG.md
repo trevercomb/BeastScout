@@ -46,5 +46,3 @@ First release.
 - The BeastScout window (/beastscout or the minimap button): upgrades for your pet grouped by skill, the fastest beasts, tank families, and search by skill or family, with map waypoints.
 - Reads Beast Training when you open it, so skills you already know say "train it" with their real costs.
 - Records your tames and Beast Lore so your own data can improve on the built-in data; share it with /beastscout export.
-
----
