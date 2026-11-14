@@ -3,11 +3,11 @@
 ## Unreleased
 
 - Shared findings keep spreading after the player who made them logs off: BeastScout also passes on beasts at least two other players agreed on. Passed-on data counts for less than first-hand reports, is never passed on again, and shows as `(shared, passed on)`.
-- `/beastscout help` shows sharing status: the channel, how many BeastScout players you've heard from, and how many beasts were shared with you.
 
 ## 0.12.0
 
 - In-game sharing now reaches every BeastScout player online, not just your guild: BeastScout joins a hidden chat channel for it. When you log in, a few players online send what they know so you catch up, kept light however many people use BeastScout. Shown on tooltips as `(shared, tamed x2)`.
+- `/beastscout help` shows sharing status: the channel, how many BeastScout players you've heard from, and how many beasts were shared with you.
 
 ## 0.11.1
 
