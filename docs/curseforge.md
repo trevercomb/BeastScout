@@ -9,6 +9,7 @@ Hover any tameable beast to see:
 - **Attack speed** your pet will have. In Forever it comes from the Faster/Slower Attack passive the beast carries (Faster Attack V = 1.3, no passive = 2.0), and the tooltip names it.
 - **Skills it teaches**, with ranks.
 - **Family abilities** and the pet level for each, plus **diet**.
+- **Pet food** on item tooltips: whether your summoned pet will eat it.
 - **Upgrades for your current pet**, e.g. *Upgrade for Shalma: Claw 2 (new)*, or *Claw 3 (at pet level 16)* when your pet is too young.
 
 Every value says where it came from: *(you, tamed)*, *(players, tamed x3)* or *(Handbook)*.

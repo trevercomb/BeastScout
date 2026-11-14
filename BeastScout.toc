@@ -14,5 +14,6 @@ Community.lua
 Handbook.lua
 Collect.lua
 Advice.lua
+Food.lua
 UI.lua
 BeastScout.lua

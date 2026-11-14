@@ -4,6 +4,7 @@
 
 - BeastScout's own logo as its icon in the AddOns list and on the minimap button.
 - Remembers each of your pets' skills while it's out, so beast tooltips show upgrades for all your pets, stabled ones included. New **My pets** view in the window, with Remove for pets you've abandoned.
+- Item tooltips say whether your summoned pet will eat it, using the game's own check.
 - Works on non-English clients: ability, family and zone names are matched in any language (BeastScout's own labels are still English).
 
 ## 0.10.1

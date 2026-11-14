@@ -6,6 +6,7 @@ A small World of Warcraft: Forever addon for hunters. Hover over a wild beast an
 - **Teaches:** the exact ability ranks the beast teaches, including Faster/Slower Attack passives.
 - **Family:** the abilities its family can learn and the pet level for each.
 - **Diet:** what the family eats.
+- **Pet food:** item tooltips say whether your summoned pet will eat it.
 - **Upgrade for your pet:** if your current pet could use something the beast teaches, e.g. `Upgrade for Shal'ma: Bite 2 (has 1, 4 TP)`, or `Claw 3 (at pet level 16)` when your pet is too young. Only skills your pet's family can learn and that beat what it already knows are shown. Faster/Slower Attack never are: they only come with a tame.
 
 Hover over your own pet to see its **loyalty**, **happiness** (and whether loyalty is rising) and **free training points**.
@@ -75,6 +76,7 @@ Everything in the window also works in chat:
 - Find hides beasts above your level (and says how many). If none are tameable yet, it shows the lowest-level ones greyed out.
 - `/beastscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/beastscout way 2` to put a waypoint on the map.
 - `/beastscout export`: opens a window with your observations, ready to copy.
+- `/beastscout food`: checks pet food for the item under your mouse (or `/beastscout food 117` for an item ID).
 - `/beastscout pet`: shows what BeastScout reads from your current pet (spellbook, swing timer).
 - `/beastscout debug`: reports each step of a tame in chat, for troubleshooting.
 - `/beastscout reset`: forgets your observations.

@@ -144,6 +144,7 @@ local function PollTooltip(tooltip)
 end
 
 local function HookTooltip()
+    ns.HookFoodTooltip()
     if TooltipDataProcessor and Enum.TooltipDataType then
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, OnTooltipUnit)
         return
@@ -249,6 +250,9 @@ SlashCmdList.BEASTSCOUT = function(msg)
     elseif msg:find("^probe") then
         ns.ProbeNames(msg:sub(6))
         return
+    elseif msg:find("^food") then
+        ns.ProbeFood(msg:match("%d+"))
+        return
     elseif msg == "trainer" then
         ns.ProbeTrainer()
         return
@@ -296,5 +300,6 @@ SlashCmdList.BEASTSCOUT = function(msg)
     print("  /beastscout find bite 2 - beasts that teach a skill, closest first   /beastscout way 1 - waypoint to one")
     print("  /beastscout find tank - best tank families   /beastscout stats - your pets' measured health and armor")
     print("  /beastscout forget 2 - remove row 2 of the stats list (e.g. a pet you abandoned)")
+    print("  /beastscout food - check pet food: hover an item first, or add an item ID")
     print("  /beastscout pet - what BeastScout reads from your pet   /beastscout debug - narrate tames in chat")
 end

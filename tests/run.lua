@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Training.lua", "Locale.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "UI.lua", "BeastScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Training.lua", "Locale.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "Food.lua", "UI.lua", "BeastScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("BeastScout", ns)
 end
@@ -117,8 +117,11 @@ ns.Observe("mouseover")
 ns.ReadBeastLore(tooltip, "mouseover")
 -- Drive the real tooltip path through the TooltipDataProcessor hook.
 local hooked
-TooltipDataProcessor = { AddTooltipPostCall = function(_, fn) hooked = fn end }
-Enum = { TooltipDataType = { Unit = 1 } }
+local hookedItem
+TooltipDataProcessor = { AddTooltipPostCall = function(kind, fn)
+    if kind == 0 then hookedItem = fn else hooked = fn end
+end }
+Enum = { TooltipDataType = { Item = 0, Unit = 1 } }
 local text
 do
     -- BeastScout.lua registered its handler on a fake frame; call the pieces directly.
@@ -825,6 +828,40 @@ check("Remove forgets the pet", BeastScoutDB.pets["River|Bear"] == nil and Beast
 check("view refreshes after Remove", not pw.rows[2]._shown or not pw.rows[2].text._text:find("River", 1, true))
 BeastScoutDB.pets, units.mouseover = nil, nil
 check("no pets: My pets explains", ns.Search("pets").error:find("Summon each", 1, true))
+
+-- Food: the item tooltip asks the client whether the summoned pet eats it.
+check("food hook installed", hookedItem ~= nil)
+units.pet = { name = "Shal'ma", family = "Cat", level = 11, guid = "Pet-0-1-2-3-165189-SHAL" }
+local edible = { [117] = true } -- Tough Jerky
+C_PetInfo = {
+    CanPetEatItem = function(id) assert(type(id) == "number") return edible[id] == true end,
+    GetPetFoodTypes = function() return "Meat", "Fish" end,
+}
+C_Item = { GetItemInfoInstant = function(id) return id, "", "", "", 0, id == 2589 and 7 or 0, 0 end }
+local function itemTooltip(id)
+    tooltip.lines = {}
+    setLine(1, "Item " .. id)
+    hookedItem(tooltip, { id = id })
+    return tooltipText()
+end
+text = itemTooltip(117)
+check("pet will eat jerky", text:find("Shal'ma will eat this", 1, true), text)
+text = itemTooltip(159) -- Refreshing Spring Water
+check("pet won't drink water", text:find("Shal'ma won't eat this", 1, true), text)
+text = itemTooltip(2589) -- Linen Cloth: not a consumable, no line
+check("no food line on non-food", not text:find("eat this", 1, true), text)
+local foods = ns.PetFoodTypes()
+check("food types listed", foods[1] == "Fish" and foods[2] == "Meat")
+C_PetInfo.GetPetFoodTypes = function() return { "Bread" } end
+check("table-shaped food types", ns.PetFoodTypes()[1] == "Bread")
+C_PetInfo.CanPetEatItem = function() error("bad argument") end
+text = itemTooltip(117)
+check("a failing client check adds nothing", not text:find("eat this", 1, true), text)
+units.pet = nil
+C_PetInfo.CanPetEatItem = function() return true end
+text = itemTooltip(117)
+check("no pet, no food line", not text:find("eat this", 1, true), text)
+C_PetInfo, C_Item = nil, nil
 
 local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
