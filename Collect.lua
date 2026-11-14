@@ -417,8 +417,9 @@ function ns.ReadBeastTraining()
             end
             name = ns.EnglishAbility(name) -- "Biss" -> "Bite"
             if state == "used" then
+                -- Only a cost read while the rank wasn't known is real.
                 local old = before[name] and before[name][rank]
-                cost = old and old.cost or nil
+                cost = old and old.state ~= "used" and old.cost or nil
             end
             skills[name] = skills[name] or {}
             skills[name][rank] = { state = state, level = level, cost = cost }

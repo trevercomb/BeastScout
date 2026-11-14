@@ -701,6 +701,10 @@ costs[4] = 0
 ns.ReadBeastTraining()
 check("a known rank keeps the cost seen before", BeastScoutDB.trainer.skills.Bite[2].cost == 4,
     tostring(BeastScoutDB.trainer.skills.Bite[2].cost))
+-- Data saved before this fix: Bite 2 "used" at 0. Reading it again mustn't keep the 0.
+BeastScoutDB.trainer.skills.Bite[2] = { state = "used", level = 8, cost = 0 }
+ns.ReadBeastTraining()
+check("an old 0 from a known rank isn't carried over", BeastScoutDB.trainer.skills.Bite[2].cost == nil)
 BeastScoutDB.trainer = nil
 ns.ReadBeastTraining()
 local _, biteCost = nil, BeastScoutDB.trainer.skills.Bite[2].cost
