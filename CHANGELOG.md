@@ -1,6 +1,6 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.11.1
 
 - Attack speed: a confirmed Faster/Slower Attack rank now sets the speed, so one odd swing timer reading at tame time (e.g. a Slower Attack II bear at 2.1 instead of 2.5) no longer sticks.
 - The window now opens on the first click of the minimap button or the first /beastscout, instead of the second.
