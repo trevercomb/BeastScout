@@ -1,6 +1,6 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.12.1
 
 - Shared findings keep spreading after the player who made them logs off: BeastScout also passes on beasts at least two other players agreed on. Passed-on data counts for less than first-hand reports, is never passed on again, and shows as `(shared, passed on)`.
 
