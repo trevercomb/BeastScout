@@ -1,6 +1,6 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.11.0
 
 - BeastScout's own logo as its icon in the AddOns list and on the minimap button.
 - Remembers each of your pets' skills while it's out, so beast tooltips show upgrades for all your pets, stabled ones included. New **My pets** view in the window, with Remove for pets you've abandoned.
