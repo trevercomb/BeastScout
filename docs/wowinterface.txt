@@ -1,0 +1,51 @@
+[b]BeastScout[/b] shows hunters what a wild beast would make as a pet, right in its tooltip, and helps you find the best beasts and upgrades near you.
+
+[img]https://raw.githubusercontent.com/trevercomb/BeastScout/main/docs/screenshots/tooltip-tamed.png[/img] [img]https://raw.githubusercontent.com/trevercomb/BeastScout/main/docs/screenshots/tooltip-upgrade.png[/img]
+
+[size=4][b]Beast tooltips[/b][/size]
+
+Hover any tameable beast to see:
+
+[list]
+[*][b]Attack speed[/b] your pet will have. In Forever it comes from the Faster/Slower Attack passive the beast carries (Faster Attack V = 1.3, no passive = 2.0), and the tooltip names it.
+[*][b]Skills it teaches[/b], with ranks.
+[*][b]Family abilities[/b] and the pet level for each, plus [b]diet[/b].
+[*][b]Pet food[/b] on item tooltips: whether your summoned pet will eat it.
+[*][b]Upgrades for your current pet[/b], e.g. [i]Upgrade for Shalma: Claw 2 (new)[/i], or [i]Claw 3 (at pet level 16)[/i] when your pet is too young.
+[/list]
+
+Every value says where it came from: [i](you, tamed)[/i], [i](players, tamed x3)[/i] or [i](Handbook)[/i].
+
+[size=4][b]Your pet[/b][/size]
+
+[img]https://raw.githubusercontent.com/trevercomb/BeastScout/main/docs/screenshots/pet-tooltip.png[/img]
+
+Hover your own pet for its [b]loyalty[/b] (with its level), [b]happiness[/b] and whether loyalty is rising, and [b]training points[/b], including what the next loyalty step is worth.
+
+[size=4][b]The BeastScout window[/b][/size]
+
+[img]https://raw.githubusercontent.com/trevercomb/BeastScout/main/docs/screenshots/window-upgrades.png[/img]
+
+Type [b]/beastscout[/b] or click the minimap button:
+
+[list]
+[*][b]Upgrades for my pet:[/b] grouped by skill, the closest beasts that teach something your pet can use, with training point costs. Skills you've already learned say to train them at Beast Training instead.
+[*][b]Fastest:[/b] the fastest beasts you can tame, any family (or [i]fast cat[/i], [i]fast wolf[/i]...).
+[*][b]Tank:[/b] tank families ranked by health and armor, with the closest one you can tame.
+[*][b]Search[/b] a skill ([i]bite 2[/i]), a family ([i]cat[/i]), and more.
+[*][b]Go[/b] puts a waypoint on your map. Beasts above your level are hidden.
+[/list]
+
+[size=4][b]Data that gets better as you play[/b][/size]
+
+BeastScout records what it sees: your tames (the pet's real abilities and swing timer), Beast Lore, and your Beast Training list with real costs. Your own observations override the bundled data. Share them with [b]/beastscout export[/b] and they're merged into everyone's next update. Guildmates running BeastScout also share with each other in game automatically ([b]/beastscout sharing[/b] turns it off). Sharing through export is private: your name isn't stored with your data, and your submission is deleted once it's merged.
+
+Built-in data: beast data from [b]Hunter's Handbook[/b] by Wood (GPLv3), family abilities from Seemeta, Classic family bonuses from Highground Gaming. Thanks to all of them.
+
+[size=4][b]Commands[/b][/size]
+
+/beastscout (window) · /beastscout find <skill, family, fast, tank, upgrades> · /beastscout way <number> · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
+
+Short form: [b]/bs[/b] works for every command (/bs find tank).
+
+Source, issues and sharing observations: [url=https://github.com/trevercomb/BeastScout]github.com/trevercomb/BeastScout[/url]
