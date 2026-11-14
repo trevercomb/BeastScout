@@ -17,7 +17,7 @@ The extra lines only show up for hunters. No other addon is needed. It works on 
 
 <p>
   <img src="docs/screenshots/tooltip-tamed.png" alt="A wild Ornery Galestrider's tooltip: attack speed 1.3 and Faster Attack 5, both from your own tame">
-  <img src="docs/screenshots/tooltip-upgrade.png" alt="A Young Forest Bear's tooltip with the line: Upgrade for Shalma: Claw 2 (new)">
+  <img src="docs/screenshots/tooltip-upgrade.png" alt="A Shadowgale Ursera tooltip with an upgrade line for each pet: Claw 3 for Shalma and for River, at pet level 16">
 </p>
 
 Hovering a beast shows its pet attack speed, what it teaches and where each value came from (left), and whether your current pet could use any of it (right).
