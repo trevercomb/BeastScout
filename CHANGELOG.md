@@ -1,6 +1,6 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.12.0
 
 - In-game sharing now reaches every BeastScout player online, not just your guild: BeastScout joins a hidden chat channel for it. When you log in, a few players online send what they know so you catch up, kept light however many people use BeastScout. Shown on tooltips as `(shared, tamed x2)`.
 
