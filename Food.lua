@@ -1,9 +1,9 @@
 local _, ns = ...
 
 -- Food on item tooltips: will your summoned pet eat this? Forever's client
--- has its own check (C_PetInfo.CanPetEatItem, found with /beastscout probe),
--- the same one Feed Pet uses. Its exact signature isn't documented, so every
--- call is guarded and tries an item ID first, then the item link.
+-- has its own check, the same one Feed Pet uses. Confirmed in game
+-- 2026-11-14: C_PetInfo.CanPetEatItem(itemID) -> true/false (an item link is
+-- rejected), and C_PetInfo.GetPetFoodTypes() -> { "Meat", "Fish" }.
 
 local unpack = unpack or table.unpack
 local GREEN = "|cff40ff40"
@@ -15,15 +15,10 @@ local function Call(fn, ...)
 end
 
 -- true, false, or nil when the client can't tell us.
-function ns.PetCanEat(itemID, link)
-    if not UnitExists("pet") or not C_PetInfo then return nil end
-    local fn = C_PetInfo.CanPetEatItem
-    for _, arg in ipairs({ itemID or false, link or false }) do
-        if arg then
-            local ok, answer = Call(fn, arg)
-            if ok and type(answer) == "boolean" and not ns.IsSecret(answer) then return answer end
-        end
-    end
+function ns.PetCanEat(itemID)
+    if not itemID or not UnitExists("pet") or not C_PetInfo then return nil end
+    local ok, answer = Call(C_PetInfo.CanPetEatItem, itemID)
+    if ok and type(answer) == "boolean" and not ns.IsSecret(answer) then return answer end
     return nil
 end
 
@@ -63,9 +58,8 @@ end
 
 function ns.AddFoodLine(tooltip, data)
     if tooltip ~= GameTooltip or not UnitExists("pet") then return end
-    local itemID, link = ItemOf(tooltip, data)
-    if not itemID and not link then return end
-    local eats = ns.PetCanEat(itemID, link)
+    local itemID = ItemOf(tooltip, data)
+    local eats = ns.PetCanEat(itemID)
     local name = UnitName("pet")
     if ns.IsSecret(name) or type(name) ~= "string" then name = "Your pet" end
     if eats then
@@ -86,8 +80,7 @@ function ns.HookFoodTooltip()
     end
 end
 
--- /beastscout food [itemID]: raw answers from the client, to confirm the
--- signatures above. Without an ID it uses the item under the mouse.
+-- /beastscout food [itemID]: raw answers from the client, for troubleshooting. Without an ID it uses the item under the mouse.
 function ns.ProbeFood(arg)
     local say = function(text) print("|cffabd473BeastScout|r food probe: " .. text) end
     if not UnitExists("pet") then say("summon your pet first.") return end
@@ -107,16 +100,13 @@ function ns.ProbeFood(arg)
 
     local itemID, link = tonumber(arg or "")
     if not itemID and GameTooltip:IsShown() then itemID, link = ItemOf(GameTooltip) end
-    if not itemID and not link then
+    if not itemID then
         say("hover an item and type /beastscout food again, or /beastscout food <itemID>.")
         return
     end
-    for _, a in ipairs({ itemID or false, link or false }) do
-        if a then
-            local r = { pcall(C_PetInfo and C_PetInfo.CanPetEatItem or error, a) }
-            local out = {}
-            for i = 2, #r do out[#out + 1] = tostring(r[i]) end
-            say("CanPetEatItem(" .. tostring(a) .. ") " .. (r[1] and "-> " or "error: ") .. table.concat(out, ", "))
-        end
-    end
+    local r = { pcall(C_PetInfo and C_PetInfo.CanPetEatItem or error, itemID) }
+    local out = {}
+    for i = 2, #r do out[#out + 1] = tostring(r[i]) end
+    say("CanPetEatItem(" .. itemID .. ")" .. (link and (" " .. link) or "") .. (r[1] and " -> " or " error: ")
+        .. table.concat(out, ", "))
 end

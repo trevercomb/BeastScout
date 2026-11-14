@@ -835,7 +835,7 @@ units.pet = { name = "Shal'ma", family = "Cat", level = 11, guid = "Pet-0-1-2-3-
 local edible = { [117] = true } -- Tough Jerky
 C_PetInfo = {
     CanPetEatItem = function(id) assert(type(id) == "number") return edible[id] == true end,
-    GetPetFoodTypes = function() return "Meat", "Fish" end,
+    GetPetFoodTypes = function() return { "Meat", "Fish" } end, -- as seen in game
 }
 C_Item = { GetItemInfoInstant = function(id) return id, "", "", "", 0, id == 2589 and 7 or 0, 0 end }
 local function itemTooltip(id)
@@ -852,8 +852,8 @@ text = itemTooltip(2589) -- Linen Cloth: not a consumable, no line
 check("no food line on non-food", not text:find("eat this", 1, true), text)
 local foods = ns.PetFoodTypes()
 check("food types listed", foods[1] == "Fish" and foods[2] == "Meat")
-C_PetInfo.GetPetFoodTypes = function() return { "Bread" } end
-check("table-shaped food types", ns.PetFoodTypes()[1] == "Bread")
+C_PetInfo.GetPetFoodTypes = function() return "Bread" end
+check("list-shaped food types too", ns.PetFoodTypes()[1] == "Bread")
 C_PetInfo.CanPetEatItem = function() error("bad argument") end
 text = itemTooltip(117)
 check("a failing client check adds nothing", not text:find("eat this", 1, true), text)
