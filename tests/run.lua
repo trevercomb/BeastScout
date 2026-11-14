@@ -487,7 +487,7 @@ UnitHealthMax, UnitArmor, units.pet = nil, nil, nil
 
 -- The window. A fake that remembers text, scripts and visibility.
 local function UIFake(name)
-    local o = { _scripts = {}, _shown = false }
+    local o = { _scripts = {}, _shown = true } -- new frames start shown, as in the game
     if name then _G[name] = o end
     return setmetatable(o, { __index = function(_, k)
         -- Like real frames: unknown fields are nil; only methods (Capitalized) exist.

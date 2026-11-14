@@ -199,6 +199,8 @@ local function Make()
     local pets = Button(f, "My pets", 80)
     pets:SetPoint("RIGHT", stats, "LEFT", -6, 0)
     pets:SetScript("OnClick", function() Run("pets") end)
+    -- New frames start shown; start hidden so the first toggle opens it.
+    f:Hide()
 end
 
 function ns.ToggleUI(query)
