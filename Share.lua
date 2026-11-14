@@ -286,9 +286,44 @@ end
 
 -- Events --------------------------------------------------------------------------
 
-local function Me()
-    local name = UnitName("player")
-    return type(name) == "string" and name or ""
+-- Is this message from you? You hear your own channel messages. Forever
+-- sends them as "Sylvia Featherstep" while UnitName("player") may give a
+-- shorter or different form, so compare every name the client offers, and
+-- a sender that starts with your name plus a space (an added surname).
+local function Names()
+    local names = {}
+    local function add(n)
+        if type(n) == "string" and not ns.IsSecret(n) and n ~= "" then
+            names[#names + 1] = (n:match("^[^-]+") or n):lower()
+        end
+    end
+    add(UnitName and UnitName("player"))
+    if GetUnitName then add(GetUnitName("player", false)) add(GetUnitName("player", true)) end
+    if UnitFullName then add((UnitFullName("player"))) end
+    return names
+end
+
+local function IsMe(sender)
+    if type(sender) ~= "string" then return false end
+    sender = (sender:match("^[^-]+") or sender):lower()
+    for _, name in ipairs(Names()) do
+        if sender == name or sender:sub(1, #name + 1) == name .. " " or name:sub(1, #sender + 1) == sender .. " " then
+            return true
+        end
+    end
+    return false
+end
+ns.IsMe = IsMe
+
+-- Reports saved before IsMe could spot your own echoes: drop them.
+local function ForgetOwnEchoes()
+    for npcId, by in pairs(BeastScoutDB.guildReports or {}) do
+        local changed = false
+        for sender in pairs(by) do
+            if IsMe(sender) then by[sender], changed = nil, true end
+        end
+        if changed then Merge(npcId) end
+    end
 end
 
 local HELLO = "HI;1" -- "I just joined: share what you have"
@@ -333,7 +368,7 @@ function ns.OnAddonMessage(prefix, msg, channel, sender, _, _, _, channelName)
     end
     if ns.IsSecret(msg) or ns.IsSecret(sender) or type(msg) ~= "string" or type(sender) ~= "string" then return end
     sender = sender:match("^[^-]+") or sender
-    if sender == Me() then return end
+    if IsMe(sender) then return end
     lastHeard[sender] = GetTime()
     if msg == HELLO then
         if math.random() * math.max(Peers(), 1) > REPLIERS then return end
@@ -373,6 +408,7 @@ end
 function ns.StartSharing(frame)
     BeastScoutDB.guild = BeastScoutDB.guild or {}
     BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
+    ForgetOwnEchoes()
     local register = (C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix) or RegisterAddonMessagePrefix
     if register then pcall(register, PREFIX) end
     frame:RegisterEvent("CHAT_MSG_ADDON")
