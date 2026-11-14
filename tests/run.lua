@@ -888,6 +888,17 @@ text = itemTooltip(117)
 check("no pet, no food line", not text:find("eat this", 1, true), text)
 C_PetInfo, C_Item = nil, nil
 
+-- A confirmed passive beats a stray swing timer reading; an unconfirmed one doesn't.
+do
+    local yfb = { speed = 2.13, speedSource = "tame", teaches = { { "Claw", 2 }, { "Slower Attack", 2 } }, teachesSource = "tame" }
+    local speed, trust, _, note = ns.SpeedOf(yfb)
+    check("confirmed Slower Attack II wins over a 2.13 reading", speed == 2.5 and trust == 3 and note == "Slower Attack II",
+        tostring(speed))
+    local fa4 = { speed = 1.42, speedSource = "tame", teaches = { { "Faster Attack", 4 } }, teachesSource = "tame" }
+    check("unconfirmed rank keeps the tame reading", ns.SpeedOf(fa4) == 1.42)
+    check("no passive: the tame reading", ns.SpeedOf({ speed = 1.96, speedSource = "tame" }) == 1.96)
+end
+
 -- In-game sharing.
 do
     local saveCommunity = ns.COMMUNITY

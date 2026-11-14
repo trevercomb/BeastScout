@@ -46,9 +46,12 @@ local function PassiveOf(r)
 end
 
 function ns.SpeedOf(r)
-    if r.speed and r.speedSource == "tame" then return r.speed, 3, "speedSource" end
     local name, rank = PassiveOf(r)
     local speed = name and ns.PASSIVE_SPEED[name][rank]
+    if speed and ns.CONFIRMED_SPEED[name] and ns.CONFIRMED_SPEED[name][rank] then
+        return speed, TRUST[r.teachesSource] or 2, "teachesSource", name .. " " .. (ROMAN[rank] or rank)
+    end
+    if r.speed and r.speedSource == "tame" then return r.speed, 3, "speedSource" end
     if speed then
         return speed, TRUST[r.teachesSource] or 2, "teachesSource", name .. " " .. (ROMAN[rank] or rank)
     end

@@ -13,6 +13,14 @@ ns.PASSIVE_SPEED = {
     ["Slower Attack"] = { [2] = 2.5 },
 }
 
+-- Ranks whose speed a tame confirmed in game. For these the passive decides
+-- the speed, over a pet's own swing timer reading: one reading taken under a
+-- haste effect (a Slower Attack II bear read 2.13) shouldn't stick.
+ns.CONFIRMED_SPEED = {
+    ["Faster Attack"] = { [3] = true, [5] = true },
+    ["Slower Attack"] = { [2] = true },
+}
+
 -- Family stat modifiers in CLASSIC (1.x), from Highground Gaming's table,
 -- matching Icy Veins where both list a family. Not confirmed for Forever,
 -- which adds Fox, Bird of Prey and Core Hound (unknown here); BeastScout
