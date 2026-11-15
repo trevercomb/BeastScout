@@ -34,6 +34,9 @@ ns.ZONE_MAP_IDS = {
 }
 local zoneById = {}
 for name, id in pairs(ns.ZONE_MAP_IDS) do zoneById[id] = name end
+-- A second map for the same zone: Zephras Isle 2665 has exactly the corners
+-- of 2521 (checked in game with C_Map.GetWorldPosFromMapPos), so spots line up.
+zoneById[2665] = "Zephras Isle"
 
 -- English name of a map we know, or nil.
 function ns.ZoneName(mapID)
