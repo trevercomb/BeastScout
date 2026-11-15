@@ -76,6 +76,7 @@ Everything in the window also works in chat. `/bs` is a short form of `/beastsco
 - `/beastscout stats`: your pets' health and armor as BeastScout measured them, by family and level. These are being collected to check the Classic bonuses against Forever.
 - Find hides beasts above your level (and says how many). If none are tameable yet, it shows the lowest-level ones greyed out.
 - `/beastscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/beastscout way 2` to put a waypoint on the map.
+- `/beastscout find mystmane`: finds beasts by name, or part of one (`find shal` finds Shal'ma), handy for rare spawns.
 - `/beastscout export`: opens a window with your observations, ready to copy.
 - `/beastscout food`: checks pet food for the item under your mouse (or `/beastscout food 117` for an item ID).
 - `/beastscout pet`: shows what BeastScout reads from your current pet (spellbook, swing timer).

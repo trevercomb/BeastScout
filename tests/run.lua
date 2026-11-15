@@ -456,6 +456,28 @@ mark = #printed
 SlashCmdList.BEASTSCOUT("find dragons")
 check("unknown family explained", printed[#printed]:find("find what?", 1, true), printed[#printed])
 
+-- find by beast name: part of it, any case, apostrophes ignored.
+ns.COMMUNITY[990101] = { name = "Shal'ma", family = "Cat", levelMin = 10, levelMax = 10,
+    spots = { { "Elwynn Forest", 50, 50 } } }
+ns.COMMUNITY[990102] = { name = "Mystmane", family = "Bear", levelMin = 11, levelMax = 11 }
+mark = #printed
+SlashCmdList.BEASTSCOUT("find MystMane")
+found = table.concat(printed, "\n", mark + 1)
+check("find by name", printed[mark + 1]:find('named "mystmane"', 1, true)
+    and found:find("Mystmane (Bear 11)", 1, true), found)
+mark = #printed
+SlashCmdList.BEASTSCOUT("find shalma")
+found = table.concat(printed, "\n", mark + 1)
+check("find by name ignores the apostrophe", found:find("Shal'ma (Cat 10)", 1, true), found)
+mark = #printed
+SlashCmdList.BEASTSCOUT("find shal")
+found = table.concat(printed, "\n", mark + 1)
+check("find by part of a name", found:find("Shal'ma (Cat 10)", 1, true)
+    and not found:find("Mystmane", 1, true), found)
+SlashCmdList.BEASTSCOUT("find zz")
+check("too short a name explained", printed[#printed]:find("find what?", 1, true), printed[#printed])
+ns.COMMUNITY[990101], ns.COMMUNITY[990102] = nil, nil
+
 -- Level filter and "fast".
 units.player = { level = 12 }
 mark = #printed

@@ -453,27 +453,42 @@ local function Take(matches, limit, Label)
     return rows
 end
 
--- A skill ("bite 2"), a family ("cat"), "fast" or "fast <family>".
+-- For name search: case, spaces, apostrophes and hyphens don't matter, so
+-- "shalma" finds Shal'ma. Other characters are kept (names in any language).
+local function NameKey(text)
+    return (text:lower():gsub("[%s'%-]", ""))
+end
+
+-- A skill ("bite 2"), a family ("cat"), "fast" or "fast <family>", or else
+-- part of a beast's name ("mystmane", "shal").
 local function SearchBeasts(query, limit)
     local fast = query:lower():match("^%s*fast%s+") or query:lower():match("^%s*fastest%s+")
         or query:lower():match("^%s*fast%s*$") or query:lower():match("^%s*fastest%s*$")
     if fast then query = query:sub(#fast + 1) end
     local anyFamily = fast and query:match("^%s*$") ~= nil
     local family = ParseFamily(query)
-    local ability, rank
+    local ability, rank, nameKey
     if not family and not anyFamily then
         ability, rank = ParseQuery(query)
-        if not ability then
-            return { error = "find what? e.g. bite 2, faster attack 5, cat, fast, tank, upgrades" }
+        if not ability and not fast then
+            nameKey = NameKey(query)
+            if #nameKey < 3 then
+                return { error = "find what? e.g. bite 2, faster attack 5, cat, fast, tank, upgrades, or a beast's name" }
+            end
+        elseif not ability then
+            return { error = "find what? e.g. bite 2, faster attack 5, cat, fast, tank, upgrades, or a beast's name" }
         end
     end
-    local listing = family or anyFamily
-    local what = anyFamily and "beasts" or family and Plural(family) or (ability .. (rank and (" " .. rank) or ""))
+    local listing = family or anyFamily or nameKey
+    local what = nameKey and ('beasts named "' .. query:gsub("^%s+", ""):gsub("%s+$", "") .. '"')
+        or anyFamily and "beasts" or family and Plural(family) or (ability .. (rank and (" " .. rank) or ""))
 
     local here, matches = Here(), {}
     for npcId in pairs(AllIds()) do
         if listing then
-            if anyFamily or Field(npcId, "family") == family then
+            local name = nameKey and Field(npcId, "name")
+            if anyFamily or (family and Field(npcId, "family") == family)
+                or (name and NameKey(name):find(nameKey, 1, true)) then
                 -- Speed is what you compare when picking between beasts.
                 matches[#matches + 1] = Describe(npcId, here, { speed = ns.Lookup(npcId, ns.SpeedOf) })
             end
@@ -484,6 +499,9 @@ local function SearchBeasts(query, limit)
                 end
             end
         end
+    end
+    if #matches == 0 and nameKey then
+        return { error = "no beast's name has \"" .. query:match("^%s*(.-)%s*$") .. "\" in it. find what? e.g. bite 2, faster attack 5, cat, fast, tank, upgrades, or a beast's name" }
     end
     if #matches == 0 then
         return { error = "no " .. (listing and (what .. " found") or ("beast found that teaches " .. what)) .. "." }
@@ -498,7 +516,7 @@ local function SearchBeasts(query, limit)
         rows = Take(matches, limit, function(m)
             if listing then
                 -- Name the family only when the list mixes them.
-                return m.name .. " (" .. (anyFamily and (m.family .. " ") or "") .. Levels(m) .. ")"
+                return m.name .. " (" .. ((anyFamily or nameKey) and (m.family .. " ") or "") .. Levels(m) .. ")"
                     .. (m.speed and (" " .. string.format("%.1f", m.speed)) or "") .. Place(m)
             end
             return ability .. " " .. m.rank .. ": " .. m.name .. " (" .. m.family .. " " .. Levels(m) .. ")" .. Place(m)

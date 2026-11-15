@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `/bs find` searches beast names too: `/bs find mystmane`, or part of a name like `/bs find shal`, to find a rare's spawn.
 - Bundled data: Wood Lurker (Loch Modan) confirmed by a tame, with real spawn points, so `find` can point you to it.
 - Bundled data now includes spawn points from sightings, not just tames, so more beasts get a distance and a waypoint in `find`, including Forever-only beasts like Mystmane on Zephras Isle.
 

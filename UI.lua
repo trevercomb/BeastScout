@@ -120,7 +120,7 @@ local function Make()
     find:SetScript("OnClick", function() Run(search:GetText()) end)
     local hint = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", search, "BOTTOMLEFT", -4, -2)
-    hint:SetText("A skill (bite 2), a family (cat), fast, fast cat, tank, upgrades or pets")
+    hint:SetText("A skill (bite 2), a family (cat), a beast's name, fast, tank, upgrades or pets")
 
     local quick = { { "Fastest", "fast", 90 }, { "Tank", "tank", 70 }, { "Upgrades for my pet", "upgrades", 150 } }
     local last
