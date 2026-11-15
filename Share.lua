@@ -127,10 +127,16 @@ local function Merge(npcId)
         BeastScoutDB.guild[npcId] = nil
         return
     end
-    local r, newest = {}, -1
-    local lists, speeds = {}, {}
+    local r = {}
+    local lists, speeds, names = {}, {}, {}
     for _, rep in pairs(reports) do
-        if (rep.time or 0) > newest then newest, r.name, r.family = rep.time or 0, rep.name, rep.family end
+        -- Name and family: most players, like everything else, so one odd
+        -- report can't rename a beast or move it to another family.
+        local nkey = rep.name .. "|" .. rep.family
+        local n = names[nkey] or { key = nkey, name = rep.name, family = rep.family, count = 0, time = 0 }
+        n.count = n.count + (rep.passed and 0.5 or 1)
+        n.time = math.max(n.time, rep.time or 0)
+        names[nkey] = n
         if rep.levelMin then r.levelMin = math.min(r.levelMin or rep.levelMin, rep.levelMin) end
         if rep.levelMax then r.levelMax = math.max(r.levelMax or rep.levelMax, rep.levelMax) end
         if rep.spot then
@@ -163,6 +169,15 @@ local function Merge(npcId)
             speeds[rep.speed] = s
         end
     end
+    local bestName
+    for _, n in pairs(names) do
+        if not bestName or n.count > bestName.count
+            or (n.count == bestName.count and (n.time > bestName.time
+                or (n.time == bestName.time and n.key < bestName.key))) then
+            bestName = n
+        end
+    end
+    r.name, r.family = bestName.name, bestName.family
     -- Teaches: most trusted source, then most players, then newest.
     local best
     for _, e in pairs(lists) do
@@ -213,6 +228,8 @@ function ns.ReceiveRecord(sender, msg)
     accepted[sender] = (accepted[sender] or 0) + 1
     if accepted[sender] > MAX_PER_SENDER then return false end
     report.raw = msg
+    BeastScoutDB.guild = BeastScoutDB.guild or {}
+    BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
     local list = BeastScoutDB.guildReports[npcId]
     if list and not list[sender] then
         -- Full: drop the oldest passed-on report first, else the oldest. A
@@ -228,8 +245,6 @@ function ns.ReceiveRecord(sender, msg)
             list[oldestName] = nil
         end
     end
-    BeastScoutDB.guild = BeastScoutDB.guild or {}
-    BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
     BeastScoutDB.guildReports[npcId] = BeastScoutDB.guildReports[npcId] or {}
     BeastScoutDB.guildReports[npcId][sender] = report
     Merge(npcId)

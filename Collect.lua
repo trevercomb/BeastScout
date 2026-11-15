@@ -399,9 +399,12 @@ function ns.ReadBeastTraining()
             local rank, level = 1, nil
             for j = 4, #info do
                 local v = info[j]
-                -- "Rank 2", "Rang 2", "Rango 2": the number is the rank.
-                if type(v) == "string" and not IsSecret(v) and v:match("(%d+)") then
-                    rank = tonumber(v:match("(%d+)"))
+                -- "Rank 2", "Rang 2", "Rango 2": the number is the rank. Only
+                -- text shaped like that, so an icon path's digits never count.
+                local rankText = type(v) == "string" and not IsSecret(v) and not v:find("[\\/]")
+                    and v:match("^%D*(%d+)%s*%)?$")
+                if rankText then
+                    rank = tonumber(rankText)
                 elseif type(v) == "number" and not IsSecret(v) and j == 5 then
                     level = v
                 end

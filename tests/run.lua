@@ -791,6 +791,11 @@ function GetTrainerServiceInfo() return "Biss", "unavailable", 132278, 8, "Rang 
 function GetTrainerServiceCost() return 4 end
 ns.ReadBeastTraining()
 check("German Beast Training stored under English", BeastScoutDB.trainer.skills.Bite and BeastScoutDB.trainer.skills.Bite[2].cost == 4)
+-- An icon given as a path, with digits, and no rank text: still rank 1.
+function GetTrainerServiceInfo() return "Growl", "available", "Interface\\Icons\\Ability_Pet_02", 1, "" end
+ns.ReadBeastTraining()
+check("icon path digits aren't a rank", BeastScoutDB.trainer.skills.Growl and BeastScoutDB.trainer.skills.Growl[1] ~= nil
+    and BeastScoutDB.trainer.skills.Growl[2] == nil)
 GetNumTrainerServices, GetTrainerServiceInfo, GetTrainerServiceCost = nil, nil, nil
 
 -- Zones by map ID, whatever the map is called.
@@ -1226,6 +1231,21 @@ do
     t5, from5 = ns.Lookup(1192, ns.TeachesOf)
     check("your own tame beats a shared tame", t5[1][2] == 2 and from5:find("you", 1, true), from5)
     BeastScoutDB.npcs[1192] = nil
+
+    -- Name and family by majority: one newer odd report can't change them.
+    BeastScoutDB.guildReports[1189] = {}
+    ns.ReceiveRecord("Eli", "R1;1189;Black Bear;Bear;9;9;t;;Claw1;")
+    ns.ReceiveRecord("Fay", "R1;1189;Black Bear;Bear;9;9;t;;Claw1;")
+    time = function() return 300000 end
+    ns.ReceiveRecord("Odd", "R1;1189;Black Cat;Cat;9;9;t;;Claw1;")
+    time = function() return 200000 end
+    check("one newer report can't change a beast's family",
+        BeastScoutDB.guild[1189].family == "Bear" and BeastScoutDB.guild[1189].name == "Black Bear")
+
+    -- Receiving before anything set up the shared tables doesn't error.
+    BeastScoutDB.guild, BeastScoutDB.guildReports = nil, nil
+    check("receive works with no shared data yet",
+        pcall(ns.ReceiveRecord, "Gil", "R1;1188;Hill Cat;Cat;9;9;t;;Bite1;") and BeastScoutDB.guild[1188] ~= nil)
 
     C_ChatInfo, IsInGuild = nil, nil
     BeastScoutDB.sharedAt = nil
