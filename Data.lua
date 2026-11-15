@@ -5,9 +5,9 @@ local _, ns = ...
 -- passive fits this exactly (2026-11-11); beasts without one swing at 2.0.
 -- Slower Attack I and III aren't confirmed yet.
 -- Confirmed in game: Faster Attack III (1.5) and V (1.3), Slower Attack II
--- (2.5, a tamed Highlands Ursera). One tamed Young Forest Bear swung at 2.13
--- with Slower Attack II too, which is unexplained; tamed data overrides this
--- table for that beast.
+-- (2.5, a tamed Highlands Ursera). A Young Forest Bear with Slower Attack II
+-- read 2.13: that was 2.5 under a 15% haste buff (Might of Stormwind), which
+-- is why tames take their speed from this table, never the swing timer.
 ns.PASSIVE_SPEED = {
     ["Faster Attack"] = { 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.0 },
     ["Slower Attack"] = { [2] = 2.5 },

@@ -85,8 +85,6 @@ function ns.DecodeRecord(msg)
     if report.levelMin and report.levelMax and report.levelMin > report.levelMax then
         report.levelMin, report.levelMax = report.levelMax, report.levelMin
     end
-    local speed = tonumber(f[8])
-    if speed and speed >= 0.5 and speed <= 4 then report.speed = speed end
     if f[9] ~= "" then
         local source = (f[7] == "t" and "tame") or (f[7] == "l" and "lore") or nil
         if not source then return nil end
@@ -99,6 +97,9 @@ function ns.DecodeRecord(msg)
         end
         table.sort(report.teaches, function(a, b) return a[1] < b[1] end)
     end
+    -- Speed comes from a tame's passive, whatever swing timer the sender
+    -- read (older versions sent it, haste buffs included).
+    report.speed = report.source == "tame" and ns.TameSpeed(report.teaches) or nil
     if not (report.teaches or report.speed) then return nil end
     local zone, x, y = f[10]:match("^(.-),(%d+%.?%d*),(%d+%.?%d*)$")
     zone = zone or f[10]
@@ -403,14 +404,19 @@ local function IsMe(sender)
 end
 ns.IsMe = IsMe
 
--- Reports saved before IsMe could spot your own echoes: drop them.
-local function ForgetOwnEchoes()
+-- Saved reports: drop your own echoes (saved before IsMe could spot them),
+-- and redo speeds the way DecodeRecord does now.
+local function CleanSavedReports()
     for npcId, by in pairs(BeastScoutDB.guildReports or {}) do
-        local changed = false
-        for sender in pairs(by) do
-            if IsMe(sender) then by[sender], changed = nil, true end
+        for sender, rep in pairs(by) do
+            if IsMe(sender) then
+                by[sender] = nil
+            else
+                rep.speed = rep.source == "tame" and ns.TameSpeed(rep.teaches) or nil
+                if not (rep.teaches or rep.speed) then by[sender] = nil end
+            end
         end
-        if changed then Merge(npcId) end
+        Merge(npcId)
     end
 end
 
@@ -496,7 +502,7 @@ end
 function ns.StartSharing(frame)
     BeastScoutDB.guild = BeastScoutDB.guild or {}
     BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
-    ForgetOwnEchoes()
+    CleanSavedReports()
     local register = (C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix) or RegisterAddonMessagePrefix
     if register then pcall(register, PREFIX) end
     frame:RegisterEvent("CHAT_MSG_ADDON")

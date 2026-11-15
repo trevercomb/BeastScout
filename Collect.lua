@@ -2,7 +2,8 @@ local _, ns = ...
 
 -- Our own observations, so BeastScout can eventually stand on its own data.
 -- Two sources, most trusted first:
---   tame: your new pet's spellbook and swing timer right after Tame Beast
+--   tame: your new pet's spellbook right after Tame Beast (its speed comes
+--         from the Faster/Slower Attack rank in it, see ns.TameSpeed)
 --   lore: ability ranks read from the beast's tooltip after Beast Lore
 -- A wild beast's own swing timer isn't recorded: the pet's comes from its
 -- Faster/Slower Attack passive instead (see ns.PASSIVE_SPEED).
@@ -88,21 +89,28 @@ local function Record(npcId, name, family, level, zone, spot)
     return r
 end
 
--- Small haste effects show up on a live pet (a fresh 2.0 pet read 1.961 in
--- game), so snap readings close to a known passive speed onto it.
-local function Snap(speed)
-    local best = 2.0
-    for _, ranks in pairs(ns.PASSIVE_SPEED) do
-        for _, s in pairs(ranks) do
-            if math.abs(s - speed) < math.abs(best - speed) then best = s end
-        end
+-- A tamed pet's attack speed, from its full ability list: the Faster/Slower
+-- Attack rank decides it, 2.0 with neither, nil when that rank's speed isn't
+-- known yet. The live swing timer is never used: haste buffs reach pets too
+-- (Might of Stormwind's 15% made a 2.0 crab read 1.7 in game, 2026-11-15).
+function ns.TameSpeed(teaches)
+    if not teaches or not next(teaches) then return nil end
+    for _, t in ipairs(teaches) do
+        local ranks = ns.PASSIVE_SPEED[t[1]]
+        if ranks then return ranks[t[2]] end
     end
-    return math.abs(best - speed) <= 0.06 and best or Round(speed)
+    return 2.0
 end
 
-local function SetSpeed(r, speed, source)
-    if not speed or IsSecret(speed) or speed <= 0 then return end
-    r.speed, r.speedSource = Snap(speed), source
+-- Saved tame speeds from older versions came from the swing timer, buffs
+-- and all: recompute them from the tamed ability list, or drop them.
+function ns.FixTameSpeeds()
+    for _, r in pairs(BeastScoutDB.npcs or {}) do
+        if r.speedSource == "tame" then
+            local speed = r.teachesSource == "tame" and ns.TameSpeed(r.teaches) or nil
+            r.speed, r.speedSource = speed, speed and "tame" or nil
+        end
+    end
 end
 
 local function SetTeaches(r, found, source)
@@ -290,8 +298,11 @@ local function TryCaptureTame(final)
     if not next(found) and not final then return false end
 
     local r = Record(pending.npcId, pending.name, pending.family, pending.level, pending.zone, pending.spot)
-    SetTeaches(r, found, "tame")
-    SetSpeed(r, UnitAttackSpeed("pet"), "tame")
+    if SetTeaches(r, found, "tame") or r.teachesSource == "tame" then
+        local speed = ns.TameSpeed(r.teaches)
+        r.speed, r.speedSource = speed, speed and "tame" or nil
+    end
+    Debug("pet swing timer", UnitAttackSpeed("pet"), "(not recorded; speed comes from the passive)")
     print("|cffabd473BeastScout|r: recorded tame of " .. pending.name .. ".")
     if ns.QueueShare then ns.QueueShare(pending.npcId) end
     pending = nil
@@ -362,6 +373,7 @@ function ns.MeasurePet()
 end
 
 function ns.StartCollecting(frame)
+    ns.FixTameSpeeds()
     frame:RegisterEvent("PLAYER_TARGET_CHANGED")
     frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     for _, event in ipairs({ "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START",

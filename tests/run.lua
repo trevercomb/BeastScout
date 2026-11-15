@@ -180,7 +180,7 @@ taught = {}
 for _, t in ipairs(r.teaches) do taught[t[1]] = t[2] end
 check("tame replaces lore list", r.teachesSource == "tame" and taught.Claw == 3 and taught["Faster Attack"] == 5
     and taught.Bite == nil, r.teachesSource)
-check("tame swing timer recorded", r.speed == 1.2 and r.speedSource == "tame")
+check("tame speed from Faster Attack V, not the hasted swing timer (1.2)", r.speed == 1.3 and r.speedSource == "tame")
 check("tame announced", printed[#printed] and printed[#printed]:find("recorded tame of Test Cat", 1, true))
 
 -- Lore after a tame must not downgrade it.
@@ -192,7 +192,7 @@ check("lore can't override tame", BeastScoutDB.npcs[999001].teachesSource == "ta
 local lines = ns.ExportLines()
 check("export skips beasts with nothing useful", #lines == 1, #lines)
 check("export line format", lines[1] == '    [999001] = { name="Test Cat", family="Cat", levelMin=20, levelMax=20, '
-    .. 'speed=1.2, speedSource="tame", teaches={ {"Claw", 3}, {"Faster Attack", 5} }, teachesSource="tame" },', lines[1])
+    .. 'speed=1.3, speedSource="tame", teaches={ {"Claw", 3}, {"Faster Attack", 5} }, teachesSource="tame" },', lines[1])
 
 ns.COMMUNITY[2958] = { name = "Prairie Wolf", family = "Wolf", speed = 1.4, speedSource = "tame", speedReports = 3 }
 BeastScoutDB.npcs[2958] = nil
@@ -246,9 +246,22 @@ for i = before + 1, #printed do
 end
 check("double UNIT_PET runs one capture", reads == 5, reads)
 local leo = BeastScoutDB.npcs[1201]
-check("tame via last wild target, empty spellbook", leo and leo.speed == 2 and leo.speedSource == "tame",
-    leo and leo.speed)
-check("raw 1.961 snapped to 2.0", leo and leo.speed == 2.0, leo and leo.speed)
+check("tame via last wild target, empty spellbook", leo and leo.name == "Snow Leopard")
+check("no readable spellbook: no speed guessed from the swing timer", leo and leo.speed == nil, leo and leo.speed)
+
+-- Saved speeds from older versions (swing timer, buffs included) are redone.
+BeastScoutDB.npcs[1216] = { name = "Shore Crawler", family = "Crab", speed = 1.7, speedSource = "tame",
+    teaches = { { "Claw", 3 }, { "Pinch", 1 } }, teachesSource = "tame" }
+BeastScoutDB.npcs[822] = { name = "Young Forest Bear", family = "Bear", speed = 2.13, speedSource = "tame",
+    teaches = { { "Claw", 2 }, { "Slower Attack", 2 } }, teachesSource = "tame" }
+BeastScoutDB.npcs[1202] = { name = "Old Cat", family = "Cat", speed = 1.96, speedSource = "tame" }
+ns.FixTameSpeeds()
+check("hasted crab 1.7 fixed to 2.0", BeastScoutDB.npcs[1216].speed == 2.0)
+check("2.13 bear fixed to Slower Attack II's 2.5", BeastScoutDB.npcs[822].speed == 2.5)
+check("tame speed without its ability list dropped", BeastScoutDB.npcs[1202].speed == nil
+    and BeastScoutDB.npcs[1202].speedSource == nil)
+check("unknown passive rank: no speed", ns.TameSpeed({ { "Slower Attack", 1 } }) == nil)
+BeastScoutDB.npcs[1216], BeastScoutDB.npcs[822], BeastScoutDB.npcs[1202] = nil, nil, nil
 check("tame announced for leopard", printed[#printed]:find("recorded tame of Snow Leopard", 1, true), printed[#printed])
 
 -- Commands run without errors.
@@ -1210,21 +1223,26 @@ do
 
     -- A speed heard only second-hand: marked passed on, trusted less.
     BeastScoutDB.guildReports[1194] = {}
-    ns.ReceiveRecord("Rumor", "P1;1194;Ice Cat;Cat;9;9;;1.7;;")
+    ns.ReceiveRecord("Rumor", "P1;1194;Ice Cat;Cat;9;9;t;;Bite1;")
     local g4 = BeastScoutDB.guild[1194]
-    check("passed-on speed: marked, no player count", g4.speedPassedOn == true and g4.speedReports == nil)
+    check("passed-on speed: marked, no player count",
+        g4.speed == 2.0 and g4.speedPassedOn == true and g4.speedReports == nil)
     local _, sfrom = ns.Lookup(1194, ns.SpeedOf)
     check("passed-on speed labelled passed on", sfrom and sfrom:find("passed on", 1, true), sfrom)
 
-    -- Passing on sends only what was agreed.
+    -- A tame's speed comes from its passive, never the sender's swing timer
+    -- (older versions sent one, haste buffs included).
     BeastScoutDB.guildReports[1193] = {}
-    ns.ReceiveRecord("Ann", "R1;1193;Snow Cat;Cat;9;9;t;1.0;Bite2;")
-    ns.ReceiveRecord("Bob", "R1;1193;Snow Cat;Cat;9;9;t;;Bite2;")
+    ns.ReceiveRecord("Ann", "R1;1193;Snow Cat;Cat;9;9;t;1.7;Bite2;")
+    check("a sent swing timer is ignored", BeastScoutDB.guildReports[1193].Ann.speed == 2.0)
     local p = ns.PassOnRecord(1193)
-    check("pass on: agreed teaches, not one player's speed", p and p.teaches and p.speed == nil)
-    ns.ReceiveRecord("Cy", "R1;1193;Snow Cat;Cat;9;9;t;1.0;Bite2;")
+    check("pass on: nothing from one player", p == nil)
+    ns.ReceiveRecord("Bob", "R1;1193;Snow Cat;Cat;9;9;t;;Bite2;")
     p = ns.PassOnRecord(1193)
-    check("pass on: speed once two players agree", p and p.speed == 1.0)
+    check("pass on: two tames agree on teaches and speed", p and p.teaches and p.speed == 2.0)
+    BeastScoutDB.guildReports[1190] = {}
+    ns.ReceiveRecord("Lo", "R1;1190;Lore Cat;Cat;9;9;l;1.5;Bite2;")
+    check("Beast Lore reports carry no speed", BeastScoutDB.guildReports[1190].Lo.speed == nil)
 
     -- Your own Beast Lore vs other players' tames.
     BeastScoutDB.npcs[1192] = { name = "Rock Cat", family = "Cat", teaches = { { "Bite", 2 } }, teachesSource = "lore" }
