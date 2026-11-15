@@ -8,12 +8,20 @@ on:
   push:
     tags:
       - "v*"
+  # Re-run only the WoWInterface upload for a release that already exists
+  # (Actions tab, Release, Run workflow, with its tag).
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to upload to WoWInterface, e.g. v0.12.3"
+        required: true
 
 permissions:
   contents: write # create the GitHub release
 
 jobs:
   release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
@@ -38,18 +46,26 @@ jobs:
 
       # The packager skips WoWInterface for Forever builds (and fails the job if
       # the .toc has X-WoWI-ID), so upload the same zip with WoWInterface's own
-      # API: project 27309, listed as Classic 1.15.7, with this version's
-      # section of CHANGELOG.md as the changelog. 202 means accepted.
+      # API: see tools/upload_wowi.sh.
       - name: Upload to WoWInterface
         if: env.WOWI_API_TOKEN != ''
-        run: |
-          zip=$(ls .release/BeastScout-*-forever.zip | head -n 1)
-          [ -n "$zip" ] || { echo "No release zip found in .release/"; exit 1; }
-          awk -v v="## ${GITHUB_REF_NAME#v}" '$0 == v {on=1; next} /^## / {on=0} on' CHANGELOG.md > wowi-changelog.txt
-          status=$(curl -sS -o wowi-response.txt -w "%{http_code}" \
-            -H "x-api-token: $WOWI_API_TOKEN" \
-            -F "id=27309" -F "version=$GITHUB_REF_NAME" -F "compatible=1.15.7" \
-            -F "changelog=<wowi-changelog.txt" -F "updatefile=@$zip" \
-            https://api.wowinterface.com/addons/update)
-          cat wowi-response.txt; echo
-          if [ "$status" != "202" ]; then echo "WoWInterface upload failed (HTTP $status)"; exit 1; fi
+        run: bash tools/upload_wowi.sh "$(ls .release/BeastScout-*-forever.zip | head -n 1)" "$GITHUB_REF_NAME"
+
+  wowinterface:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      # The default branch: it has the upload script, and CHANGELOG.md has
+      # every released version's section.
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Download the release zip
+        run: gh release download "$TAG" --pattern "*-forever.zip" --dir .release
+
+      - name: Upload to WoWInterface
+        run: bash tools/upload_wowi.sh "$(ls .release/BeastScout-*-forever.zip | head -n 1)" "$TAG"
