@@ -145,6 +145,7 @@ One-time setup:
 1. Create the project on CurseForge (WoW Forever) and note its **Project ID**.
 2. Add `## X-Curse-Project-ID: <id>` to `BeastScout.toc`.
 3. Create a CurseForge API token (account settings, API tokens) and save it in this repo as the secret `CF_API_KEY` (Settings, Secrets and variables, Actions).
+4. For WoWInterface, create an API token there (AddOn control panel, API tokens) and save it as the secret `WOWI_API_TOKEN`. The project ID (27309) is in the workflow. Don't add `X-WoWI-ID` to the .toc: the packager skips WoWInterface for Forever builds and fails the job if it's there, so the workflow uploads with WoWInterface's own API instead, listed as Classic 1.15.7.
 
 Then each release is: bump `## Version` in `BeastScout.toc`, add the version's notes at the top of `CHANGELOG.md` (that file is the release notes), commit, and push a tag:
 
@@ -153,7 +154,7 @@ git tag v0.11.0
 git push origin v0.11.0
 ```
 
-The workflow runs the tests, builds the zip, makes a GitHub release and uploads to CurseForge.
+The workflow runs the tests, builds the zip, makes a GitHub release, and uploads to CurseForge and WoWInterface (with that version's section of `CHANGELOG.md` as the WoWInterface changelog).
 
 After a game patch changes the client's interface number (shown at the end of `/beastscout help`, and BeastScout says so once in chat), update `## Interface` in `BeastScout.toc` and `BUILT_FOR` in `BeastScout.lua` together; a test fails if they differ.
 

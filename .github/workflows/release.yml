@@ -1,7 +1,7 @@
 # Pushing a version tag (e.g. v0.10.0) builds the addon zip with the BigWigs
-# packager and publishes it: a GitHub release always, and CurseForge once the
+# packager and publishes it: a GitHub release always, CurseForge once the
 # CF_API_KEY secret is set and the .toc has an X-Curse-Project-ID line, and
-# WoWInterface once WOWI_API_TOKEN is set and the .toc has an X-WoWI-ID line.
+# WoWInterface (project 27309) once WOWI_API_TOKEN is set, by the last step.
 name: Release
 
 on:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
-      WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }} # WoWInterface, with X-WoWI-ID in the .toc
+      WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }} # WoWInterface upload, last step
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out (full history, for the changelog)
@@ -35,3 +35,21 @@ jobs:
 
       - name: Package and upload
         uses: BigWigsMods/packager@v2
+
+      # The packager skips WoWInterface for Forever builds (and fails the job if
+      # the .toc has X-WoWI-ID), so upload the same zip with WoWInterface's own
+      # API: project 27309, listed as Classic 1.15.7, with this version's
+      # section of CHANGELOG.md as the changelog. 202 means accepted.
+      - name: Upload to WoWInterface
+        if: env.WOWI_API_TOKEN != ''
+        run: |
+          zip=$(ls .release/BeastScout-*-forever.zip | head -n 1)
+          [ -n "$zip" ] || { echo "No release zip found in .release/"; exit 1; }
+          awk -v v="## ${GITHUB_REF_NAME#v}" '$0 == v {on=1; next} /^## / {on=0} on' CHANGELOG.md > wowi-changelog.txt
+          status=$(curl -sS -o wowi-response.txt -w "%{http_code}" \
+            -H "x-api-token: $WOWI_API_TOKEN" \
+            -F "id=27309" -F "version=$GITHUB_REF_NAME" -F "compatible=1.15.7" \
+            -F "changelog=<wowi-changelog.txt" -F "updatefile=@$zip" \
+            https://api.wowinterface.com/addons/update)
+          cat wowi-response.txt; echo
+          if [ "$status" != "202" ]; then echo "WoWInterface upload failed (HTTP $status)"; exit 1; fi
