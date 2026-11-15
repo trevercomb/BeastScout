@@ -512,6 +512,13 @@ mark = #printed
 ns.OnCollectEvent("NAME_PLATE_UNIT_ADDED", "nameplate3")
 check("no alert when off", #printed == mark)
 SlashCmdList.BEASTSCOUT("alert")
+units.target = units.nameplate4
+SlashCmdList.BEASTSCOUT("alert test")
+check("alert test on a normal beast", printed[#printed]:find("test: rare Wolf nearby: Plain Wolf", 1, true)
+    and not BeastScoutDB.npcs[990202].rare, printed[#printed])
+units.target = nil
+SlashCmdList.BEASTSCOUT("alert test")
+check("alert test needs a target", printed[#printed]:find("target a wild beast first", 1, true), printed[#printed])
 units.nameplate3, units.nameplate4, units.nameplate5 = nil, nil, nil
 BeastScoutDB.npcs[990201], BeastScoutDB.npcs[990203], ns.HANDBOOK[990201] = nil, nil, nil
 

@@ -413,18 +413,22 @@ local function KnownTameable(npcId)
 end
 ns.KnownTameable = KnownTameable
 
-function ns.OnNameplate(unit)
-    if not ns.RareAlertOn() or not IsRare(unit) then return end
-    if UnitIsDead and UnitIsDead(unit) then return end
+-- test: /beastscout alert test, the whole alert for your target as if it
+-- were rare (it isn't saved as rare, and the 5 minute wait doesn't apply).
+function ns.OnNameplate(unit, test)
+    if not test and (not ns.RareAlertOn() or not IsRare(unit)) then return end
+    if not test and UnitIsDead and UnitIsDead(unit) then return end
     local ok, family = ns.IsWildBeast(unit)
     local npcId = ok and ns.NpcIdFromGUID(UnitGUID(unit))
-    if not npcId then return end
-    if alerted[npcId] and GetTime() - alerted[npcId] < REALERT_SECONDS then return end
-    alerted[npcId] = GetTime()
+    if not npcId then return false end
+    if not test then
+        if alerted[npcId] and GetTime() - alerted[npcId] < REALERT_SECONDS then return end
+        alerted[npcId] = GetTime()
+    end
     local tameable = KnownTameable(npcId)
     ns.Observe(unit) -- remembers it as rare, with a spawn point near you
     local level = UnitLevel(unit)
-    local text = "rare " .. family .. " nearby: " .. tostring(UnitName(unit))
+    local text = (test and "test: " or "") .. "rare " .. family .. " nearby: " .. tostring(UnitName(unit))
         .. ((not IsSecret(level) and level and level > 0) and (" (level " .. level .. ")") or "")
     if not tameable then
         -- Not known to be tameable: just a quiet chat line, no alarm.
