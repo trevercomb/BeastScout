@@ -89,7 +89,7 @@ Everything in the window also works in chat. `/bs` is a short form of `/beastsco
 
 Everyone running BeastScout shares automatically, guild or not, through hidden addon messages on a chat channel BeastScout joins for you (`BeastScoutData`, hidden from your chat windows). You don't need to wait for a release:
 
-- Each new tame or Beast Lore finding goes out right away to every BeastScout player online.
+- Each new tame or Beast Lore finding goes out right away to every BeastScout player online on your virtual realm. Forever moves you between virtual realms as you change zones or join a party, and custom chat channels don't cross them, so live sharing reaches the players on yours (`/beastscout help` shows which one). What players agree on still reaches everyone through the bundled data in each update.
 - When you log in, you send everything you've recorded, and a handful of players online (picked at random, so it stays light however many people use BeastScout) send theirs, so you catch up.
 - Your own observations are sent, plus beasts at least two other players saw for themselves and agreed on, so findings keep spreading after the player who made them logs off. Passed-on data is never passed on again, counts half as much as a first-hand report, and shows as `(shared, passed on)`. Shared data stays out of `/beastscout export`.
 - Junk is dropped: unknown skills, impossible ranks or families. Each beast keeps the newest reports from up to 10 players. A tame beats Beast Lore, then whatever most players agree on, so real players outvote a bad report.

@@ -253,7 +253,7 @@ end
 
 -- Sending -------------------------------------------------------------------------
 -- Everyone running BeastScout joins a hidden chat channel, so sharing reaches
--- every BeastScout user online on the server, guild or not. If the channel
+-- every BeastScout user online on your current virtual realm, guild or not. If the channel
 -- can't be joined, guild and group are used instead.
 
 local CHANNEL_NAME = "BeastScoutData"
@@ -524,8 +524,14 @@ function ns.ShareStatus()
         or "not in the BeastScoutData channel yet (it's joined 20s after login), so guild and group only"
     local n = 0
     for _ in pairs(BeastScoutDB.guild or {}) do n = n + 1 end
+    -- Forever puts you on a virtual realm that can change between zones (or
+    -- when you join a party), and custom channels don't cross them (tested
+    -- 2026-11-15): live sharing reaches players on the same one.
+    local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+    local realmText = (type(realm) == "string" and not ns.IsSecret(realm) and realm ~= "")
+        and (" Virtual realm right now: " .. realm .. "; live sharing reaches players on the same one.") or ""
     return "Sharing: on, " .. where .. ". Heard from " .. Peers() .. " BeastScout players this hour; "
-        .. n .. " beasts shared with you."
+        .. n .. " beasts shared with you." .. realmText
 end
 
 function ns.ForgetGuildData()

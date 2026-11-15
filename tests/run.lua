@@ -1094,6 +1094,11 @@ do
     check("a repeated report is recognised", ns.ReceiveRecord("Ranger12", before) == true)
 
     check("status names the channel", ns.ShareStatus():find("channel 7. BeastScoutData", 1, true), ns.ShareStatus())
+    check("status without a realm name leaves it out", not ns.ShareStatus():find("Virtual realm", 1, true))
+    GetNormalizedRealmName = function() return "CAMWOWUS1Realm3PvE" end
+    check("status names the virtual realm", ns.ShareStatus():find("Virtual realm right now: CAMWOWUS1Realm3PvE", 1, true),
+        ns.ShareStatus())
+    GetNormalizedRealmName = nil
     -- Your own echo, sent with a surname the client's UnitName doesn't include.
     units.player = units.player or {}
     units.player.name = "Sylvia"

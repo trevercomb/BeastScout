@@ -6,6 +6,7 @@
 - Only what at least two players agreed on is passed on. An attack speed from a single player no longer travels along with agreed abilities.
 - Other players' tames now beat your own Beast Lore reading on tooltips, since a tame shows the full, exact list.
 - A beast's shared name and family now go by what most players reported, so one odd report can't move a beast to another family in searches.
+- `/beastscout help` shows your current virtual realm. Forever's custom chat channels don't cross virtual realms, so live sharing reaches players on the same one; agreed data still reaches everyone in updates.
 
 ## 0.12.2
 
