@@ -8,7 +8,8 @@ local _, ns = ...
 -- A wild beast's own swing timer isn't recorded: the pet's comes from its
 -- Faster/Slower Attack passive instead (see ns.PASSIVE_SPEED).
 -- Stored in BeastScoutDB.npcs[npcId] = { name, family, levelMin, levelMax,
---   speed, speedSource, teaches = { {ability, rank} }, teachesSource }.
+--   speed, speedSource, teaches = { {ability, rank} }, teachesSource,
+--   rare = true for a rare spawn }.
 
 local TAME_BEAST_SPELL_ID = 1515
 local TRUST = { lore = 2, tame = 3 }
@@ -137,6 +138,13 @@ local function SetTeaches(r, found, source)
     return true
 end
 
+-- A rare spawn (silver dragon), read live from the unit.
+local function IsRare(unit)
+    local c = UnitClassification and UnitClassification(unit)
+    return not IsSecret(c) and (c == "rare" or c == "rareelite")
+end
+ns.IsRare = IsRare
+
 function ns.Observe(unit)
     local ok, family = ns.IsWildBeast(unit)
     if not ok then return end
@@ -144,6 +152,7 @@ function ns.Observe(unit)
     if not npcId then return end
     local level = UnitLevel(unit)
     local r = Record(npcId, UnitName(unit), family, not IsSecret(level) and level or nil)
+    if IsRare(unit) then r.rare = true end
     -- Older versions saved the wild swing timer; it's misleading, so drop it.
     if r.speedSource ~= "tame" then r.speed, r.speedSource = nil, nil end
 end
@@ -372,8 +381,66 @@ function ns.MeasurePet()
     s.name = UnitName("pet")
 end
 
+-- Rare alert -----------------------------------------------------------------------
+-- A rare tameable beast's nameplate appearing: a sound, a raid-warning style
+-- message and a chat line. The rare mark comes from the unit itself, so it
+-- works for rares nobody has recorded yet. Nameplates only show for enemies
+-- fairly close by, and only with enemy nameplates turned on (V).
+local HEADER = "|cffabd473BeastScout|r"
+local REALERT_SECONDS = 300
+local alerted = {}
+
+function ns.RareAlertOn()
+    return BeastScoutDB.rareAlert ~= false
+end
+
+function ns.ToggleRareAlert()
+    BeastScoutDB.rareAlert = not ns.RareAlertOn()
+    return ns.RareAlertOn()
+end
+
+-- Some beasts in a pet family can't be tamed (a quest or event rare, say).
+-- Known tameable: in the Hunter's Handbook, or tamed by you or by players
+-- whose data is bundled. In-game shares don't count, so one fake report
+-- can't make an untameable rare ring the alarm.
+local function KnownTameable(npcId)
+    if ns.HANDBOOK and ns.HANDBOOK[npcId] then return true end
+    for _, layer in ipairs({ BeastScoutDB.npcs, ns.COMMUNITY or {} }) do
+        local r = layer[npcId]
+        if r and (r.teachesSource == "tame" or r.speedSource == "tame") then return true end
+    end
+    return false
+end
+ns.KnownTameable = KnownTameable
+
+function ns.OnNameplate(unit)
+    if not ns.RareAlertOn() or not IsRare(unit) then return end
+    if UnitIsDead and UnitIsDead(unit) then return end
+    local ok, family = ns.IsWildBeast(unit)
+    local npcId = ok and ns.NpcIdFromGUID(UnitGUID(unit))
+    if not npcId then return end
+    if alerted[npcId] and GetTime() - alerted[npcId] < REALERT_SECONDS then return end
+    alerted[npcId] = GetTime()
+    local tameable = KnownTameable(npcId)
+    ns.Observe(unit) -- remembers it as rare, with a spawn point near you
+    local level = UnitLevel(unit)
+    local text = "rare " .. family .. " nearby: " .. tostring(UnitName(unit))
+        .. ((not IsSecret(level) and level and level > 0) and (" (level " .. level .. ")") or "")
+    if not tameable then
+        -- Not known to be tameable: just a quiet chat line, no alarm.
+        print(HEADER .. ": " .. text .. ". Not in the Hunter's Handbook, so it may not be tameable.")
+        return
+    end
+    if PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959, "Master") end
+    if RaidNotice_AddMessage and RaidWarningFrame then
+        pcall(RaidNotice_AddMessage, RaidWarningFrame, "BeastScout: " .. text, ChatTypeInfo and ChatTypeInfo.RAID_WARNING)
+    end
+    print(HEADER .. ": " .. text .. ".")
+end
+
 function ns.StartCollecting(frame)
     ns.FixTameSpeeds()
+    pcall(frame.RegisterEvent, frame, "NAME_PLATE_UNIT_ADDED")
     frame:RegisterEvent("PLAYER_TARGET_CHANGED")
     frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     for _, event in ipairs({ "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START",
@@ -566,7 +633,9 @@ function ns.ProbeTrainer()
 end
 
 function ns.OnCollectEvent(event, ...)
-    if event == "PLAYER_TARGET_CHANGED" then
+    if event == "NAME_PLATE_UNIT_ADDED" then
+        pcall(ns.OnNameplate, ...)
+    elseif event == "PLAYER_TARGET_CHANGED" then
         ns.Observe("target")
         lastWild = Snapshot("target") or lastWild
     elseif event == "UNIT_SPELLCAST_SENT" then
@@ -627,6 +696,7 @@ function ns.ExportLines()
             table.insert(parts, "teaches={ " .. table.concat(t, ", ") .. " }")
             table.insert(parts, 'teachesSource="' .. (r.teachesSource or "lore") .. '"')
         end
+        if r.rare then table.insert(parts, "rare=true") end
         if r.spots and #r.spots > 0 then
             local sp = {}
             for _, s in ipairs(r.spots) do

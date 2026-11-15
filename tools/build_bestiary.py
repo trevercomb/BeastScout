@@ -116,6 +116,7 @@ def parse_ours_text(text):
         }
         # A wild beast's own swing timer says nothing about the pet's, so
         # 'seen' speeds (and old exports without a source) are dropped.
+        b["rare"] = re.search(r"\brare=true\b", body) is not None
         b["speedSource"] = field(body, "speedSource")
         if b["speedSource"] != "tame":
             b["speed"], b["speedSource"] = None, None
@@ -187,6 +188,7 @@ def merge_contributions(paths):
             out["levelMax"] = max(highs)
         out["zones"] = unique(z for _, b in rows for z in b["zones"])
         out["spots"] = unique_spots(s for _, b in reversed(rows) for s in b["spots"])
+        out["rare"] = any(b.get("rare") for _, b in rows)
 
         speeds = [(o, b["speedSource"], b["speed"]) for o, b in rows
                   if b["speed"] is not None and b["speedSource"] in TRUST]
@@ -228,6 +230,8 @@ def to_line(npc_id, b):
         parts.append(f'passive={{{lua_str(b["passive"][0])}, {b["passive"][1]}}}')
     if b.get("teachesReports"):
         parts.append(f"teachesReports={b['teachesReports']}")
+    if b.get("rare"):
+        parts.append("rare=true")
     if b.get("spots"):
         parts.append("spots={ " + ", ".join(f"{{{lua_str(z)}, {fmt_num(x)}, {fmt_num(y)}}}"
                                              for z, x, y in b["spots"]) + " }")

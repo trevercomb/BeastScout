@@ -478,6 +478,43 @@ SlashCmdList.BEASTSCOUT("find zz")
 check("too short a name explained", printed[#printed]:find("find what?", 1, true), printed[#printed])
 ns.COMMUNITY[990101], ns.COMMUNITY[990102] = nil, nil
 
+-- Rare alert: a rare beast's nameplate shows up.
+function UnitClassification(u) return units[u] and units[u].class or "normal" end
+units.nameplate3 = { name = "Ghostpaw Rare", family = "Wolf", level = 11, class = "rare",
+    guid = "Creature-0-1-2-3-990201-0000ABCD" }
+units.nameplate4 = { name = "Plain Wolf", family = "Wolf", level = 11,
+    guid = "Creature-0-1-2-3-990202-0000ABCD" }
+units.nameplate5 = { name = "Questmane", family = "Bear", level = 12, class = "rareelite",
+    guid = "Creature-0-1-2-3-990203-0000ABCD" }
+ns.HANDBOOK[990201] = { name = "Ghostpaw Rare", family = "Wolf", levelMin = 11, levelMax = 11 }
+mark = #printed
+ns.OnCollectEvent("NAME_PLATE_UNIT_ADDED", "nameplate4")
+check("no alert for a normal beast", #printed == mark)
+ns.OnCollectEvent("NAME_PLATE_UNIT_ADDED", "nameplate5")
+check("rare not known to be tameable: quiet line saying so", printed[mark + 1]
+    and printed[mark + 1]:find("may not be tameable", 1, true), printed[mark + 1])
+mark = #printed
+ns.OnCollectEvent("NAME_PLATE_UNIT_ADDED", "nameplate3")
+check("rare beast alert", printed[mark + 1] and printed[mark + 1]:find("rare Wolf nearby: Ghostpaw Rare (level 11).", 1, true),
+    printed[mark + 1])
+check("rare beast remembered", BeastScoutDB.npcs[990201] and BeastScoutDB.npcs[990201].rare == true)
+mark = #printed
+ns.OnCollectEvent("NAME_PLATE_UNIT_ADDED", "nameplate3")
+check("same rare not announced again right away", #printed == mark)
+SlashCmdList.BEASTSCOUT("find rares")
+found = table.concat(printed, "\n", mark + 1)
+check("find rares", printed[mark + 1]:find("2 rare beasts", 1, true) and found:find("Ghostpaw Rare (Wolf 11)\n", 1, true)
+    and found:find("Questmane (Bear 12), may not be tameable", 1, true) and not found:find("Plain Wolf", 1, true), found)
+SlashCmdList.BEASTSCOUT("alert")
+check("alert can be turned off", printed[#printed]:find("alert off", 1, true) and not ns.RareAlertOn(), printed[#printed])
+now = now + 1000
+mark = #printed
+ns.OnCollectEvent("NAME_PLATE_UNIT_ADDED", "nameplate3")
+check("no alert when off", #printed == mark)
+SlashCmdList.BEASTSCOUT("alert")
+units.nameplate3, units.nameplate4, units.nameplate5 = nil, nil, nil
+BeastScoutDB.npcs[990201], BeastScoutDB.npcs[990203], ns.HANDBOOK[990201] = nil, nil, nil
+
 -- Level filter and "fast".
 units.player = { level = 12 }
 mark = #printed

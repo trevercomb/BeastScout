@@ -39,6 +39,7 @@ BeastScoutDB = {
 ["levelMin"] = 17,
 ["levelMax"] = 17,
 ["spots"] = { { "Loch Modan", 56.27, 19.45 } },
+["rare"] = true,
 ["zones"] = { "Loch Modan" },
 },
 [999001] = {
@@ -160,6 +161,7 @@ def main():
         "beast with no data left out": "[3035]" not in local,
         "a sighting's spawn point is bundled": '[1185] = { name="Wood Lurker"' in local
             and '{"Loch Modan", 56.27, 19.45}' in local and "[1185]" in community,
+        "a rare mark is bundled": "rare=true" in local and "rare=true" in community,
         "invalid family rejected": "999001" not in local,
         "Community.lua rebuilt": "[2958]" in community and 'speedSource="tame"' in community,
         "unchanged save does nothing": second is False,

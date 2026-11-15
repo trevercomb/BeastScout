@@ -289,6 +289,9 @@ SlashCmdList.BEASTSCOUT = function(msg)
     elseif msg == "sharing" then
         print(HEADER .. ": sharing with other BeastScout players " .. (ns.ToggleSharing() and "on" or "off") .. ".")
         return
+    elseif msg == "alert" or msg == "rare alert" then
+        print(HEADER .. ": rare beast alert " .. (ns.ToggleRareAlert() and "on" or "off") .. ".")
+        return
     elseif msg == "channeltest" then
         ns.ProbeChannel()
         return
@@ -353,6 +356,8 @@ SlashCmdList.BEASTSCOUT = function(msg)
     print("  /beastscout export - copy your observations   /beastscout reset - forget them")
     print("  /beastscout find bite 2 - beasts that teach a skill (or a family, or a name), closest first   /beastscout way 1 - waypoint to one")
     print("  /beastscout find tank - best tank families   /beastscout stats - your pets' measured health and armor")
+    print("  /beastscout find rares - rare tameable beasts seen   /beastscout alert - turn the rare beast alert "
+        .. (ns.RareAlertOn() and "off" or "on"))
     print("  /beastscout forget 2 - remove row 2 of the stats list (e.g. a pet you abandoned)")
     print("  /beastscout sharing - turn in-game sharing " .. (ns.SharingOn() and "off" or "on")
         .. "   /beastscout share - send everything you've recorded now")

@@ -129,6 +129,7 @@ def to_beast(r):
         "teaches": [(t[0], int(t[1])) for t in r.get("teaches") or [] if len(t) == 2],
         "zones": list(r.get("zones") or [])[:3],
         "spots": [(sp[0], float(sp[1]), float(sp[2])) for sp in r.get("spots") or [] if len(sp) == 3][:4],
+        "rare": r.get("rare") is True,
     }
     b["teachesSource"] = r.get("teachesSource") or ("lore" if b["teaches"] else None)
     return b
@@ -140,6 +141,7 @@ def combine(old, new):
         src = field + "Source"
         if new.get(field) and TRUST.get(new[src], 0) >= TRUST.get(old.get(src), 0):
             old[field], old[src] = new[field], new[src]
+    old["rare"] = old.get("rare") or new.get("rare")
     for key, pick in (("levelMin", min), ("levelMax", max)):
         values = [v for v in (old.get(key), new.get(key)) if v is not None]
         old[key] = pick(values) if values else None
