@@ -403,6 +403,26 @@ for i = mark + 2, #printed do
 end
 check("Prowler further down, about 5k yards away", prowler and prowler:find("k yd", 1, true), prowler)
 
+-- A beast known only by zone, next door, comes before a spawn point far away.
+maps[1421] = { mapID = 1421, name = "Silverpine Forest", mapType = 3, ox = 0, oy = 20000 }
+local saveCommunity2 = ns.COMMUNITY
+ns.COMMUNITY = {
+    [990001] = { name = "Far Worg", family = "Wolf", levelMin = 5, levelMax = 5, teaches = { { "Bite", 8 } },
+        teachesSource = "tame", spots = { { "Silverpine Forest", 45, 78 } } },
+    [990002] = { name = "Near Lurker", family = "Spider", levelMin = 5, levelMax = 5, teaches = { { "Bite", 8 } },
+        teachesSource = "tame", zones = { "Elwynn Forest" } },
+}
+mark = #printed
+SlashCmdList.BEASTSCOUT("find bite 8")
+found = table.concat(printed, "\n", mark + 1)
+check("zone-only beast next door sorts before a far spawn point",
+    found:find("Near Lurker", 1, true) and found:find("Far Worg", 1, true)
+    and found:find("Near Lurker", 1, true) < found:find("Far Worg", 1, true), found)
+ns.COMMUNITY = saveCommunity2
+maps[1421] = nil
+mark = #printed
+SlashCmdList.BEASTSCOUT("find bite 2")
+
 SlashCmdList.BEASTSCOUT("way 1")
 check("waypoint set on Dun Morogh", waypoint and waypoint.mapID == 1426 and math.abs(waypoint.x - 0.322) < 0.001,
     waypoint and (waypoint.mapID .. " " .. waypoint.x))

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: "closest first" put every beast with a known spawn point ahead of beasts known only by zone, so a beast across the continent could come before one in the next zone. Zone-only beasts are now sorted by the middle of their zone.
 - Fixed: tamed attack speeds were read from the pet's swing timer, so haste buffs like Might of Stormwind made a normal 2.0 beast record as 1.7. Tames now take their speed from the pet's Faster/Slower Attack rank, and speeds recorded or shared by older versions are corrected the same way.
 - Sharing is harder to fool: passed-on reports can no longer push out reports from players who saw a beast themselves, and a speed only heard second-hand now shows as `(shared, passed on)` and counts for less.
 - Only what at least two players agreed on is passed on. An attack speed from a single player no longer travels along with agreed abilities.

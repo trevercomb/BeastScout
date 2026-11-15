@@ -375,10 +375,21 @@ local function Describe(npcId, here, m)
     m.levelMin, m.levelMax, m.spot, m.dist = low, high, spot, dist
     m.where = spot and spot[1] or (zones and table.concat(zones, ", "))
     m.sortDist = dist
+    if not dist and here and here[1] then
+        -- No coordinates: sort by the middle of each zone it's found in, so a
+        -- zone next door still comes before a spawn point across the continent.
+        for _, z in ipairs(zones or {}) do
+            local continent, wx, wy = WorldPos(MapID(z), 50, 50)
+            if continent and continent == here[1] then
+                local d = math.sqrt((wx - here[2]) ^ 2 + (wy - here[3]) ^ 2)
+                if not m.sortDist or d < m.sortDist then m.sortDist = d end
+            end
+        end
+    end
     if not dist and here and here.zone then
         local inZone = spot and spot[1] == here.zone
         for _, z in ipairs(zones or {}) do inZone = inZone or z == here.zone end
-        if inZone then m.sortDist = SAME_ZONE_GUESS end
+        if inZone and (not m.sortDist or SAME_ZONE_GUESS < m.sortDist) then m.sortDist = SAME_ZONE_GUESS end
     end
     return m
 end
