@@ -28,7 +28,9 @@ ns.ZONE_MAP_IDS = {
     ["Azshara"] = 1447, ["Felwood"] = 1448, ["Un'Goro Crater"] = 1449, ["Moonglade"] = 1450,
     ["Silithus"] = 1451, ["Winterspring"] = 1452, ["Stormwind City"] = 1453, ["Orgrimmar"] = 1454,
     ["Ironforge"] = 1455, ["Thunder Bluff"] = 1456, ["Darnassus"] = 1457, ["Undercity"] = 1458,
-    ["Zephras Isle"] = 2521, ["Riverglades"] = 2548,
+    -- Forever's new zones (IDs checked in game with C_Map.GetMapInfo, 2026-11-15).
+    ["Zephras Isle"] = 2521, ["Riverglades"] = 2548, ["Mount Hyjal"] = 2482, ["Shen'dralas"] = 2652,
+    ["Darkspear Islands"] = 2524,
 }
 local zoneById = {}
 for name, id in pairs(ns.ZONE_MAP_IDS) do zoneById[id] = name end

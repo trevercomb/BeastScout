@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Riverglades is now a known zone: its beasts get a distance and a Go button in `find`, and in-game shares from there keep their location.
+- Forever's new zones Riverglades, Mount Hyjal, Shen'dralas and Darkspear Islands are now known zones: their beasts get a distance and a Go button in `find`, and in-game shares from there keep their location.
 - Bundled data: Greater Tarantula (Redridge Mountains), Bite 3 and 2.0 speed, confirmed by two players' tames.
 
 ## 0.13.0
