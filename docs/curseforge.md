@@ -29,18 +29,22 @@ Type **/beastscout** or click the minimap button:
 - **Upgrades for my pet:** grouped by skill, the closest beasts that teach something your pet can use, with training point costs. Skills you've already learned say to train them at Beast Training instead.
 - **Fastest:** the fastest beasts you can tame, any family (or *fast cat*, *fast wolf*...).
 - **Tank:** tank families ranked by health and armor, with the closest one you can tame.
-- **Search** a skill (*bite 2*), a family (*cat*), and more.
+- **Search** a skill (*bite 2*), a family (*cat*), a beast's name (*mystmane*, or just *shal*), and more.
 - **Go** puts a waypoint on your map. Beasts above your level are hidden.
+
+## Rare beast alert
+
+When a rare tameable beast's nameplate shows up near you, BeastScout plays a sound and puts up an on-screen warning, so you don't walk past it. Rares that may not be tameable (not in the Hunter's Handbook) only get a quiet chat line. Needs enemy nameplates on (V). **/beastscout find rares** lists the rares you've seen, **/beastscout alert** turns the alert off, and **/beastscout alert test** tries it on your target.
 
 ## Data that gets better as you play
 
-BeastScout records what it sees: your tames (the pet's real abilities and swing timer), Beast Lore, and your Beast Training list with real costs. Your own observations override the bundled data. Share them with **/beastscout export** and they're merged into everyone's next update. BeastScout players online also share with each other in game automatically, guild or not (**/beastscout sharing** turns it off). Sharing through export is private: your name isn't stored with your data, and your submission is deleted once it's merged.
+BeastScout records what it sees: your tames (the pet's real abilities), Beast Lore, and your Beast Training list with real costs. Your own observations override the bundled data. Share them with **/beastscout export** and they're merged into everyone's next update. BeastScout players online also share with each other in game automatically, guild or not (**/beastscout sharing** turns it off). Sharing through export is private: your name isn't stored with your data, and your submission is deleted once it's merged.
 
 Built-in data: beast data from **Hunter's Handbook** by Wood (GPLv3), family abilities from Seemeta, Classic family bonuses from Highground Gaming. Thanks to all of them.
 
 ## Commands
 
-/beastscout (window) · /beastscout find &lt;skill, family, fast, tank, upgrades&gt; · /beastscout way &lt;number&gt; · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
+/beastscout (window) · /beastscout find &lt;skill, family, name, fast, tank, upgrades, rares&gt; · /beastscout alert · /beastscout way &lt;number&gt; · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
 
 Short form: **/bs** works for every command (/bs find tank).
 

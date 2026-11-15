@@ -39,7 +39,7 @@ Go (or a [Waypoint] link in chat) puts a waypoint on your map.
 BeastScout's own data comes first; Hunter's Handbook only fills in what we haven't tracked yet. The tooltip says where each value came from, e.g. `1.5 (players, tamed x3)`.
 
 1. **You:** what BeastScout recorded on your account but you haven't shared yet. It's used over the community data only when it's at least as reliable (a tame beats Beast Lore). Shown as `(you)`, `(you, tamed)` or `(you, Beast Lore)`.
-   - **Taming:** right after Tame Beast, it reads your new pet's abilities and swing timer. This is the most reliable source.
+   - **Taming:** right after Tame Beast, it reads your new pet's abilities, and its speed from its Faster/Slower Attack rank. This is the most reliable source.
    - **Beast Lore:** it reads ability ranks from the beast's tooltip after you cast Beast Lore.
 2. **Players:** BeastScout's own data in `Community.lua`: every observation we've accepted, including yours once shared. Shown with how it was observed and how many reports agree, e.g. `(players, tamed x3)`.
 3. **Shared in game:** what other BeastScout players online found, shared automatically (see below). Used over the players' data only when it's more reliable. Shown as e.g. `(shared, tamed x2)`.
