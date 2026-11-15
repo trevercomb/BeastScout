@@ -463,7 +463,7 @@ ns.COMMUNITY[990102] = { name = "Mystmane", family = "Bear", levelMin = 11, leve
 mark = #printed
 SlashCmdList.BEASTSCOUT("find MystMane")
 found = table.concat(printed, "\n", mark + 1)
-check("find by name", printed[mark + 1]:find('named "mystmane"', 1, true)
+check("find by name", printed[mark + 1]:find('1 beast named "mystmane"', 1, true)
     and found:find("Mystmane (Bear 11)", 1, true), found)
 mark = #printed
 SlashCmdList.BEASTSCOUT("find shalma")

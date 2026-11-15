@@ -439,6 +439,7 @@ local function Rank(matches, fast)
 end
 
 local function Counted(count, what, hidden, limit, order)
+    if count == 1 then what = what:gsub("^beasts teach ", "beast teaches "):gsub("^beasts", "beast") end -- not "1 beasts"
     return count .. " " .. what .. (hidden > 0 and (" (" .. hidden .. " above your level hidden)") or "")
         .. (count > limit and (", showing " .. limit) or "") .. ", " .. order
 end
@@ -512,7 +513,7 @@ local function SearchBeasts(query, limit)
     local order = noneTameable and "none you can tame yet, lowest level first"
         or (fast and "fastest first" or "closest first")
     return {
-        title = Counted(#matches, listing and what or ("beasts teach " .. what), hidden, limit, order),
+        title = Counted(#matches, listing and (#matches == 1 and family or what) or ("beasts teach " .. what), hidden, limit, order),
         rows = Take(matches, limit, function(m)
             if listing then
                 -- Name the family only when the list mixes them.
