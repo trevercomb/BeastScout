@@ -1,8 +1,8 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.0
 
-- Rare beast alert: when a rare tameable beast's nameplate shows up, a sound and an on-screen warning. Rares that may not be tameable get a quiet chat line instead. Needs enemy nameplates on; `/bs alert` turns it off.
+- Rare beast alert: when a rare tameable beast's nameplate shows up, a sound and an on-screen warning. Rares that may not be tameable get a quiet chat line instead. Needs enemy nameplates on (V). `/bs alert` turns it off, and `/bs alert test` tries it on your target.
 - `/bs find rares` lists the rare beasts you've seen.
 - `/bs find` searches beast names too: `/bs find mystmane`, or part of a name like `/bs find shal`, to find a rare's spawn.
 - Bundled data: Wood Lurker (Loch Modan) confirmed by a tame, with real spawn points, so `find` can point you to it.
