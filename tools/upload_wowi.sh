@@ -13,11 +13,11 @@ tag="${2:?tag}"
 [ -n "${WOWI_API_TOKEN:-}" ] || { echo "WOWI_API_TOKEN isn't set"; exit 1; }
 
 awk -v v="## ${tag#v}" '$0 == v {on=1; next} /^## / {on=0} on' CHANGELOG.md > wowi-changelog.txt
-echo "Uploading $zip as $tag with $(grep -c '^- ' wowi-changelog.txt) changelog lines"
+echo "Uploading $zip as ${tag#v} with $(grep -c '^- ' wowi-changelog.txt) changelog lines"
 
 status=$(curl -sS -o wowi-response.txt -w "%{http_code}" \
   -H "x-api-token: $WOWI_API_TOKEN" \
-  -F "id=27309" -F "version=$tag" -F "compatible=1.15.7" \
+  -F "id=27309" -F "version=${tag#v}" -F "compatible=1.15.7" \
   -F "changelog=<wowi-changelog.txt" -F "updatefile=@$zip" \
   https://api.wowinterface.com/addons/update)
 cat wowi-response.txt; echo
