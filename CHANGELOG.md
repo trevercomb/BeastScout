@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Bundled data: Greater Tarantula (Redridge Mountains), Bite 3 and 2.0 speed, confirmed by two players' tames.
+
 ## 0.13.0
 
 - Rare beast alert: when a rare tameable beast's nameplate shows up, a sound and an on-screen warning. Rares that may not be tameable get a quiet chat line instead. Needs enemy nameplates on (V). `/bs alert` turns it off, and `/bs alert test` tries it on your target.
