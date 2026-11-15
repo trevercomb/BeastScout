@@ -1,8 +1,9 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.1
 
 - Forever's new zones Riverglades, Mount Hyjal, Shen'dralas and Darkspear Islands are now known zones: their beasts get a distance and a Go button in `find`, and in-game shares from there keep their location.
+- Zephras Isle is recognized on both of its maps, so spawn points and distances work on either copy of the island.
 - Bundled data: Greater Tarantula (Redridge Mountains), Bite 3 and 2.0 speed, confirmed by two players' tames.
 
 ## 0.13.0
