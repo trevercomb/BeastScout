@@ -1383,6 +1383,12 @@ local out = io.open("tests/export_sample.lua", "w")
 out:write(table.concat(lines, "\n") .. "\n")
 out:close()
 
+-- Forever's zones, and the second Zephras Isle map.
+check("new zones known", ns.ZoneName(2548) == "Riverglades" and ns.ZoneName(2652) == "Shen'dralas"
+    and ns.ZONE_MAP_IDS["Mount Hyjal"] == 2482)
+check("both Zephras Isle maps", ns.ZoneName(2521) == "Zephras Isle" and ns.ZoneName(2665) == "Zephras Isle"
+    and ns.ZONE_MAP_IDS["Zephras Isle"] == 2521)
+
 print = realPrint
 print(failures == 0 and "\nALL PASSED" or ("\n" .. failures .. " FAILED"))
 os.exit(failures == 0 and 0 or 1)
