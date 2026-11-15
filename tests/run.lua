@@ -1191,6 +1191,42 @@ do
     check("full list drops passed-on reports first", BeastScoutDB.guildReports[1199]["~Old"] == nil
         and BeastScoutDB.guildReports[1199].Hunter1 ~= nil)
 
+    -- A full list of first-hand reports: a passed-on one is turned away.
+    BeastScoutDB.guildReports[1195] = {}
+    for i = 1, 10 do ns.ReceiveRecord("Seer" .. i, "R1;1195;Frost Cat;Cat;9;9;t;;Bite1;") end
+    check("passed-on report can't push out first-hand ones",
+        ns.ReceiveRecord("Faker", "P1;1195;Frost Cat;Cat;9;9;t;;Bite3;") == false
+        and BeastScoutDB.guildReports[1195]["~Faker"] == nil and BeastScoutDB.guildReports[1195].Seer1 ~= nil)
+
+    -- A speed heard only second-hand: marked passed on, trusted less.
+    BeastScoutDB.guildReports[1194] = {}
+    ns.ReceiveRecord("Rumor", "P1;1194;Ice Cat;Cat;9;9;;1.7;;")
+    local g4 = BeastScoutDB.guild[1194]
+    check("passed-on speed: marked, no player count", g4.speedPassedOn == true and g4.speedReports == nil)
+    local _, sfrom = ns.Lookup(1194, ns.SpeedOf)
+    check("passed-on speed labelled passed on", sfrom and sfrom:find("passed on", 1, true), sfrom)
+
+    -- Passing on sends only what was agreed.
+    BeastScoutDB.guildReports[1193] = {}
+    ns.ReceiveRecord("Ann", "R1;1193;Snow Cat;Cat;9;9;t;1.0;Bite2;")
+    ns.ReceiveRecord("Bob", "R1;1193;Snow Cat;Cat;9;9;t;;Bite2;")
+    local p = ns.PassOnRecord(1193)
+    check("pass on: agreed teaches, not one player's speed", p and p.teaches and p.speed == nil)
+    ns.ReceiveRecord("Cy", "R1;1193;Snow Cat;Cat;9;9;t;1.0;Bite2;")
+    p = ns.PassOnRecord(1193)
+    check("pass on: speed once two players agree", p and p.speed == 1.0)
+
+    -- Your own Beast Lore vs other players' tames.
+    BeastScoutDB.npcs[1192] = { name = "Rock Cat", family = "Cat", teaches = { { "Bite", 2 } }, teachesSource = "lore" }
+    BeastScoutDB.guildReports[1192] = {}
+    ns.ReceiveRecord("Dee", "R1;1192;Rock Cat;Cat;9;9;t;;Bite1;")
+    local t5, from5 = ns.Lookup(1192, ns.TeachesOf)
+    check("shared tame beats your own Beast Lore", t5[1][2] == 1 and from5:find("shared", 1, true), from5)
+    BeastScoutDB.npcs[1192].teachesSource = "tame"
+    t5, from5 = ns.Lookup(1192, ns.TeachesOf)
+    check("your own tame beats a shared tame", t5[1][2] == 2 and from5:find("you", 1, true), from5)
+    BeastScoutDB.npcs[1192] = nil
+
     C_ChatInfo, IsInGuild = nil, nil
     BeastScoutDB.sharedAt = nil
     ns.ForgetGuildData()

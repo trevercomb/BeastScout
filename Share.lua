@@ -155,7 +155,13 @@ local function Merge(npcId)
             entry.time = math.max(entry.time, rep.time or 0)
             lists[key] = entry
         end
-        if rep.speed then speeds[rep.speed] = (speeds[rep.speed] or 0) + (rep.passed and 0.5 or 1) end
+        if rep.speed then
+            local s = speeds[rep.speed] or { count = 0, direct = 0, time = 0 }
+            s.count = s.count + (rep.passed and 0.5 or 1)
+            s.direct = s.direct + (rep.passed and 0 or 1)
+            s.time = math.max(s.time, rep.time or 0)
+            speeds[rep.speed] = s
+        end
     end
     -- Teaches: most trusted source, then most players, then newest.
     local best
@@ -173,12 +179,21 @@ local function Merge(npcId)
         r.teachesReports = best.direct > 0 and best.direct or nil
         r.teachesPassedOn = best.direct == 0 or nil
     end
+    -- Speed: most players, then newest, then the lower value, so every
+    -- player picks the same one. Counted and marked like teaches.
     local bestSpeed
-    for speed, count in pairs(speeds) do
-        if not bestSpeed or count > bestSpeed then r.speed, bestSpeed = speed, count end
+    for speed, s in pairs(speeds) do
+        if not bestSpeed or s.count > bestSpeed.count
+            or (s.count == bestSpeed.count and (s.time > bestSpeed.time
+                or (s.time == bestSpeed.time and speed < r.speed))) then
+            r.speed, bestSpeed = speed, s
+        end
     end
-    if r.speed then r.speedReports = math.max(1, math.floor(bestSpeed)) end
-    if r.speed then r.speedSource = "tame" end
+    if r.speed then
+        r.speedSource = "tame"
+        r.speedReports = bestSpeed.direct > 0 and bestSpeed.direct or nil
+        r.speedPassedOn = bestSpeed.direct == 0 or nil
+    end
     BeastScoutDB.guild[npcId] = r
 end
 
@@ -200,14 +215,18 @@ function ns.ReceiveRecord(sender, msg)
     report.raw = msg
     local list = BeastScoutDB.guildReports[npcId]
     if list and not list[sender] then
-        -- Full: drop the oldest passed-on report first, else the oldest.
-        local count, oldestName, oldestTime = 0, nil, math.huge
+        -- Full: drop the oldest passed-on report first, else the oldest. A
+        -- passed-on report never pushes out one from a player who saw it.
+        local count, oldestName, oldestTime, oldestPassed = 0, nil, math.huge, false
         for name, rep in pairs(list) do
             count = count + 1
             local age = (rep.time or 0) - (rep.passed and 1e12 or 0)
-            if age < oldestTime then oldestName, oldestTime = name, age end
+            if age < oldestTime then oldestName, oldestTime, oldestPassed = name, age, rep.passed end
         end
-        if count >= MAX_REPORTS then list[oldestName] = nil end
+        if count >= MAX_REPORTS then
+            if report.passed and not oldestPassed then return false end
+            list[oldestName] = nil
+        end
     end
     BeastScoutDB.guild = BeastScoutDB.guild or {}
     BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
@@ -254,6 +273,26 @@ local function Send(msg, channel)
     end
 end
 
+-- What to pass on for a beast: only the parts at least two players who saw
+-- it themselves agreed on, minus what your own report already says. nil if
+-- there's nothing.
+local function PassOnRecord(npcId)
+    local g = BeastScoutDB.guild and BeastScoutDB.guild[npcId]
+    if not g then return nil end
+    local mine = BeastScoutDB.npcs[npcId]
+    local out = { name = g.name, family = g.family, levelMin = g.levelMin, levelMax = g.levelMax,
+        spots = g.spots, zones = g.zones }
+    if (g.teachesReports or 0) >= 2 and not (mine and mine.teaches) then
+        out.teaches, out.teachesSource = g.teaches, g.teachesSource
+    end
+    if (g.speedReports or 0) >= 2 and not (mine and mine.speedSource == "tame") then
+        out.speed, out.speedSource = g.speed, "tame"
+    end
+    if not (out.teaches or out.speed) then return nil end
+    return out
+end
+ns.PassOnRecord = PassOnRecord
+
 local function Pump()
     local item = table.remove(queue, 1)
     if not item then
@@ -263,7 +302,7 @@ local function Pump()
     queued[item.key] = nil
     local msg
     if item.passed then
-        msg = ns.EncodeRecord(item.npcId, (BeastScoutDB.guild or {})[item.npcId], true)
+        msg = ns.EncodeRecord(item.npcId, PassOnRecord(item.npcId), true)
     else
         msg = ns.EncodeRecord(item.npcId, BeastScoutDB.npcs[item.npcId])
     end
@@ -310,11 +349,8 @@ function ns.ShareAll(force)
     -- agreed on. Passed-on data is never passed on again (it needs direct
     -- reports), so everything is at most one step from someone who saw it.
     local passing = {}
-    for npcId, g in pairs(BeastScoutDB.guild or {}) do
-        local mine = BeastScoutDB.npcs[npcId]
-        if (g.teachesReports or 0) >= 2 and not (mine and mine.teaches) and ns.EncodeRecord(npcId, g, true) then
-            passing[#passing + 1] = npcId
-        end
+    for npcId in pairs(BeastScoutDB.guild or {}) do
+        if ns.EncodeRecord(npcId, PassOnRecord(npcId), true) then passing[#passing + 1] = npcId end
     end
     table.sort(passing)
     for i = 1, math.min(#passing, MAX_PASS_ON) do Enqueue(passing[i], channels, true) end

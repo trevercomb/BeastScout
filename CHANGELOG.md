@@ -1,5 +1,11 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Sharing is harder to fool: passed-on reports can no longer push out reports from players who saw a beast themselves, and a speed only heard second-hand now shows as `(shared, passed on)` and counts for less.
+- Only what at least two players agreed on is passed on. An attack speed from a single player no longer travels along with agreed abilities.
+- Other players' tames now beat your own Beast Lore reading on tooltips, since a tame shows the full, exact list.
+
 ## 0.12.2
 
 - Fixed: the minimap button sat inside the minimap when it was bigger than the classic size. It now stays just outside the rim at any size.

@@ -190,11 +190,20 @@ def shared_files(saved_list, salt, families, abilities):
                     and not problems(npc_id, b, families, abilities):
                 passed = sender.startswith("~")
                 groups[passed].setdefault(agreement_key(b), []).append((sender.lstrip("~"), b))
+        # Speeds count separately: agreeing on teaches says nothing about speed.
+        speed_votes = {False: {}, True: {}}
+        for passed in (False, True):
+            for members in groups[passed].values():
+                for sender, b in members:
+                    if b["speed"]:
+                        speed_votes[passed].setdefault(b["speed"], set()).add(sender)
         # Passed-on data only when no first-hand agreement exists for the beast.
         for passed in (False, True):
             agreed = [m for m in groups[passed].values() if len(m) >= MIN_AGREEING]
             for members in agreed:
                 for sender, b in members:
+                    if b["speed"] and len(speed_votes[passed][b["speed"]]) < MIN_AGREEING:
+                        b = dict(b, speed=None, speedSource=None)
                     # "wow:" keeps character names apart from GitHub logins.
                     out.setdefault(author_hash("wow:" + sender, salt), {})[npc_id] = b
             if agreed:

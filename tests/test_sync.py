@@ -76,6 +76,16 @@ BeastScoutDB = {
 ["teaches"] = { { "Claw", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 9,
 },
 },
+[1195] = {
+["Sam"] = {
+["name"] = "Highland Bear", ["family"] = "Bear",
+["teaches"] = { { "Claw", 1 } }, ["source"] = "tame", ["speed"] = 2.5, ["time"] = 8,
+},
+["Rosie"] = {
+["name"] = "Highland Bear", ["family"] = "Bear",
+["teaches"] = { { "Claw", 1 } }, ["source"] = "tame", ["speed"] = 2.5, ["time"] = 8,
+},
+},
 [1196] = {
 ["Gollum"] = {
 ["name"] = "Ice Claw Bear", ["family"] = "Bear",
@@ -143,7 +153,9 @@ def main():
         "invalid family rejected": "999001" not in local,
         "Community.lua rebuilt": "[2958]" in community and 'speedSource="tame"' in community,
         "unchanged save does nothing": second is False,
-        "agreeing players: one file each": len(shared) == 4 and shared_text.count("[1201]") == 2,
+        "agreeing players: one file each": len(shared) == 6 and shared_text.count("[1201]") == 2,
+        "one player's speed isn't bundled with agreed teaches": "speed=1.3" not in shared_text,
+        "a speed two players agree on is bundled": shared_text.count("speed=2.5") == 2,
         "shared authors are hashed, not names": "Arwen" not in shared_text and "-- author: p-" in shared_text,
         "a lone report isn't bundled": "[1196]" not in shared_text and "Bite\", 9" not in shared_text,
         "agreed beast reaches Community.lua, counted twice": "teachesReports=2" in community

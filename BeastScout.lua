@@ -56,26 +56,27 @@ function ns.SpeedOf(r)
     if speed and ns.CONFIRMED_SPEED[name] and ns.CONFIRMED_SPEED[name][rank] then
         return speed, TRUST[r.teachesSource] or 2, "teachesSource", name .. " " .. (ROMAN[rank] or rank)
     end
-    if r.speed and r.speedSource == "tame" then return r.speed, 3, "speedSource" end
+    if r.speed and r.speedSource == "tame" then return r.speed, r.speedPassedOn and 2.5 or 3, "speedSource" end
     if speed then
         return speed, TRUST[r.teachesSource] or 2, "teachesSource", name .. " " .. (ROMAN[rank] or rank)
     end
     if r.speed and r.speedSource ~= "seen" then return r.speed, 2, "speedSource" end
 end
 
--- Our data first (accepted community data, plus your unshared notes when
--- they're at least as trustworthy), then what other players shared in game
--- (when it beats the community data), else the Hunter's Handbook fallback.
+-- The most trusted value wins: your own notes, the bundled player data and
+-- what other players shared in game. On a tie your notes win, then the
+-- bundled data. The Hunter's Handbook is the fallback.
 function ns.Lookup(npcId, getter)
     if not npcId then return nil end
     local mine, community = BeastScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
-    local mv, mt, msf, mnote, cv, ct, csf, cnote
+    local guild = BeastScoutDB.guild and BeastScoutDB.guild[npcId]
+    local mv, mt, msf, mnote, cv, ct, csf, cnote, gv, gt, gsf, gnote
     if mine then mv, mt, msf, mnote = getter(mine) end
     if community then cv, ct, csf, cnote = getter(community) end
-    if mv and (not cv or mt >= ct) then return mv, SourceLabel("mine", mine, msf, mnote) end
-    local guild = BeastScoutDB.guild and BeastScoutDB.guild[npcId]
-    local gv, gt, gsf, gnote
     if guild then gv, gt, gsf, gnote = getter(guild) end
+    if mv and (not cv or mt >= ct) and (not gv or mt >= gt) then
+        return mv, SourceLabel("mine", mine, msf, mnote)
+    end
     if gv and (not cv or gt > ct) then return gv, SourceLabel("guild", guild, gsf, gnote) end
     if cv then return cv, SourceLabel("community", community, csf, cnote) end
     local handbook = ns.HANDBOOK[npcId]
