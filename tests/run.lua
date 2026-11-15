@@ -546,6 +546,11 @@ SlashCmdList.BEASTSCOUT("minimap")
 check("/beastscout minimap hides it", not _G.BeastScoutMinimapButton._shown and BeastScoutDB.minimap.hide == true)
 SlashCmdList.BEASTSCOUT("minimap")
 check("and shows it again", _G.BeastScoutMinimapButton._shown)
+check("minimap radius: Classic size when unknown", ns.MinimapRadius() == 80)
+Minimap.GetWidth = function() return 140 end
+check("minimap radius: Classic 140 wide", ns.MinimapRadius() == 80)
+Minimap.GetWidth = function() return 200 end
+check("minimap radius: bigger minimap, button outside the rim", ns.MinimapRadius() == 110)
 Minimap = nil
 
 -- Rank levels: River (bear, pet level 8, knows Claw 1) and Claw 3, which needs pet level 16.

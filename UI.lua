@@ -225,10 +225,19 @@ end
 
 local minimapButton
 
+-- Just outside the rim, whatever size the minimap is: Forever's default UI
+-- can show a bigger minimap than Classic's 140, and a fixed 80 put the button
+-- inside it.
+local function MinimapRadius()
+    local w = Minimap.GetWidth and Minimap:GetWidth()
+    return (w and w > 0) and (w / 2 + 10) or 80
+end
+ns.MinimapRadius = MinimapRadius
+
 local function PlaceMinimapButton()
-    local angle = math.rad(BeastScoutDB.minimap.angle or 200)
+    local angle, r = math.rad(BeastScoutDB.minimap.angle or 200), MinimapRadius()
     minimapButton:ClearAllPoints()
-    minimapButton:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * 80, math.sin(angle) * 80)
+    minimapButton:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * r, math.sin(angle) * r)
 end
 
 function ns.CreateMinimapButton()
@@ -272,6 +281,8 @@ function ns.CreateMinimapButton()
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PlaceMinimapButton()
+    -- Follow the minimap when another addon or a UI option resizes it.
+    if Minimap.HookScript then Minimap:HookScript("OnSizeChanged", PlaceMinimapButton) end
     b:SetShown(not BeastScoutDB.minimap.hide)
 end
 
