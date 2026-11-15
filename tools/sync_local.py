@@ -246,7 +246,9 @@ def sync(wtf):
         saved_list.append(saved)
         for npc_id, r in ((saved.get("BeastScoutDB") or {}).get("npcs") or {}).items():
             b = to_beast(r)
-            if not (b["name"] and b["family"] and (b["speed"] or b["teaches"])):
+            # A sighting's spawn points count too: they give find a distance
+            # and a waypoint where the Hunter's Handbook has none.
+            if not (b["name"] and b["family"] and (b["speed"] or b["teaches"] or b["spots"])):
                 continue
             if problems(npc_id, b, families, abilities):
                 skipped += 1

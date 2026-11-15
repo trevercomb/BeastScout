@@ -1,5 +1,10 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Bundled data: Wood Lurker (Loch Modan) confirmed by a tame, with real spawn points, so `find` can point you to it.
+- Bundled data now includes spawn points from sightings, not just tames, so more beasts get a distance and a waypoint in `find`, including Forever-only beasts like Mystmane on Zephras Isle.
+
 ## 0.12.3
 
 - Fixed: "closest first" put every beast with a known spawn point ahead of beasts known only by zone, so a beast across the continent could come before one in the next zone. Zone-only beasts are now sorted by the middle of their zone.

@@ -33,6 +33,14 @@ BeastScoutDB = {
 ["levelMin"] = 7,
 ["levelMax"] = 7,
 },
+[1185] = {
+["family"] = "Spider",
+["name"] = "Wood Lurker",
+["levelMin"] = 17,
+["levelMax"] = 17,
+["spots"] = { { "Loch Modan", 56.27, 19.45 } },
+["zones"] = { "Loch Modan" },
+},
 [999001] = {
 ["family"] = "Owl",
 ["name"] = "Bogus Owl",
@@ -150,6 +158,8 @@ def main():
         "tame teaches kept": '{"Faster Attack", 3} }, teachesSource="tame"' in local,
         "level range across accounts": "levelMin=5, levelMax=6" in local,
         "beast with no data left out": "[3035]" not in local,
+        "a sighting's spawn point is bundled": '[1185] = { name="Wood Lurker"' in local
+            and '{"Loch Modan", 56.27, 19.45}' in local and "[1185]" in community,
         "invalid family rejected": "999001" not in local,
         "Community.lua rebuilt": "[2958]" in community and 'speedSource="tame"' in community,
         "unchanged save does nothing": second is False,
