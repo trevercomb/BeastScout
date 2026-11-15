@@ -1,6 +1,6 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.12.3
 
 - Fixed: "closest first" put every beast with a known spawn point ahead of beasts known only by zone, so a beast across the continent could come before one in the next zone. Zone-only beasts are now sorted by the middle of their zone.
 - Fixed: tamed attack speeds were read from the pet's swing timer, so haste buffs like Might of Stormwind made a normal 2.0 beast record as 1.7. Tames now take their speed from the pet's Faster/Slower Attack rank, and speeds recorded or shared by older versions are corrected the same way.
@@ -9,6 +9,7 @@
 - Other players' tames now beat your own Beast Lore reading on tooltips, since a tame shows the full, exact list.
 - A beast's shared name and family now go by what most players reported, so one odd report can't move a beast to another family in searches.
 - `/beastscout help` shows your current virtual realm. Forever's custom chat channels don't cross virtual realms, so live sharing reaches players on the same one; agreed data still reaches everyone in updates.
+- Bundled data: Young Forest Bear's speed corrected to 2.5 (Slower Attack II), and Shore Crawler added (2.0, Claw 3, Pinch 1).
 
 ## 0.12.2
 
