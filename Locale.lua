@@ -14,7 +14,7 @@ end
 
 -- Zones -----------------------------------------------------------------------------
 -- Classic map IDs, which Forever uses (Hunter's Handbook's data has Dun Morogh
--- 1426, Elwynn Forest 1429, Loch Modan 1432, Ironforge 1455, Zephras Isle 2521).
+-- 1426, Elwynn Forest 1429, Loch Modan 1432, Ironforge 1455, Zephras Isle 2521). Riverglades 2548 confirmed in game with C_Map.GetMapInfo, 2026-11-15.
 ns.ZONE_MAP_IDS = {
     ["Durotar"] = 1411, ["Mulgore"] = 1412, ["The Barrens"] = 1413, ["Alterac Mountains"] = 1416,
     ["Arathi Highlands"] = 1417, ["Badlands"] = 1418, ["Blasted Lands"] = 1419, ["Tirisfal Glades"] = 1420,
@@ -28,7 +28,7 @@ ns.ZONE_MAP_IDS = {
     ["Azshara"] = 1447, ["Felwood"] = 1448, ["Un'Goro Crater"] = 1449, ["Moonglade"] = 1450,
     ["Silithus"] = 1451, ["Winterspring"] = 1452, ["Stormwind City"] = 1453, ["Orgrimmar"] = 1454,
     ["Ironforge"] = 1455, ["Thunder Bluff"] = 1456, ["Darnassus"] = 1457, ["Undercity"] = 1458,
-    ["Zephras Isle"] = 2521,
+    ["Zephras Isle"] = 2521, ["Riverglades"] = 2548,
 }
 local zoneById = {}
 for name, id in pairs(ns.ZONE_MAP_IDS) do zoneById[id] = name end
