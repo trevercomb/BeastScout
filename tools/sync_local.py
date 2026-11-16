@@ -187,10 +187,17 @@ def shared_files(saved_list, salt, families, abilities):
     for npc_id, by_sender in reports.items():
         # First-hand reports, and passed-on ones (sender "~Name"), kept apart.
         groups = {False: {}, True: {}}
-        for sender, b in by_sender.items():
+        # Several players can pass on the same first-hand report; it keeps its
+        # spot, so relays with one spot are one source and count once.
+        relayed = set()
+        for sender, b in sorted(by_sender.items()):
             if b["name"] and b["family"] and (b["speed"] or b["teaches"]) \
                     and not problems(npc_id, b, families, abilities):
                 passed = sender.startswith("~")
+                if passed and b["spots"]:
+                    if b["spots"][0] in relayed:
+                        continue
+                    relayed.add(b["spots"][0])
                 groups[passed].setdefault(agreement_key(b), []).append((sender.lstrip("~"), b))
         # Speeds count separately: agreeing on teaches says nothing about speed.
         speed_votes = {False: {}, True: {}}

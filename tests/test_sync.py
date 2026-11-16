@@ -73,10 +73,24 @@ BeastScoutDB = {
 ["~Faramir"] = {
 ["name"] = "Winter Wolf", ["family"] = "Wolf",
 ["teaches"] = { { "Bite", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 9,
+["spot"] = { "Dun Morogh", 30.1, 40.2 },
 },
 ["~Eowyn"] = {
 ["name"] = "Winter Wolf", ["family"] = "Wolf",
 ["teaches"] = { { "Bite", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 9,
+["spot"] = { "Dun Morogh", 33.5, 44.8 },
+},
+},
+[1199] = {
+["~Pippin"] = {
+["name"] = "Ridge Huntress", ["family"] = "Cat",
+["teaches"] = { { "Claw", 3 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 10,
+["spot"] = { "Loch Modan", 42.75, 59.12 },
+},
+["~Treebeard"] = {
+["name"] = "Ridge Huntress", ["family"] = "Cat",
+["teaches"] = { { "Claw", 3 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 11,
+["spot"] = { "Loch Modan", 42.75, 59.12 },
 },
 },
 [1198] = {
@@ -174,6 +188,7 @@ def main():
             and "[1201]" in community,
         "two players passing on the same thing: bundled": shared_text.count("[1197]") == 2,
         "one player passing on: not bundled": "[1198]" not in shared_text,
+        "two relays of one report (same spot): not bundled": "[1199]" not in shared_text,
     }
     for name, ok in checks.items():
         print(("ok   " if ok else "FAIL ") + name)
