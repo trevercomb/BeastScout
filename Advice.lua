@@ -160,8 +160,14 @@ local function ParseQuery(query)
     return nil
 end
 
+-- Names: shares arrive in each player's game language, so the bundled
+-- English names come first (BeastScout's labels are English).
+local NAME_LAYERS = function()
+    return { ns.HANDBOOK, ns.COMMUNITY, BeastScoutDB.npcs, BeastScoutDB.guild or {} }
+end
+
 local function Field(npcId, key)
-    for _, layer in ipairs(ns.Layers()) do
+    for _, layer in ipairs(key == "name" and NAME_LAYERS() or ns.Layers()) do
         local r = layer[npcId]
         if r and r[key] then return r[key] end
     end
@@ -460,6 +466,15 @@ local function NameKey(text)
     return (text:lower():gsub("[%s'%-]", ""))
 end
 
+-- Any name we have for the beast counts, so "oso" still finds a bear the
+-- list shows in English.
+local function NameMatches(npcId, nameKey)
+    for _, layer in ipairs(NAME_LAYERS()) do
+        local r = layer[npcId]
+        if r and r.name and NameKey(r.name):find(nameKey, 1, true) then return true end
+    end
+end
+
 -- A skill ("bite 2"), a family ("cat"), "fast" or "fast <family>", or else
 -- part of a beast's name ("mystmane", "shal").
 local function SearchBeasts(query, limit)
@@ -488,9 +503,8 @@ local function SearchBeasts(query, limit)
     local here, matches = Here(), {}
     for npcId in pairs(AllIds()) do
         if listing then
-            local name = nameKey and Field(npcId, "name")
             if anyFamily or (family and Field(npcId, "family") == family) or (rares and Field(npcId, "rare"))
-                or (name and NameKey(name):find(nameKey, 1, true)) then
+                or (nameKey and NameMatches(npcId, nameKey)) then
                 -- Speed is what you compare when picking between beasts.
                 matches[#matches + 1] = Describe(npcId, here, { speed = ns.Lookup(npcId, ns.SpeedOf),
                     unsure = rares and not ns.KnownTameable(npcId) })

@@ -179,7 +179,10 @@ def merge_contributions(paths):
     merged = {}
     for npc_id, rows in reports.items():
         latest = rows[-1][1]
-        out = {"name": latest["name"], "family": latest["family"]}
+        # The name most reports use (a lone report in another language loses).
+        names = [b["name"] for _, b in rows if b["name"]]
+        name = max(reversed(names), key=names.count) if names else latest["name"]
+        out = {"name": name, "family": latest["family"]}
         lows = [b["levelMin"] for _, b in rows if b["levelMin"] is not None]
         highs = [b["levelMax"] for _, b in rows if b["levelMax"] is not None]
         if lows:
@@ -315,12 +318,17 @@ def build(contributions=DEFAULT_CONTRIBUTIONS, handbook_path=DEFAULT_HANDBOOK, o
     paths = sorted(glob.glob(contributions), key=order_key)
 
     community = merge_contributions(paths)
+    handbook = parse_handbook(handbook_path)
+    # Shares arrive in each player's game language ("Oso viejo de Vallefresno");
+    # where the Hunter's Handbook knows the beast, its English name wins.
+    for npc_id, b in community.items():
+        if npc_id in handbook and handbook[npc_id].get("name"):
+            b["name"] = handbook[npc_id]["name"]
     write_table(Path(out_dir) / "Community.lua", "COMMUNITY", [
         "BeastScout's own beast data, merged from players' shared observations.",
         "Checked before the Hunter's Handbook fallback. Sources: tame > lore.",
     ], community)
 
-    handbook = parse_handbook(handbook_path)
     write_table(Path(out_dir) / "Handbook.lua", "HANDBOOK", [
         "Fallback data from Hunter's Handbook by Wood (GPLv3):",
         "  https://www.curseforge.com/wow/addons/hunters-handbook",

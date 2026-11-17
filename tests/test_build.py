@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+import build_bestiary  # noqa: E402
 from build_bestiary import merge_contributions, parse_ours_text, to_line  # noqa: E402
 
 
@@ -63,6 +64,23 @@ def main():
                                 '    [5] = { name="Cat E", family="Cat", speed=1.2, speedSource="tame" },')]
     m3 = merge_contributions(changed)
     checks["a player's newer report replaces their older one"] = m3[5]["speed"] == 1.2 and m3[5]["speedReports"] == 1
+
+    # Names: shares come in each player's game language.
+    langs = [
+        contrib(tmp, "shared-a.lua", "-- author: a",
+                '    [3810] = { name="Oso viejo de Vallefresno", family="Bear", teaches={ {"Claw", 4} }, teachesSource="tame" },',
+                '    [900001] = { name="Mistral Cub", family="Bear", teaches={ {"Swipe", 1} }, teachesSource="tame" },'),
+        contrib(tmp, "shared-b.lua", "-- author: b",
+                '    [900001] = { name="Mistral Cub", family="Bear", teaches={ {"Swipe", 1} }, teachesSource="tame" },'),
+        contrib(tmp, "shared-c.lua", "-- author: c",
+                '    [900001] = { name="Cachorro de Mistral", family="Bear", teaches={ {"Swipe", 1} }, teachesSource="tame" },'),
+    ]
+    checks["the name most reports use wins"] = merge_contributions(langs)[900001]["name"] == "Mistral Cub"
+    out_dir = Path(tmp) / "out"
+    out_dir.mkdir()
+    build_bestiary.build(str(Path(tmp) / "shared-*.lua"), out_dir=out_dir)
+    community = (out_dir / "Community.lua").read_text(encoding="utf-8")
+    checks["the Hunter's Handbook's English name wins"] = 'name="Elder Ashenvale Bear"' in community         and "Oso viejo" not in community
 
     failed = [name for name, ok in checks.items() if not ok]
     for name, ok in checks.items():

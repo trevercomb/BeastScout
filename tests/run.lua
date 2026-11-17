@@ -1391,6 +1391,20 @@ check("new zones known", ns.ZoneName(2548) == "Riverglades" and ns.ZoneName(2652
 check("both Zephras Isle maps", ns.ZoneName(2521) == "Zephras Isle" and ns.ZoneName(2665) == "Zephras Isle"
     and ns.ZONE_MAP_IDS["Zephras Isle"] == 2521)
 
+-- A share in another language: the list shows the English name, and the
+-- shared name still finds it.
+do
+    BeastScoutDB.guild = BeastScoutDB.guild or {}
+    BeastScoutDB.guild[3810] = { name = "Oso viejo de Vallefresno", family = "Bear", levelMin = 25, levelMax = 26,
+        teaches = { { "Claw", 4 } }, teachesSource = "tame" }
+    local mark = #printed
+    SlashCmdList.BEASTSCOUT("find oso viejo")
+    local found = table.concat(printed, "\n", mark + 1)
+    check("a Spanish share is listed by its English name", found:find("Elder Ashenvale Bear", 1, true)
+        and not found:find("Oso viejo de Vallefresno (", 1, true), found)
+    BeastScoutDB.guild[3810] = nil
+end
+
 print = realPrint
 print(failures == 0 and "\nALL PASSED" or ("\n" .. failures .. " FAILED"))
 os.exit(failures == 0 and 0 or 1)

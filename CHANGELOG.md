@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Beasts shared by players whose game is in another language now show their English name in `find`, and searching by the shared name still finds them.
 - Bundled data: Young Forest Bear (Elwynn Forest), Claw 2 and Slower Attack 2, confirmed by two players' tames.
 
 ## 0.13.2
