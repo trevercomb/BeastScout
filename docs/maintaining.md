@@ -33,7 +33,7 @@ python tools/sync_local.py --watch                       # keep running while yo
 
 Your observations go through the same checks and merge rules as shared ones, and `contributions/local.lua` gets committed like any other contribution.
 
-The sync also picks up what other players shared with you in game. Beasts where at least two players agree go into `contributions/shared-<player hash>.lua`, one file per player so each counts once; single reports stay in your game only. Player names are hashed with the salt in `tools/local.json`, like GitHub logins. Passed-on data is bundled only when two players passed on the same thing and no first-hand reports agree.
+The sync also picks up what other players shared with you in game. Beasts where at least two players agree go into `contributions/shared-<player hash>.lua`, one file per player so each counts once; single reports stay in your game only. Player names are hashed with the salt in `tools/local.json`, like GitHub logins. Passed-on data is bundled only when two players passed on the same thing and no first-hand reports agree. A passed-on report keeps the original tame's spot, so relays with the same spot count as one source, and a relay at a spot you recorded yourself (your own tame coming back) doesn't count at all.
 
 ## Releasing
 

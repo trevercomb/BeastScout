@@ -1,9 +1,10 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.2
 
 - `find` for a rank no known beast teaches (like `find swipe 2`) now says which ranks are known, instead of just "no beast found". Swipe is new in Forever, so few bears are recorded with it yet.
 - Bundled data: Swipe 2 for Elder Gray Bear, Big Samras and Maddened Rotclaw. Coldrasp (Tirisfal Glades) teaches Faster Attack 2 with 1.6 speed, not Faster Attack 3, confirmed by two players' tames.
+- More tames shared by players (Black Ravager, Snow Tracker Wolf, Mangy Mountain Boar, Coyote Packleader, Black Bear Patriarch, Grizzled Black Bear), and spawn points for beasts in Hillsbrad, Arathi, Wetlands, Stranglethorn, the Barrens, Stonetalon and Redridge.
 
 ## 0.13.1
 
