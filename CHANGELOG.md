@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Bundled data: Young Forest Bear (Elwynn Forest), Claw 2 and Slower Attack 2, confirmed by two players' tames.
+
 ## 0.13.2
 
 - `find` for a rank no known beast teaches (like `find swipe 2`) now says which ranks are known, instead of just "no beast found". Swipe is new in Forever, so few bears are recorded with it yet.
