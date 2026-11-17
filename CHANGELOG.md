@@ -3,6 +3,7 @@
 ## Unreleased
 
 - `find` for a rank no known beast teaches (like `find swipe 2`) now says which ranks are known, instead of just "no beast found". Swipe is new in Forever, so few bears are recorded with it yet.
+- Bundled data: Swipe 2 for Elder Gray Bear, Big Samras and Maddened Rotclaw. Coldrasp (Tirisfal Glades) teaches Faster Attack 2 with 1.6 speed, not Faster Attack 3, confirmed by two players' tames.
 
 ## 0.13.1
 
