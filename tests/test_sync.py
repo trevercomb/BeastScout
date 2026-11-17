@@ -81,6 +81,18 @@ BeastScoutDB = {
 ["spot"] = { "Dun Morogh", 33.5, 44.8 },
 },
 },
+[1185] = {
+["~Gimli"] = {
+["name"] = "Wood Lurker", ["family"] = "Spider",
+["teaches"] = { { "Bite", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 12,
+["spot"] = { "Loch Modan", 56.27, 19.45 },
+},
+["~Legolas"] = {
+["name"] = "Wood Lurker", ["family"] = "Spider",
+["teaches"] = { { "Bite", 2 } }, ["source"] = "tame", ["passed"] = true, ["time"] = 12,
+["spot"] = { "Loch Modan", 60.1, 22.3 },
+},
+},
 [1199] = {
 ["~Pippin"] = {
 ["name"] = "Ridge Huntress", ["family"] = "Cat",
@@ -189,6 +201,7 @@ def main():
         "two players passing on the same thing: bundled": shared_text.count("[1197]") == 2,
         "one player passing on: not bundled": "[1198]" not in shared_text,
         "two relays of one report (same spot): not bundled": "[1199]" not in shared_text,
+        "your own tame passed back to you isn't a second source": "[1185]" not in shared_text,
     }
     for name, ok in checks.items():
         print(("ok   " if ok else "FAIL ") + name)

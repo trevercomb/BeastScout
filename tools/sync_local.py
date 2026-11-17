@@ -171,7 +171,7 @@ def agreement_key(b):
     return ("speed", b["speed"])
 
 
-def shared_files(saved_list, salt, families, abilities):
+def shared_files(saved_list, salt, families, abilities, own=None):
     """Reports other players shared in game, kept only where at least MIN_AGREEING
     players agree, grouped into one file per (hashed) player so the merge counts
     each player once. Returns {author: {npc_id: beast}}."""
@@ -189,7 +189,8 @@ def shared_files(saved_list, salt, families, abilities):
         groups = {False: {}, True: {}}
         # Several players can pass on the same first-hand report; it keeps its
         # spot, so relays with one spot are one source and count once.
-        relayed = set()
+        # Your own tame can come back to you passed on by others: not a new source.
+        relayed = set((own or {}).get(npc_id, ()))
         for sender, b in sorted(by_sender.items()):
             if b["name"] and b["family"] and (b["speed"] or b["teaches"]) \
                     and not problems(npc_id, b, families, abilities):
@@ -250,10 +251,13 @@ def sync(wtf):
     families, abilities = known_names()
     beasts, skipped = {}, 0
     saved_list = []
+    own_spots = {}  # npc_id -> every spot you recorded yourself
     for path in files:
         saved = read_saved_variables(path.read_text(encoding="utf-8", errors="replace"))
         saved_list.append(saved)
         for npc_id, r in ((saved.get("BeastScoutDB") or {}).get("npcs") or {}).items():
+            own_spots.setdefault(npc_id, set()).update(
+                (sp[0], float(sp[1]), float(sp[2])) for sp in r.get("spots") or [] if len(sp) == 3)
             b = to_beast(r)
             # A sighting's spawn points count too: they give find a distance
             # and a waypoint where the Hunter's Handbook has none.
@@ -274,7 +278,7 @@ def sync(wtf):
     if not config.get("author_salt"):
         config["author_salt"] = secrets.token_hex(16)
         CONFIG.write_text(json.dumps(config, indent=2) + "\n")
-    shared = shared_files(saved_list, config["author_salt"], families, abilities)
+    shared = shared_files(saved_list, config["author_salt"], families, abilities, own_spots)
     shared_changed = write_shared(shared)
     shared_count = len({i for beasts_ in shared.values() for i in beasts_})
 
