@@ -318,6 +318,8 @@ check("find with roman rank", found:find("Faster Attack 6: The Rake", 1, true), 
 mark = #printed
 SlashCmdList.BEASTSCOUT("find nonsense")
 check("find explains bad query", printed[#printed]:find("find what?", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("find swipe 2")
+check("an unknown rank names the ranks we know", printed[#printed]:find("no beast known yet that teaches Swipe 2. Known: Swipe 1.", 1, true), printed[#printed])
 
 -- Zones are recorded where you see a beast.
 GetRealZoneText = function() return "Dun Morogh" end

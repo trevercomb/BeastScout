@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- `find` for a rank no known beast teaches (like `find swipe 2`) now says which ranks are known, instead of just "no beast found". Swipe is new in Forever, so few bears are recorded with it yet.
+
 ## 0.13.1
 
 - Forever's new zones Riverglades, Mount Hyjal, Shen'dralas and Darkspear Islands are now known zones: their beasts get a distance and a Go button in `find`, and in-game shares from there keep their location.

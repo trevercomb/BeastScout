@@ -506,6 +506,21 @@ local function SearchBeasts(query, limit)
     if #matches == 0 and nameKey then
         return { error = "no beast's name has \"" .. query:match("^%s*(.-)%s*$") .. "\" in it. find what? e.g. bite 2, faster attack 5, cat, fast, tank, upgrades, or a beast's name" }
     end
+    if #matches == 0 and ability and rank then
+        -- Say which ranks we do know, so "none" doesn't read as "doesn't exist".
+        local known = {}
+        for npcId in pairs(AllIds()) do
+            for _, t in ipairs(ns.Lookup(npcId, ns.TeachesOf) or {}) do
+                if t[1] == ability then known[t[2]] = true end
+            end
+        end
+        local ranks = {}
+        for r in pairs(known) do ranks[#ranks + 1] = r end
+        table.sort(ranks)
+        return { error = "no beast known yet that teaches " .. what .. "."
+            .. (#ranks > 0 and (" Known: " .. ability .. " " .. table.concat(ranks, ", ") .. ".") or "")
+            .. " Tame one that has it and BeastScout records it for everyone." }
+    end
     if #matches == 0 then
         return { error = "no " .. (listing and (what .. " found") or ("beast found that teaches " .. what)) .. "." }
     end
