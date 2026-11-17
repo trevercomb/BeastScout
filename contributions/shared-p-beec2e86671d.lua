@@ -1,0 +1,4 @@
+-- Shared in game by another BeastScout player, synced by tools/sync_local.py.
+-- Only beasts at least two players agreed on. Regenerated on every sync.
+-- author: p-beec2e86671d
+    [833] = { name="Coyote Packleader", family="Wolf", levelMin=11, levelMax=11, speed=2, speedSource="tame", teaches={ {"Bite", 2}, {"Furious Howl", 1} }, teachesSource="tame", spots={ {"Westfall", 47.7, 19.89} }, zones={ "Westfall" } },
