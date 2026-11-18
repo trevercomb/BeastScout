@@ -1,6 +1,6 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.3
 
 - Beasts shared by players whose game is in another language now show their English name in `find`, and searching by the shared name still finds them.
 - Bundled data, each confirmed by at least two players' tames: Low Plains Buzzard (Riverglades, Claw 5), which the Hunter's Handbook doesn't have; Shore Crawler also teaches Pinch 1 (four players); Young Forest Bear, Goretusk, Black Ravager Mastiff, Giant Wetlands Crocolisk and Feral Mountain Lion.
