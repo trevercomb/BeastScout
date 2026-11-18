@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Beasts shared by players whose game is in another language now show their English name in `find`, and searching by the shared name still finds them.
-- Bundled data: Young Forest Bear (Elwynn Forest), Claw 2 and Slower Attack 2, confirmed by two players' tames.
+- Bundled data, each confirmed by at least two players' tames: Low Plains Buzzard (Riverglades, Claw 5), which the Hunter's Handbook doesn't have; Shore Crawler also teaches Pinch 1 (four players); Young Forest Bear, Goretusk, Black Ravager Mastiff, Giant Wetlands Crocolisk and Feral Mountain Lion.
+- More spawn points in Duskwood, Darkshore, Ashenvale, Stranglethorn and Searing Gorge.
 
 ## 0.13.2
 
