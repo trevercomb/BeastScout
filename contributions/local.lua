@@ -18,6 +18,7 @@
     [539] = { name="Pygmy Venom Web Spider", family="Spider", levelMin=18, levelMax=18, spots={ {"Duskwood", 93.26, 11.99}, {"Duskwood", 92.08, 13.67}, {"Duskwood", 90.94, 14.82} }, zones={ "Duskwood" } },
     [547] = { name="Great Goretusk", family="Boar", levelMin=16, levelMax=17, spots={ {"Westfall", 57.92, 52.21}, {"Westfall", 59.93, 51.74}, {"Westfall", 48.45, 66.84}, {"Westfall", 57.99, 56.58} }, zones={ "Westfall", "Redridge Mountains" } },
     [565] = { name="Rabid Dire Wolf", family="Wolf", levelMin=20, levelMax=20, spots={ {"Duskwood", 73.96, 23.45} }, zones={ "Duskwood" } },
+    [616] = { name="Chatter", family="Spider", levelMin=23, levelMax=23, rare=true, spots={ {"Redridge Mountains", 50.66, 42.81}, {"Redridge Mountains", 50.97, 44.53} }, zones={ "Redridge Mountains" } },
     [687] = { name="Jungle Stalker", family="Raptor", levelMin=40, levelMax=41, spots={ {"Stranglethorn Vale", 22.75, 46.01}, {"Stranglethorn Vale", 34.02, 34.3}, {"Stranglethorn Vale", 33.15, 35.58}, {"Stranglethorn Vale", 32.63, 37.27} }, zones={ "Stranglethorn Vale" } },
     [730] = { name="Tethis", family="Raptor", levelMin=43, levelMax=43, spots={ {"Stranglethorn Vale", 28.78, 44.33} }, zones={ "Stranglethorn Vale" } },
     [822] = { name="Young Forest Bear", family="Bear", levelMin=8, levelMax=9, speed=2.5, speedSource="tame", teaches={ {"Claw", 2}, {"Slower Attack", 2} }, teachesSource="tame", spots={ {"Elwynn Forest", 77.06, 75.32}, {"Elwynn Forest", 23.79, 75.39}, {"Elwynn Forest", 29.11, 83.53}, {"Elwynn Forest", 59.85, 68.95} }, zones={ "Elwynn Forest" } },
@@ -70,4 +71,5 @@
     [256092] = { name="Shadowgale Shriekling", family="Bird of Prey", levelMin=10, levelMax=11, spots={ {"Zephras Isle", 58.04, 40.37}, {"Zephras Isle", 60, 33.93}, {"Zephras Isle", 60.76, 35.59}, {"Zephras Isle", 61.72, 37.02} }, zones={ "Zephras Isle" } },
     [259388] = { name="Mystmane", family="Bear", levelMin=13, levelMax=13, spots={ {"Zephras Isle", 59.82, 33.64}, {"Zephras Isle", 58.31, 34.23} }, zones={ "Zephras Isle" } },
     [260157] = { name="Elder Snow Leopard", family="Cat", levelMin=10, levelMax=10, spots={ {"Dun Morogh", 73.1, 53.63} }, zones={ "Dun Morogh" } },
+    [271898] = { name="Greater Tarantula", family="Spider", levelMin=18, levelMax=19, spots={ {"Redridge Mountains", 51.21, 44.76} }, zones={ "Redridge Mountains" } },
     [276198] = { name="Shal'ma", family="Cat", levelMin=9, levelMax=9, speed=1.3, speedSource="tame", teaches={ {"Cower", 1}, {"Faster Attack", 5} }, teachesSource="tame" },

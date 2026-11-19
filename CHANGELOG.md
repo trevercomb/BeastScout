@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Bundled data, confirmed by two players' tames: Elder Crag Boar (Dun Morogh), Moonstalker Runt (Darkshore) and Ashenvale Bear (Ashenvale).
+
 ## 0.13.3
 
 - Beasts shared by players whose game is in another language now show their English name in `find`, and searching by the shared name still finds them.
