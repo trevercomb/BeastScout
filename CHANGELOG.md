@@ -1,7 +1,8 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.4
 
+- Checked on Forever's November 20 client patch (build 71037): everything works. That patch blanks the realm name, so `/bs help` no longer shows which virtual realm you're on.
 - Bundled data, confirmed by two players' tames: Sandstrider (Desolace, Dash 1 and Dust Cloud 2), which the Hunter's Handbook doesn't have; Swamp Jaguar, Starving Mountain Lion, Thistle Bear, Forest Lurker, Young Goretusk, Rockhide Boar, Elder Crag Boar, Moonstalker Runt and Ashenvale Bear.
 
 ## 0.13.3
