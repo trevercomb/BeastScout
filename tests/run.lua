@@ -1199,7 +1199,13 @@ do
     GetNormalizedRealmName = function() return "CAMWOWUS1Realm3PvE" end
     check("status names the virtual realm", ns.ShareStatus():find("Virtual realm right now: CAMWOWUS1Realm3PvE", 1, true),
         ns.ShareStatus())
+    -- Since Forever build 71037 the realm functions can return "" (seen by other addons).
+    GetNormalizedRealmName = function() return "" end
+    check("an empty realm name is no realm", not ns.ShareStatus():find("Virtual realm", 1, true), ns.ShareStatus())
     GetNormalizedRealmName = nil
+    GetUnitName = function(_, full) return full and "Sylvia-" or "Sylvia" end
+    check("your own echo with an empty realm is still you", ns.IsMe("Sylvia-") and ns.IsMe("Sylvia"))
+    GetUnitName = nil
     -- Your own echo, sent with a surname the client's UnitName doesn't include.
     units.player = units.player or {}
     units.player.name = "Sylvia"
