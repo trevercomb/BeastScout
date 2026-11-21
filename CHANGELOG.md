@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Bundled data, confirmed by two players' tames: Sandstrider (Desolace, Dash 1 and Dust Cloud 2), which the Hunter's Handbook doesn't have; Swamp Jaguar, Starving Mountain Lion, Forest Lurker, Young Goretusk, Rockhide Boar, Elder Crag Boar, Moonstalker Runt and Ashenvale Bear.
+- Bundled data, confirmed by two players' tames: Sandstrider (Desolace, Dash 1 and Dust Cloud 2), which the Hunter's Handbook doesn't have; Swamp Jaguar, Starving Mountain Lion, Thistle Bear, Forest Lurker, Young Goretusk, Rockhide Boar, Elder Crag Boar, Moonstalker Runt and Ashenvale Bear.
 
 ## 0.13.3
 
