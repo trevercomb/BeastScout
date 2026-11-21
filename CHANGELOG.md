@@ -1,8 +1,10 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.5
 
 - With Daylight UI installed, the BeastScout and export windows use its look: its window shell, fonts, buttons, search box and text colours. Without it, nothing changes.
+- Bundled data, confirmed by two players' tames: Ombassa (Riverglades, Dash 2), which the Hunter's Handbook doesn't have; Ironfur Bear also teaches Swipe 3; Elder Razormaw teaches Savage Rend 2; Longtooth Runner, Scorpashi Snapper, Young Mesa Buzzard, Moonstalker Sire and Ornery Plainstrider.
+- More spawn points in Duskwood, Loch Modan, Arathi Highlands, The Barrens and Feralas.
 
 ## 0.13.4
 
