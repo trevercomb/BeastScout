@@ -640,6 +640,49 @@ check("Go button sets a waypoint (or explains why not)", printed[#printed]:find(
 SlashCmdList.BEASTSCOUT("")
 check("/beastscout again closes it", not win._shown)
 
+-- With Daylight UI loaded, the window is built from its API.
+local used = {}
+local function dui(kind)
+    return function(parent, ...)
+        used[kind] = (used[kind] or 0) + 1
+        local o = UIFake()
+        if kind == "Button" then
+            o.text = UIFake()
+            o.text:SetText((...))
+        end
+        return o
+    end
+end
+DaylightUI = { API = { major = 1, minor = 13,
+    Skin = function() used.Skin = (used.Skin or 0) + 1 end,
+    Text = dui("Text"), Button = dui("Button"), Close = dui("Close"), Input = dui("Input"),
+    Colors = function() return { TITLE = { 1, 1, 0.8 }, VALUE = { 1, 1, 1 }, TEXT = { 0.9, 0.9, 0.9 },
+        LABEL = { 0.8, 0.7, 0.5 }, OFF = { 0.5, 0.5, 0.5 }, BAD = { 1, 0.3, 0.3 } } end,
+    Font = function() return "Fonts\\FRIZQT__.TTF" end,
+    Accent = function() return 0.4, 0.9, 0.3 end,
+    On = function(event) used["On:" .. event] = (used["On:" .. event] or 0) + 1 end } }
+ns.ResetUI()
+ns.ToggleUI("bite 2")
+local dwin = _G.BeastScoutFrame
+check("Daylight UI: window shell, search box and close from its API",
+    used.Skin == 1 and used.Input == 1 and used.Close == 1 and used.Text and used.Button, used)
+check("Daylight UI: accent line along the top, repainted on style changes",
+    dwin.accentLine and used["On:StyleChanged"] == 1, used)
+check("Daylight UI: rows still fill", dwin.rows[1]._shown and dwin.rows[1].text._text:find("^1%. "), dwin.rows[1].text._text)
+check("Daylight UI: row buttons labelled on their own text", dwin.rows[1].way.text._text == "Go", dwin.rows[1].way.text._text)
+ns.ShowExport()
+check("Daylight UI: export window too", used.Skin == 2 and used.Close == 2, used)
+DaylightUI = { API = { major = 2, Skin = function() end } }
+ns.ResetUI()
+used = {}
+ns.ToggleUI("bite 2")
+check("Daylight UI: another major version is left alone", not used.Skin and not used.Text)
+DaylightUI = nil
+ns.ResetUI()
+ns.ToggleUI("bite 2")
+win = _G.BeastScoutFrame
+SlashCmdList.BEASTSCOUT("")
+
 Minimap = UIFake()
 ns.CreateMinimapButton()
 check("minimap button created", _G.BeastScoutMinimapButton and _G.BeastScoutMinimapButton._shown)

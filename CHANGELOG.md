@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## Unreleased
+
+- With Daylight UI installed, the BeastScout and export windows use its look: its window shell, fonts, buttons, search box and text colours. Without it, nothing changes.
+
 ## 0.13.4
 
 - Checked on Forever's November 20 client patch (build 71037): everything works. That patch blanks the realm name, so `/bs help` no longer shows which virtual realm you're on.

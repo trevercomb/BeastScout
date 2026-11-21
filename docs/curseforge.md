@@ -31,6 +31,7 @@ Type **/beastscout** or click the minimap button:
 - **Tank:** tank families ranked by health and armor, with the closest one you can tame.
 - **Search** a skill (*bite 2*), a family (*cat*), a beast's name (*mystmane*, or just *shal*), and more.
 - **Go** puts a waypoint on your map. Beasts above your level are hidden.
+- **Daylight UI** users get the window in Daylight UI's look.
 
 ## Rare beast alert
 

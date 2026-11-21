@@ -6,21 +6,108 @@ local _, ns = ...
 
 local ROWS = 14
 local WIDTH, HEIGHT = 520, 440
-local GREY = { 0.62, 0.62, 0.62 }
-local RED = { 1, 0.35, 0.35 }
-
 local frame
+
+-- Look ---------------------------------------------------------------------------
+-- Daylight UI (an interface addon) has a public API for addons that want to
+-- look like part of it. When it's loaded, BeastScout's windows use its window
+-- shell, fonts, buttons and text colours; otherwise the game's own look.
+
+local function Daylight()
+    local API = DaylightUI and DaylightUI.API
+    if type(API) == "table" and API.major == 1 and API.Skin then return API end
+end
+
+-- Text colours by role, named as Daylight UI names them.
+local GREY = { 0.62, 0.62, 0.62 }
+local PLAIN = { TITLE = { 1, 0.82, 0 }, VALUE = { 1, 1, 1 }, TEXT = GREY, LABEL = GREY, OFF = GREY, BAD = { 1, 0.35, 0.35 } }
+
+local function Color(fs, role)
+    local API = Daylight()
+    local colors = API and API.Colors and API.Colors()
+    local c = (colors and colors[role]) or PLAIN[role]
+    fs:SetTextColor(c[1], c[2], c[3])
+end
+
+-- size: Daylight UI's "tiny" "small" "body" "head" "title"; template: the
+-- game font used without it.
+local function Text(parent, size, template)
+    local API = Daylight()
+    if API then return API.Text(parent, size) end
+    return parent:CreateFontString(nil, "OVERLAY", template)
+end
+
+local function Button(parent, text, width, height)
+    local API = Daylight()
+    local b
+    if API then
+        b = API.Button(parent, text, height or 22)
+    else
+        b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+        b:SetText(text)
+        b:SetHeight(height or 22)
+    end
+    b:SetWidth(width)
+    return b
+end
+
+-- Daylight UI's buttons keep their label in b.text.
+local function SetLabel(b, text)
+    if b.text then b.text:SetText(text) else b:SetText(text) end
+end
+
+-- A window's background and border.
+local function Shell(f, alpha)
+    local API = Daylight()
+    if API then
+        API.Skin(f, { window = true })
+        -- Daylight UI's windows carry a thin accent line along the top edge;
+        -- API.Skin leaves it out, so draw one in the player's accent.
+        local line = f:CreateTexture(nil, "ARTWORK")
+        line:SetTexture("Interface\\Buttons\\WHITE8X8")
+        line:SetHeight(2)
+        line:SetPoint("TOPLEFT", 6, -2)
+        line:SetPoint("TOPRIGHT", -6, -2)
+        local function Paint()
+            local r, g, b = API.Accent()
+            if r then line:SetVertexColor(r, g, b, 0.7) end
+        end
+        Paint()
+        if API.On then API.On("StyleChanged", Paint, "BeastScout") end
+        f.accentLine = line
+    elseif f.SetBackdrop then
+        f:SetBackdrop({
+            bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 16, edgeSize = 16,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        f:SetBackdropColor(0.05, 0.05, 0.05, alpha)
+    else
+        local bg = f:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(0.05, 0.05, 0.05, alpha)
+    end
+end
+
+local function Close(f)
+    local API = Daylight()
+    local close
+    if API then
+        close = API.Close(f, function() f:Hide() end)
+        close:SetPoint("TOPRIGHT", -10, -10)
+    else
+        close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+        close:SetPoint("TOPRIGHT", 0, 0)
+    end
+    return close
+end
+
+ns.Look = { Daylight = Daylight, Color = Color, Text = Text, Shell = Shell, Close = Close }
 
 local function SavePosition(f)
     local point, _, relativePoint, x, y = f:GetPoint(1)
     BeastScoutDB.ui = { point = point, relativePoint = relativePoint, x = x, y = y }
-end
-
-local function Button(parent, text, width)
-    local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    b:SetSize(width, 22)
-    b:SetText(text)
-    return b
 end
 
 local function Show(result)
@@ -28,25 +115,21 @@ local function Show(result)
     for _, row in ipairs(f.rows) do row:Hide() end
     if result.error then
         f.title:SetText(result.error)
-        f.title:SetTextColor(RED[1], RED[2], RED[3])
+        Color(f.title, "BAD")
         f.note:SetText("")
         return
     end
     f.title:SetText(result.title:sub(1, 1):upper() .. result.title:sub(2))
-    f.title:SetTextColor(1, 0.82, 0)
+    Color(f.title, "TITLE")
     for i, data in ipairs(result.rows) do
         local row = f.rows[i]
         if not row then break end
         row.full = i .. ". " .. data.text
         row.text:SetText(row.full)
-        if data.grey then
-            row.text:SetTextColor(GREY[1], GREY[2], GREY[3])
-        else
-            row.text:SetTextColor(1, 1, 1)
-        end
+        Color(row.text, data.grey and "OFF" or "VALUE")
         -- One button per row: Remove for pet stats, Go for a known spot.
         row.data = data
-        row.way:SetText(data.forget and "Remove" or "Go")
+        SetLabel(row.way, data.forget and "Remove" or "Go")
         row.way:SetWidth(data.forget and 70 or 40)
         row.way:SetShown(data.forget ~= nil or data.spot ~= nil)
         row:Show()
@@ -86,40 +169,41 @@ local function Make()
         self:StopMovingOrSizing()
         SavePosition(self)
     end)
-    if f.SetBackdrop then
-        f:SetBackdrop({
-            bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-            tile = true, tileSize = 16, edgeSize = 16,
-            insets = { left = 4, right = 4, top = 4, bottom = 4 },
-        })
-        f:SetBackdropColor(0.05, 0.05, 0.05, 0.92)
-    else
-        local bg = f:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
-        bg:SetColorTexture(0.05, 0.05, 0.05, 0.92)
-    end
+    Shell(f, 0.92)
+    local daylight = Daylight()
     table.insert(UISpecialFrames, "BeastScoutFrame") -- Escape closes it
 
-    local heading = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    local heading = Text(f, "title", "GameFontNormalLarge")
     heading:SetPoint("TOPLEFT", 16, -14)
-    heading:SetText("|cffabd473BeastScout|r")
-    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-    close:SetPoint("TOPRIGHT", 0, 0)
+    if daylight then
+        heading:SetText("BeastScout")
+        Color(heading, "TITLE")
+    else
+        heading:SetText("|cffabd473BeastScout|r")
+    end
+    Close(f)
 
     -- Search box: anything /beastscout find understands.
-    local search = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+    local search
+    if daylight then
+        search = daylight.Input(f, { search = true })
+        search:SetSize(330, 24)
+        search:SetPoint("TOPLEFT", 16, -44)
+    else
+        search = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+        search:SetSize(330, 22)
+        search:SetPoint("TOPLEFT", 22, -44)
+    end
     f.search = search
-    search:SetSize(330, 22)
-    search:SetPoint("TOPLEFT", 22, -44)
     search:SetAutoFocus(false)
     search:SetScript("OnEnterPressed", function(self) Run(self:GetText()) end)
     search:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     local find = Button(f, "Find", 70)
     find:SetPoint("LEFT", search, "RIGHT", 8, 0)
     find:SetScript("OnClick", function() Run(search:GetText()) end)
-    local hint = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("TOPLEFT", search, "BOTTOMLEFT", -4, -2)
+    local hint = Text(f, "tiny", "GameFontDisableSmall")
+    hint:SetPoint("TOPLEFT", search, "BOTTOMLEFT", daylight and 2 or -4, -3)
+    if daylight then Color(hint, "LABEL") end
     hint:SetText("A skill (bite 2), a family (cat), a beast's name, fast, tank, upgrades or pets")
 
     local quick = { { "Fastest", "fast", 90 }, { "Tank", "tank", 70 }, { "Upgrades for my pet", "upgrades", 150 } }
@@ -131,7 +215,7 @@ local function Make()
         last = b
     end
 
-    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local title = Text(f, "body", "GameFontNormal")
     f.title = title
     title:SetPoint("TOPLEFT", 18, -118)
     title:SetWidth(WIDTH - 36)
@@ -144,14 +228,13 @@ local function Make()
         local row = CreateFrame("Button", nil, f)
         row:SetSize(WIDTH - 36, 18)
         row:SetPoint("TOPLEFT", 18, -138 - (i - 1) * 19)
-        local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        local text = Text(row, "small", "GameFontHighlightSmall")
         text:SetPoint("LEFT")
         text:SetWidth(WIDTH - 36 - 50)
         text:SetJustifyH("LEFT")
         text:SetWordWrap(false)
         row.text = text
-        local way = Button(row, "Go", 40)
-        way:SetHeight(18)
+        local way = Button(row, "Go", 40, 18)
         way:SetPoint("RIGHT")
         way:SetScript("OnClick", function()
             local data = row.data
@@ -181,14 +264,16 @@ local function Make()
         f.rows[i] = row
     end
 
-    local note = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    local note = Text(f, "tiny", "GameFontDisableSmall")
     f.note = note
+    if daylight then Color(note, "TEXT") end
     note:SetPoint("BOTTOMLEFT", 18, 40)
     note:SetWidth(WIDTH - 36)
     note:SetJustifyH("LEFT")
 
-    local footer = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    local footer = Text(f, "tiny", "GameFontDisableSmall")
     f.footer = footer
+    if daylight then Color(footer, "LABEL") end
     footer:SetPoint("BOTTOMLEFT", 18, 18)
     local export = Button(f, "Export", 80)
     export:SetPoint("BOTTOMRIGHT", -14, 12)
@@ -218,6 +303,12 @@ function ns.ToggleUI(query)
         Run(UnitExists("pet") and "upgrades" or "fast")
     end
     frame.ran = true
+end
+
+-- Drops the window so the next open builds it again (the tests try both looks).
+function ns.ResetUI()
+    if frame then frame:Hide() end
+    frame = nil
 end
 
 -- Minimap button ---------------------------------------------------------------

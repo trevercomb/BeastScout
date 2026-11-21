@@ -5,6 +5,7 @@
 ## IconTexture: Interface\AddOns\BeastScout\Media\icon
 ## Version: 0.13.4
 ## SavedVariables: BeastScoutDB
+## OptionalDeps: DaylightUI
 ## X-Curse-Project-ID: 1802153
 
 Data.lua
