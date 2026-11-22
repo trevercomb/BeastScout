@@ -1,11 +1,13 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.6
 
 - A beast whose skills are known from a tame, with no Faster or Slower Attack among them, now shows attack speed 2.0 (no attack speed skill) instead of unknown. Every such tame so far was 2.0; a tame's own reading still wins.
 - Forever's Beast Lore no longer lists a beast's skills, so the tooltip now says an unknown attack speed is known once someone tames one, instead of pointing you to Beast Lore.
 - BeastScout's waypoints clear themselves when you get there, and `/beastscout way clear` removes one.
 - `/beastscout way Ashenvale 42.6 72.1` puts a waypoint anywhere, and `/beastscout way 42.6 72.1` does it in the zone you're in. The start of a zone's name is enough (`way ashen 42.6 72.1`).
+- Bundled data from players' tames: Gray Fox (Duskwood, Trickster's Dance 1, 2.0) and Ghostfang (Dun Morogh, Claw 2), which the Hunter's Handbook doesn't have; Mottled Scytheclaw teaches Savage Rend 2; Giant Moss Creeper teaches Bite 4 and Web 2; Savannah Patriarch teaches Cower 4, not Cower 2; Young, adult and Elder Stranglethorn Tigers, Prideclaw, Winter Wolf, Windsong Crawler and Elder Ashenvale Bear.
+- More spawn points in Duskwood, Wetlands, Ashenvale and Hillsbrad.
 
 ## 0.13.5
 
