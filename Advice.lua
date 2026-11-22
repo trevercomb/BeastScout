@@ -282,6 +282,7 @@ local results = {} -- the last /beastscout find, for /beastscout way N and the c
 -- placed once you're there; the game leaves it up otherwise.
 local ARRIVED = 15 -- yards
 local placed -- { mapID, x, y (0-1), continent, wx, wy } of the waypoint BeastScout set
+local watching -- a WatchArrival check is queued; only one loop runs at a time
 
 local function StillOurs()
     if not (placed and C_Map and C_Map.GetUserWaypoint) then return placed ~= nil end
@@ -297,7 +298,8 @@ local function ClearWaypoint()
 end
 
 local function WatchArrival()
-    if not placed then return end
+    watching = false
+    if not (placed and placed.continent) then return end
     if not StillOurs() then placed = nil return end -- cleared or replaced by you
     local continent, wx, wy = PlayerWorldPos()
     if continent and continent == placed.continent
@@ -306,7 +308,7 @@ local function WatchArrival()
         ClearWaypoint()
         return
     end
-    if C_Timer then C_Timer.After(2, WatchArrival) end
+    if C_Timer then watching = true C_Timer.After(2, WatchArrival) end
 end
 
 -- Puts the map waypoint on zone x, y (map percent). what: who's there, for chat.
@@ -330,11 +332,20 @@ local function Place(zone, x, y, what)
         .. (ok and " It clears when you get there, or with /beastscout way clear." or ""))
     if ok then
         local continent, wx, wy = WorldPos(mapID, x, y)
-        local watching = placed ~= nil
         placed = { mapID = mapID, x = x / 100, y = y / 100, continent = continent, wx = wx, wy = wy }
-        if continent and not watching and C_Timer then C_Timer.After(2, WatchArrival) end
+        if continent and not watching and C_Timer then watching = true C_Timer.After(2, WatchArrival) end
     end
     return ok
+end
+
+-- A waypoint to one find result (a row of the window, or of the last find).
+function ns.WaypointTo(m)
+    if not m.spot then
+        print(HEADER .. ": no spawn point known for " .. (m.name or "that one")
+            .. (m.where and ("; look in " .. m.where) or "") .. ".")
+        return
+    end
+    Place(m.spot[1], m.spot[2], m.spot[3], m.name)
 end
 
 function ns.Waypoint(index)
@@ -343,12 +354,7 @@ function ns.Waypoint(index)
         print(HEADER .. ": run /beastscout find first, then /beastscout way <number>.")
         return
     end
-    if not m.spot then
-        print(HEADER .. ": no spawn point known for " .. (m.name or "that one")
-            .. (m.where and ("; look in " .. m.where) or "") .. ".")
-        return
-    end
-    Place(m.spot[1], m.spot[2], m.spot[3], m.name)
+    ns.WaypointTo(m)
 end
 
 -- A zone by the name you typed: the whole name in any case, or the start of

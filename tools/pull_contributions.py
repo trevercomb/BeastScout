@@ -44,6 +44,23 @@ def known_names():
     return families, abilities
 
 
+_RANKS = None
+
+
+def real_ranks():
+    """Each ability's real ranks, from Training.lua, like the addon's RealRank."""
+    global _RANKS
+    if _RANKS is None:
+        text = (ROOT / "Training.lua").read_text(encoding="utf-8")
+        _RANKS = {}
+        for name, body in re.findall(r'^    \["([^"]+)"\] = \{(.*)\},?$', text, re.M):
+            ranks = re.search(r'ranks = \{(.*?)\}, spell', body)
+            found = {int(n) for n in re.findall(r'\[(\d+)\] =', ranks.group(1))} if ranks else set()
+            if found:
+                _RANKS[name] = found
+    return _RANKS
+
+
 def problems(npc_id, b, families, abilities):
     found = []
     if not 1 <= npc_id <= 10_000_000:
@@ -63,8 +80,12 @@ def problems(npc_id, b, families, abilities):
     for ability, rank in b.get("teaches", []):
         if ability not in abilities:
             found.append(f"unknown ability {ability!r}")
-        if not 1 <= rank <= 10:
+        ranks = real_ranks().get(ability)
+        if not 1 <= rank <= 10 or (ranks and rank not in ranks):
             found.append(f"{ability} rank {rank} out of range")
+    for spot in b.get("spots", []):
+        if len(spot) != 3 or not all(isinstance(v, (int, float)) and 0 <= v <= 100 for v in spot[1:]):
+            found.append(f"spot {spot!r} off the map")
     return found
 
 

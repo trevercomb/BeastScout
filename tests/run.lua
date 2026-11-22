@@ -393,9 +393,11 @@ C_Map = {
     GetUserWaypoint = function() return waypoint end,
     ClearUserWaypoint = function() waypoint = nil end,
 }
+local mapFake = C_Map -- later tests swap C_Map out; the review tests put this back
 UiMapPoint = { CreateFromCoordinates = function(id, x, y)
     return { mapID = id, x = x, y = y, uiMapID = id, position = { x = x, y = y } }
 end }
+local pointFake = UiMapPoint
 
 mark = #printed
 SlashCmdList.BEASTSCOUT("find bite 2")
@@ -1509,6 +1511,61 @@ do
     check("a Spanish share is listed by its English name", found:find("Elder Ashenvale Bear", 1, true)
         and not found:find("Oso viejo de Vallefresno (", 1, true), found)
     BeastScoutDB.guild[3810] = nil
+end
+
+-- Fixes from the full review ------------------------------------------------------
+do
+    -- Shares: an ID the saved file couldn't load back, and escape codes in names.
+    check("share: infinite NPC ID rejected", ns.DecodeRecord("R1;1e999;X;Wolf;1;2;t;;Bite1;") == nil)
+    check("share: huge NPC ID rejected", ns.DecodeRecord("R1;99999999999;X;Wolf;1;2;t;;Bite1;") == nil)
+    local _, rep = ns.DecodeRecord("R1;5;|TInterface\\x:0|tFake;Cat;1;2;t;;Bite1;")
+    check("share: escape codes stripped from names", rep and not rep.name:find("|", 1, true), rep and rep.name)
+
+    -- A tame that's interrupted, then your old pet called back: not recorded.
+    local realChannel = UnitChannelInfo
+    local function tryTame(id, endEvent, channeling)
+        units.target = { name = "Fail Wolf", family = "Wolf", level = 10, guid = "Creature-0-1-2-3-" .. id .. "-0000ABCD" }
+        ns.OnCollectEvent("PLAYER_TARGET_CHANGED")
+        units.pet = nil
+        ns.OnCollectEvent("UNIT_SPELLCAST_SENT", "player", "Fail Wolf", "cast-fail", 1515)
+        if channeling then UnitChannelInfo = function() return "Tame Beast" end end
+        ns.OnCollectEvent(endEvent, "player", "cast-fail", 1515)
+        UnitChannelInfo = realChannel
+        units.pet = { name = "Old Wolf", family = "Wolf", level = 30, guid = "Pet-0-1-2-3-555-OLD" }
+        petSpells = { { "Bite", "Rank 4" } }
+        ns.OnCollectEvent("UNIT_PET", "player")
+        runTimers()
+        units.pet, units.target = nil, nil
+        return BeastScoutDB.npcs[id] and BeastScoutDB.npcs[id].teaches
+    end
+    check("interrupted tame: old pet not recorded", tryTame(990201, "UNIT_SPELLCAST_INTERRUPTED") == nil)
+    check("failed tame: old pet not recorded", tryTame(990202, "UNIT_SPELLCAST_FAILED") == nil)
+    check("FAILED from a key press mid-channel keeps the tame", tryTame(990203, "UNIT_SPELLCAST_FAILED", true) ~= nil)
+
+    -- A secret level (in combat) is skipped, not compared.
+    local realSecret = issecretvalue
+    issecretvalue = function(v) return v == 77 end
+    units.mouseover = { name = "Secret Cat", family = "Cat", level = 77, guid = "Creature-0-1-2-3-990204-0000ABCD" }
+    local ok = pcall(ns.Observe, "mouseover")
+    issecretvalue = realSecret
+    check("secret level: no error, no level saved", ok and BeastScoutDB.npcs[990204] and BeastScoutDB.npcs[990204].levelMin == nil)
+
+    -- A window row's Go uses that row's beast, not the last /bs find.
+    local realMap, realPoint = C_Map, UiMapPoint
+    C_Map, UiMapPoint = mapFake, pointFake
+    ns.WaypointTo({ name = "Row Beast", spot = { "Elwynn Forest", 10, 20 } })
+    check("Go: the row's own spot", waypoint and waypoint.mapID == 1429 and math.abs(waypoint.y - 0.2) < 0.0001)
+
+    -- Clear, then a new waypoint at once: still one arrival watch.
+    SlashCmdList.BEASTSCOUT("way clear")
+    runTimers()
+    SlashCmdList.BEASTSCOUT("way 80 80")
+    SlashCmdList.BEASTSCOUT("way clear")
+    SlashCmdList.BEASTSCOUT("way 81 81")
+    check("one arrival watch after clear and re-place", #timers == 1, #timers)
+    SlashCmdList.BEASTSCOUT("way clear")
+    runTimers()
+    C_Map, UiMapPoint = realMap, realPoint
 end
 
 print = realPrint

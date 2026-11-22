@@ -74,6 +74,10 @@ local function Record(npcId, name, family, level, zone, spot)
     local db = BeastScoutDB.npcs
     local r = db[npcId] or {}
     db[npcId] = r
+    -- In combat a unit's name and level can be secret values, which can't be
+    -- compared or saved; keep what we knew.
+    if IsSecret(name) then name = nil end
+    if IsSecret(level) or type(level) ~= "number" then level = nil end
     r.name, r.family = name or r.name, family or r.family
     if level and level > 0 then
         r.levelMin = math.min(r.levelMin or level, level)
@@ -288,6 +292,15 @@ local function OnTameSpell(event, spellId)
         end
     end
     if not isTame then return end
+    -- A tame that didn't land: forget it, or calling your old pet within the
+    -- minute would be recorded as this beast's tame. FAILED also fires when
+    -- you press the key again mid-channel, so only count it when not channeling.
+    if event == "UNIT_SPELLCAST_INTERRUPTED"
+            or (event == "UNIT_SPELLCAST_FAILED" and not (UnitChannelInfo and UnitChannelInfo("player"))) then
+        if pending then Debug("tame of", pending.name, "didn't land") end
+        pending = nil
+        return
+    end
     -- A new cast starts over; later events of the same cast keep its target.
     if event ~= "UNIT_SPELLCAST_SENT" and pending and GetTime() - pending.at < 30 then return end
 
@@ -324,7 +337,10 @@ ns.PetSpellbook = PetSpellbook
 local function TryCaptureTame(final)
     if not pending or GetTime() - pending.at > 60 then pending = nil return true end
     if not UnitExists("pet") then Debug("no pet yet") return false end
-    if UnitGUID("pet") == pending.oldPet then Debug("still the old pet") return false end
+    local petGuid = UnitGUID("pet")
+    if petGuid == pending.oldPet then Debug("still the old pet") return false end
+    -- Pet GUIDs can't tell a new tame from a called pet: in Forever every
+    -- hunter pet's GUID carries creature ID 165189 (seen 2026-11-22, taming 628).
     local petFamily = ns.FamilyOf("pet")
     if petFamily ~= pending.family then
         Debug("pet family", petFamily, "isn't", pending.family)
@@ -479,7 +495,7 @@ function ns.StartCollecting(frame)
     frame:RegisterEvent("PLAYER_TARGET_CHANGED")
     frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     for _, event in ipairs({ "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START",
-        "UNIT_SPELLCAST_SUCCEEDED", "UNIT_PET" }) do
+        "UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED", "UNIT_PET" }) do
         frame:RegisterUnitEvent(event, "player")
     end
     frame:RegisterUnitEvent("UNIT_LEVEL", "pet")

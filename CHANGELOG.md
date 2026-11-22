@@ -1,5 +1,13 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Fixed: a tame that was interrupted or failed, followed by calling your own pet back within a minute, could record your pet's skills as the wild beast's.
+- Fixed: the window's Go buttons could set a waypoint for a different beast after a `/bs find` in chat.
+- Fixed: if adding BeastScout's lines to a tooltip ever failed, it kept retrying and could pile up partial lines.
+- Fixed: a beast targeted in combat could fail to record when its name or level was hidden.
+- Sharing is safer: a malformed share can no longer store a beast ID your saved data can't load back, and shared beast names can't carry icons, links or colours.
+
 ## 0.13.6
 
 - A beast whose skills are known from a tame, with no Faster or Slower Attack among them, now shows attack speed 2.0 (no attack speed skill) instead of unknown. Every such tame so far was 2.0; a tame's own reading still wins.

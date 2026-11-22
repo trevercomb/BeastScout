@@ -172,8 +172,11 @@ local function PollTooltip(tooltip)
         ns.ReadBeastLore(tooltip, unit)
         return
     end
-    OnTooltipUnit(tooltip)
+    -- Marked done even if adding fails partway, or every poll would add the
+    -- same lines again on top of the half-added ones.
+    local ok, err = pcall(OnTooltipUnit, tooltip)
     added.guid, added.lines = guid, tooltip:NumLines()
+    if not ok then ns.Debug("tooltip error:", err) end
 end
 
 local function HookTooltip()

@@ -44,6 +44,13 @@ local function Clean(text)
     return (tostring(text or ""):gsub("[;|,\n]", ""):sub(1, 40))
 end
 
+-- NPC IDs are well under this; anything bigger (or 1e999, infinity) from a
+-- share would be a key the saved file can't load back.
+local MAX_NPC_ID = 10000000
+local function GoodNpcId(id)
+    return type(id) == "number" and id >= 1 and id <= MAX_NPC_ID and id == math.floor(id)
+end
+
 function ns.EncodeRecord(npcId, r, passed)
     if not (r and r.name and r.family) then return nil end
     local speed = r.speedSource == "tame" and r.speed or nil
@@ -78,9 +85,10 @@ function ns.DecodeRecord(msg)
     for field in (msg .. SEP):gmatch("(.-)" .. SEP) do f[#f + 1] = field end
     if (f[1] ~= VERSION and f[1] ~= PASSED) or #f < 10 then return nil end
     local npcId = tonumber(f[2])
-    if not npcId or npcId < 1 or npcId ~= math.floor(npcId) then return nil end
-    if f[3] == "" or not ns.FAMILIES[f[4]] then return nil end
-    local report = { name = f[3], family = f[4], levelMin = Level(f[5]), levelMax = Level(f[6]),
+    if not GoodNpcId(npcId) then return nil end
+    local name = Clean(f[3]) -- no | escapes (icons, links, colours) from others
+    if name == "" or not ns.FAMILIES[f[4]] then return nil end
+    local report = { name = name, family = f[4], levelMin = Level(f[5]), levelMax = Level(f[6]),
         passed = f[1] == PASSED or nil }
     if report.levelMin and report.levelMax and report.levelMin > report.levelMax then
         report.levelMin, report.levelMax = report.levelMax, report.levelMin
@@ -408,7 +416,13 @@ ns.IsMe = IsMe
 -- and redo speeds the way DecodeRecord does now.
 local function CleanSavedReports()
     for npcId, by in pairs(BeastScoutDB.guildReports or {}) do
+        if not GoodNpcId(npcId) then
+            BeastScoutDB.guildReports[npcId] = nil
+            if BeastScoutDB.guild then BeastScoutDB.guild[npcId] = nil end
+            by = {}
+        end
         for sender, rep in pairs(by) do
+            if rep.name then rep.name = Clean(rep.name) end
             if IsMe(sender) then
                 by[sender] = nil
             else

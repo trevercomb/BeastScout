@@ -241,8 +241,8 @@ local function Make()
             if data and data.forget then
                 data.forget()
                 Run(frame.search:GetText())
-            else
-                ns.Waypoint(i)
+            elseif data then
+                ns.WaypointTo(data) -- this row's own beast, whatever was searched since
             end
         end)
         way:SetScript("OnEnter", function(self)
