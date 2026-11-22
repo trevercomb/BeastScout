@@ -1,0 +1,12 @@
+-- Shared in game by another BeastScout player, synced by tools/sync_local.py.
+-- Only beasts at least two players agreed on. Regenerated on every sync.
+-- author: p-84c9a018c982
+    [157] = { name="Goretusk", family="Boar", levelMin=14, levelMax=15, speed=2, speedSource="tame", teaches={ {"Charge", 2} }, teachesSource="tame", spots={ {"Westfall", 48.04, 51.94} }, zones={ "Westfall" } },
+    [524] = { name="Rockhide Boar", family="Boar", levelMin=7, levelMax=8, speed=2, speedSource="tame", teaches={ {"Charge", 1} }, teachesSource="tame", spots={ {"Elwynn Forest", 59.53, 79.79} }, zones={ "Elwynn Forest" } },
+    [681] = { name="Young Stranglethorn Tiger", family="Cat", levelMin=30, levelMax=31, speed=1.3, speedSource="tame", teaches={ {"Cower", 3}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 34.81, 12.18} }, zones={ "Stranglethorn Vale" } },
+    [682] = { name="Stranglethorn Tiger", family="Cat", levelMin=32, levelMax=33, speed=1.3, speedSource="tame", teaches={ {"Dash", 1}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 31.04, 11.51} }, zones={ "Stranglethorn Vale" } },
+    [833] = { name="Coyote Packleader", family="Wolf", levelMin=11, levelMax=12, speed=2, speedSource="tame", teaches={ {"Bite", 2}, {"Furious Howl", 1} }, teachesSource="tame", spots={ {"Westfall", 59.48, 35.84} }, zones={ "Westfall" } },
+    [1188] = { name="Grizzled Black Bear", family="Bear", levelMin=13, levelMax=14, speed=2, speedSource="tame", teaches={ {"Swipe", 1} }, teachesSource="tame", spots={ {"Loch Modan", 42.81, 61.24} }, zones={ "Loch Modan" } },
+    [1216] = { name="Shore Crawler", family="Crab", levelMin=17, levelMax=18, speed=2, speedSource="tame", teaches={ {"Claw", 3}, {"Pinch", 1} }, teachesSource="tame", spots={ {"Westfall", 34.28, 82.82} }, zones={ "Westfall" } },
+    [2237] = { name="Moonstalker Sire", family="Cat", levelMin=17, levelMax=18, speed=1.3, speedSource="tame", teaches={ {"Cower", 2}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Darkshore", 39.28, 80.21} }, zones={ "Darkshore" } },
+    [3823] = { name="Ghostpaw Runner", family="Wolf", levelMin=19, levelMax=20, speed=2, speedSource="tame", teaches={ {"Bite", 3} }, teachesSource="tame", spots={ {"Ashenvale", 29.56, 18.06} }, zones={ "Ashenvale" } },
