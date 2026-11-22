@@ -278,6 +278,65 @@ end
 
 local results = {} -- the last /beastscout find, for /beastscout way N and the chat links
 
+-- The game has one map waypoint (the map pin). BeastScout clears the one it
+-- placed once you're there; the game leaves it up otherwise.
+local ARRIVED = 15 -- yards
+local placed -- { mapID, x, y (0-1), continent, wx, wy } of the waypoint BeastScout set
+
+local function StillOurs()
+    if not (placed and C_Map and C_Map.GetUserWaypoint) then return placed ~= nil end
+    local ok, point = pcall(C_Map.GetUserWaypoint)
+    if not ok or not point then return false end
+    local px, py = point.position and point.position.x or point.x, point.position and point.position.y or point.y
+    return point.uiMapID == placed.mapID and px and math.abs(px - placed.x) < 0.0005 and math.abs(py - placed.y) < 0.0005
+end
+
+local function ClearWaypoint()
+    if C_Map and C_Map.ClearUserWaypoint then pcall(C_Map.ClearUserWaypoint) end
+    placed = nil
+end
+
+local function WatchArrival()
+    if not placed then return end
+    if not StillOurs() then placed = nil return end -- cleared or replaced by you
+    local continent, wx, wy = PlayerWorldPos()
+    if continent and continent == placed.continent
+            and math.sqrt((wx - placed.wx) ^ 2 + (wy - placed.wy) ^ 2) <= ARRIVED then
+        print(HEADER .. ": you're there; waypoint cleared.")
+        ClearWaypoint()
+        return
+    end
+    if C_Timer then C_Timer.After(2, WatchArrival) end
+end
+
+-- Puts the map waypoint on zone x, y (map percent). what: who's there, for chat.
+local function Place(zone, x, y, what)
+    local at = zone .. " " .. x .. ", " .. y
+    local mapID = MapID(zone)
+    if not (mapID and C_Map and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates) then
+        print(HEADER .. ": can't place a waypoint here. " .. (what and (what .. " is at ") or "That's ") .. at .. ".")
+        return false
+    end
+    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(mapID) then
+        print(HEADER .. ": " .. zone .. " doesn't allow waypoints" .. (what and (". " .. what .. " is at " .. x .. ", " .. y) or "") .. ".")
+        return false
+    end
+    local ok = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x / 100, y / 100))
+    if ok and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+    end
+    print(HEADER .. ": " .. (ok and "waypoint set" or "couldn't set a waypoint")
+        .. (what and (" for " .. what .. ",") or " on") .. " " .. at .. "."
+        .. (ok and " It clears when you get there, or with /beastscout way clear." or ""))
+    if ok then
+        local continent, wx, wy = WorldPos(mapID, x, y)
+        local watching = placed ~= nil
+        placed = { mapID = mapID, x = x / 100, y = y / 100, continent = continent, wx = wx, wy = wy }
+        if continent and not watching and C_Timer then C_Timer.After(2, WatchArrival) end
+    end
+    return ok
+end
+
 function ns.Waypoint(index)
     local m = results[tonumber(index) or 0]
     if not m then
@@ -289,22 +348,72 @@ function ns.Waypoint(index)
             .. (m.where and ("; look in " .. m.where) or "") .. ".")
         return
     end
-    local zone, x, y = m.spot[1], m.spot[2], m.spot[3]
-    local mapID = MapID(zone)
-    if not (mapID and C_Map and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates) then
-        print(HEADER .. ": can't place a waypoint here. " .. m.name .. " is at " .. zone .. " " .. x .. ", " .. y .. ".")
+    Place(m.spot[1], m.spot[2], m.spot[3], m.name)
+end
+
+-- A zone by the name you typed: the whole name in any case, or the start of
+-- one ("hills" for Hillsbrad Foothills) when only one zone starts that way.
+local function FindZone(typed)
+    typed = typed:lower()
+    for name in pairs(ns.ZONE_MAP_IDS) do
+        if name:lower() == typed then return name end
+    end
+    local id = MapID(typed) -- a zone the game's map knows (new Forever zones)
+    if id then
+        local info = C_Map.GetMapInfo(id)
+        return info and info.name or typed
+    end
+    local found
+    for name in pairs(ns.ZONE_MAP_IDS) do
+        if name:lower():sub(1, #typed) == typed then
+            if found then return nil, true end
+            found = name
+        end
+    end
+    return found
+end
+
+local function CurrentZone()
+    if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo) then return nil end
+    local ok, info = pcall(function() return C_Map.GetMapInfo(C_Map.GetBestMapForUnit("player")) end)
+    return ok and info and info.name
+end
+
+-- /beastscout way: a row number, "clear", "x y" (your zone) or "zone x y".
+function ns.WayCommand(rest)
+    rest = (rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    local word = rest:lower()
+    if word == "clear" or word == "off" or word == "remove" then
+        local ours = StillOurs()
+        ClearWaypoint()
+        print(HEADER .. ": " .. (ours and "waypoint cleared." or "map waypoint cleared."))
         return
     end
-    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(mapID) then
-        print(HEADER .. ": " .. zone .. " doesn't allow waypoints. " .. m.name .. " is at " .. x .. ", " .. y .. ".")
+    if rest:match("^%d+$") then return ns.Waypoint(rest) end
+    local zoneText, x, y = rest:gsub(",", " "):match("^(.-)%s*([%d%.]+)%s+([%d%.]+)$")
+    x, y = tonumber(x), tonumber(y)
+    if not (x and y) then
+        print(HEADER .. ": /beastscout way 2 (a row of the last find), way Ashenvale 42.6 72.1, way 42.6 72.1 (your zone), or way clear.")
         return
     end
-    local ok = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x / 100, y / 100))
-    if ok and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
-        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+    if x < 0 or x > 100 or y < 0 or y > 100 then
+        print(HEADER .. ": map coordinates go from 0 to 100.")
+        return
     end
-    print(HEADER .. ": " .. (ok and "waypoint set" or "couldn't set a waypoint") .. " for " .. m.name
-        .. ", " .. zone .. " " .. x .. ", " .. y .. ".")
+    local zone
+    if zoneText == "" then
+        zone = CurrentZone()
+        if not zone then print(HEADER .. ": can't tell which zone you're in; add it: way Ashenvale 42.6 72.1.") return end
+    else
+        local many
+        zone, many = FindZone(zoneText)
+        if not zone then
+            print(HEADER .. ": " .. (many and ("more than one zone starts with \"" .. zoneText .. "\"; type more of it.")
+                or ("no zone called \"" .. zoneText .. "\".")))
+            return
+        end
+    end
+    Place(zone, x, y)
 end
 
 -- Clickable [Waypoint] in chat. Newer clients pass "addon:" links to

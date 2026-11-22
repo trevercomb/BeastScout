@@ -390,8 +390,12 @@ C_Map = {
     GetBestMapForUnit = function() return 1426 end,
     GetPlayerMapPosition = function() return { x = 0.33, y = 0.43 } end,
     SetUserWaypoint = function(point) waypoint = point end,
+    GetUserWaypoint = function() return waypoint end,
+    ClearUserWaypoint = function() waypoint = nil end,
 }
-UiMapPoint = { CreateFromCoordinates = function(id, x, y) return { mapID = id, x = x, y = y } end }
+UiMapPoint = { CreateFromCoordinates = function(id, x, y)
+    return { mapID = id, x = x, y = y, uiMapID = id, position = { x = x, y = y } }
+end }
 
 mark = #printed
 SlashCmdList.BEASTSCOUT("find bite 2")
@@ -431,6 +435,41 @@ check("waypoint set on Dun Morogh", waypoint and waypoint.mapID == 1426 and math
 check("waypoint confirmed in chat", printed[#printed]:find("waypoint set for Starving Winter Wolf", 1, true), printed[#printed])
 SlashCmdList.BEASTSCOUT("way 99")
 check("bad waypoint number explained", printed[#printed]:find("run /beastscout find first", 1, true), printed[#printed])
+
+SlashCmdList.BEASTSCOUT("way clear")
+check("way clear removes it", waypoint == nil and printed[#printed]:find("waypoint cleared", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("way Elwynn Forest 42.6 72.1")
+check("way <zone> <x> <y>", waypoint and waypoint.mapID == 1429 and math.abs(waypoint.x - 0.426) < 0.0001
+    and math.abs(waypoint.y - 0.721) < 0.0001, waypoint and (waypoint.mapID .. " " .. waypoint.x))
+check("custom waypoint confirmed", printed[#printed]:find("waypoint set on Elwynn Forest 42.6, 72.1", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("way elwynn 10, 20")
+check("way: start of a zone name, commas fine", waypoint and waypoint.mapID == 1429 and math.abs(waypoint.y - 0.2) < 0.0001)
+SlashCmdList.BEASTSCOUT("way 50 60")
+check("way x y: your own zone", waypoint and waypoint.mapID == 1426 and math.abs(waypoint.x - 0.5) < 0.0001)
+SlashCmdList.BEASTSCOUT("way 150 20")
+check("way: coordinates out of range", printed[#printed]:find("0 to 100", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("way narnia 10 20")
+check("way: unknown zone named", printed[#printed]:find('no zone called "narnia"', 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("way d 10 20")
+check("way: a start shared by several zones asks for more", printed[#printed]:find("more than one zone", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("way")
+check("way alone explains", printed[#printed]:find("way Ashenvale 42.6 72.1", 1, true), printed[#printed])
+
+-- You're at Dun Morogh 33, 43. A waypoint far off stays; one you reach clears.
+SlashCmdList.BEASTSCOUT("way clear")
+runTimers() -- the watch on the waypoints above sees them gone and stops
+SlashCmdList.BEASTSCOUT("way 80 80")
+table.remove(timers, 1)()
+check("waypoint stays until you get there", waypoint ~= nil and #timers == 1)
+SlashCmdList.BEASTSCOUT("way 33.5 43")
+table.remove(timers, 1)()
+check("waypoint clears when you arrive", waypoint == nil and printed[#printed]:find("you're there", 1, true), printed[#printed])
+check("and stops watching", #timers == 0)
+SlashCmdList.BEASTSCOUT("way 80 80")
+waypoint = UiMapPoint.CreateFromCoordinates(1429, 0.1, 0.1) -- you put your own pin on the map
+table.remove(timers, 1)()
+check("your own map pin is left alone", waypoint and waypoint.mapID == 1429 and #timers == 0)
+waypoint = nil
 
 -- Sightings record where you stood.
 units.target = { name = "Winter Wolf", family = "Wolf", level = 7, guid = "Creature-0-1-2-3-1131-0000ABCD" }

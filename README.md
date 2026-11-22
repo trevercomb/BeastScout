@@ -32,7 +32,7 @@ Hovering your own pet shows its loyalty, happiness and training points, and what
 
 <img src="docs/screenshots/map-waypoint.jpg" alt="The world map with a BeastScout waypoint set on Loch Modan">
 
-Go (or a [Waypoint] link in chat) puts a waypoint on your map.
+Go (or a [Waypoint] link in chat) puts a waypoint on your map, and it clears itself when you get there.
 
 ## Where the data comes from
 
@@ -75,7 +75,8 @@ Everything in the window also works in chat. `/bs` is a short form of `/beastsco
 - `/beastscout find tank`: tank families ranked by health and armor bonus (Bear, Boar, Turtle, ...), each with the closest beast you can tame. The bonuses are Classic's ([Highground Gaming](https://www.highgroundgaming.com/best-hunter-pets-in-wow-classic/)); Forever's aren't published yet.
 - `/beastscout stats`: your pets' health and armor as BeastScout measured them, by family and level. These are being collected to check the Classic bonuses against Forever.
 - Find hides beasts above your level (and says how many). If none are tameable yet, it shows the lowest-level ones greyed out.
-- `/beastscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/beastscout way 2` to put a waypoint on the map.
+- `/beastscout find bite 2`: lists beasts that teach a skill (rank optional, Roman numerals work: `faster attack v`), ones you can tame at your level first, then closest to you, with zone and distance. Results are numbered; click [Waypoint] in chat or type `/beastscout way 2` to put a waypoint on the map. It clears itself when you get there.
+- `/beastscout way Ashenvale 42.6 72.1`: a waypoint anywhere you like (the start of a zone's name is enough: `way ashen 42.6 72.1`). Leave out the zone for the one you're in: `/beastscout way 42.6 72.1`. `/beastscout way clear` removes the waypoint.
 - `/beastscout find mystmane`: finds beasts by name, or part of one (`find shal` finds Shal'ma), handy for rare spawns.
 - `/beastscout find rares`: rare tameable beasts you (or bundled players) have seen. When a rare beast's nameplate shows up near you, BeastScout plays a sound and puts up a warning; rares that aren't in the Hunter's Handbook only get a quiet chat line, since they may not be tameable. Needs enemy nameplates on (V). `/beastscout alert` turns it off or on.
 - `/beastscout export`: opens a window with your observations, ready to copy.

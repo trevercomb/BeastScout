@@ -36,7 +36,7 @@ Type [b]/beastscout[/b] or click the minimap button:
 [*][b]Fastest:[/b] the fastest beasts you can tame, any family (or [i]fast cat[/i], [i]fast wolf[/i]...).
 [*][b]Tank:[/b] tank families ranked by health and armor, with the closest one you can tame.
 [*][b]Search[/b] a skill ([i]bite 2[/i]), a family ([i]cat[/i]), a beast's name ([i]mystmane[/i], or just [i]shal[/i]), and more.
-[*][b]Go[/b] puts a waypoint on your map. Beasts above your level are hidden.
+[*][b]Go[/b] puts a waypoint on your map; it clears when you get there. Beasts above your level are hidden.
 [*][b]Daylight UI[/b] users get the window in Daylight UI's look.
 [/list]
 
@@ -52,7 +52,7 @@ Built-in data: beast data from [b]Hunter's Handbook[/b] by Wood (GPLv3), family 
 
 [size=4][b]Commands[/b][/size]
 
-/beastscout (window) · /beastscout find <skill, family, name, fast, tank, upgrades, rares> · /beastscout alert · /beastscout way <number> · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
+/beastscout (window) · /beastscout find <skill, family, name, fast, tank, upgrades, rares> · /beastscout alert · /beastscout way <number, or zone x y, or x y> · /beastscout way clear · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
 
 Short form: [b]/bs[/b] works for every command (/bs find tank).
 

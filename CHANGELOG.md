@@ -1,5 +1,10 @@
 # BeastScout changelog
 
+## Unreleased
+
+- BeastScout's waypoints clear themselves when you get there, and `/beastscout way clear` removes one.
+- `/beastscout way Ashenvale 42.6 72.1` puts a waypoint anywhere, and `/beastscout way 42.6 72.1` does it in the zone you're in. The start of a zone's name is enough (`way ashen 42.6 72.1`).
+
 ## 0.13.5
 
 - With Daylight UI installed, the BeastScout and export windows use its look: its window shell, fonts, buttons, search box and text colours. Without it, nothing changes.
