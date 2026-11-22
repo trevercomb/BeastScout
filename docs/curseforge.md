@@ -32,6 +32,7 @@ Type **/beastscout** or click the minimap button:
 - **Search** a skill (*bite 2*), a family (*cat*), a beast's name (*mystmane*, or just *shal*), and more.
 - **Go** puts a waypoint on your map; it clears when you get there. Beasts above your level are hidden.
 - **Daylight UI** users get the window in Daylight UI's look.
+- **EllesmereUI** and **ElvUI** users get the window in their UI's skin (new: tell us how it looks).
 
 ## Rare beast alert
 

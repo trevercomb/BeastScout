@@ -724,6 +724,83 @@ ns.ToggleUI("bite 2")
 win = _G.BeastScoutFrame
 SlashCmdList.BEASTSCOUT("")
 
+-- EllesmereUI: BeastScout registers at load and skins through the S it's given.
+do
+    local skinned, registered = {}, nil
+    local function count(kind) return function() skinned[kind] = (skinned[kind] or 0) + 1 end end
+    local S = { IsEnabled = function() return true end, Shell = count("Shell"), Button = count("Button"),
+        EditBox = count("EditBox"), CloseButton = count("CloseButton"), Font = count("Font") }
+    EllesmereUI = { RegisterSkin = function(name, fn) registered = name; fn(S) end }
+    ns.RegisterSkins()
+    ns.ResetUI()
+    ns.ToggleUI("bite 2")
+    local ewin = _G.BeastScoutFrame
+    check("EllesmereUI: registered as BeastScout", registered == "BeastScout", registered)
+    check("EllesmereUI: window, search, close, buttons and text skinned",
+        skinned.Shell == 1 and skinned.EditBox == 1 and skinned.CloseButton == 1
+            and (skinned.Button or 0) >= 4 and (skinned.Font or 0) >= 3, skinned)
+    check("EllesmereUI: rows still fill", ewin.rows[1]._shown and ewin.rows[1].text._text:find("^1%. "))
+    SlashCmdList.BEASTSCOUT("")
+
+    -- Skinning turned off for BeastScout in EllesmereUI: the game's look.
+    skinned = {}
+    S.IsEnabled = function() return false end
+    ns.ResetUI()
+    ns.ToggleUI("bite 2")
+    check("EllesmereUI: skinning off leaves the window alone", next(skinned) == nil, skinned)
+    SlashCmdList.BEASTSCOUT("")
+
+    -- A skin that errors: that piece keeps the game's look, the window still works.
+    S.IsEnabled = function() return true end
+    S.Shell = function() error("broken skin") end
+    ns.ResetUI()
+    local ok = pcall(ns.ToggleUI, "bite 2")
+    check("EllesmereUI: a broken skin doesn't break the window", ok and _G.BeastScoutFrame._shown
+        and _G.BeastScoutFrame.rows[1]._shown)
+    SlashCmdList.BEASTSCOUT("")
+
+    -- Daylight UI wins when both are loaded.
+    skinned = {}
+    S.Shell = count("Shell")
+    DaylightUI = { API = { major = 1, Skin = function() end, Text = dui("Text"), Button = dui("Button"),
+        Close = dui("Close"), Input = dui("Input"), Accent = function() end } }
+    ns.ResetUI()
+    ns.ToggleUI("bite 2")
+    check("Daylight UI wins over EllesmereUI", next(skinned) == nil, skinned)
+    SlashCmdList.BEASTSCOUT("")
+    DaylightUI, EllesmereUI = nil, nil
+    ns.RegisterSkins() -- nothing to register with: no error
+
+    -- ElvUI: its Skins module's helpers, called as methods.
+    local calls = {}
+    local Skins = {}
+    for _, m in ipairs({ "HandleFrame", "HandleButton", "HandleEditBox", "HandleCloseButton" }) do
+        Skins[m] = function(self, obj)
+            calls[m] = (calls[m] or 0) + 1
+            calls.self = calls.self or (self == Skins)
+        end
+    end
+    local E = { GetModule = function(self, name) return name == "Skins" and Skins or nil end }
+    ElvUI = { E }
+    ns.ResetUI()
+    ns.ToggleUI("bite 2")
+    check("ElvUI: window, search, close and buttons skinned", calls.HandleFrame == 1 and calls.HandleEditBox == 1
+        and calls.HandleCloseButton == 1 and (calls.HandleButton or 0) >= 4 and calls.self, calls)
+    SlashCmdList.BEASTSCOUT("")
+    -- An ElvUI without the Skins module: left alone.
+    calls = {}
+    E.GetModule = function() error("no module") end
+    ns.ResetUI()
+    ok = pcall(ns.ToggleUI, "bite 2")
+    check("ElvUI: no Skins module, window still opens", ok and next(calls) == nil and _G.BeastScoutFrame._shown)
+    SlashCmdList.BEASTSCOUT("")
+    ElvUI = nil
+    ns.ResetUI()
+    ns.ToggleUI("bite 2")
+    win = _G.BeastScoutFrame
+    SlashCmdList.BEASTSCOUT("")
+end
+
 Minimap = UIFake()
 ns.CreateMinimapButton()
 check("minimap button created", _G.BeastScoutMinimapButton and _G.BeastScoutMinimapButton._shown)

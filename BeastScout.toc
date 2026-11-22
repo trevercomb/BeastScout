@@ -5,7 +5,7 @@
 ## IconTexture: Interface\AddOns\BeastScout\Media\icon
 ## Version: 0.13.7
 ## SavedVariables: BeastScoutDB
-## OptionalDeps: DaylightUI
+## OptionalDeps: DaylightUI, EllesmereUI, ElvUI
 ## X-Curse-Project-ID: 1802153
 
 Data.lua

@@ -244,6 +244,7 @@ function ns.ShowExport()
         local scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
         scroll:SetPoint("TOPLEFT", 12, -68)
         scroll:SetPoint("BOTTOMRIGHT", -32, 12)
+        if not daylight then Look.Skin("scrollbar", scroll.ScrollBar) end
         local edit = CreateFrame("EditBox", nil, scroll)
         edit:SetMultiLine(true)
         edit:SetFontObject(ChatFontNormal)

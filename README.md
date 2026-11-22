@@ -62,7 +62,7 @@ Type `/beastscout` or click the minimap button (paw icon; drag it to move, `/bea
 - results with a **Go** button that sets a map waypoint; hover a row to see it in full
 - **My pets** (each pet you've had out, with its skills, and Remove), **Pet stats** and **Export** buttons
 
-It opens on your pet's upgrades when a pet is out, otherwise on the fastest beasts. If you use Daylight UI, the window takes its look: its window shell, fonts, buttons and colours.
+It opens on your pet's upgrades when a pet is out, otherwise on the fastest beasts. If you use Daylight UI, the window takes its look: its window shell, fonts, buttons and colours. With EllesmereUI or ElvUI, the windows are skinned through their skinning APIs (EllesmereUI's can be turned off per addon in its options). This is new, so tell us if something looks off.
 
 ## Commands
 

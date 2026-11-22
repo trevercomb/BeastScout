@@ -18,6 +18,69 @@ local function Daylight()
     if type(API) == "table" and API.major == 1 and API.Skin then return API end
 end
 
+-- EllesmereUI and ElvUI restyle other addons' frames through their skinning
+-- APIs: BeastScout builds its window from the game's own widgets and hands
+-- each one over. Daylight UI wins if several are loaded. Every call is
+-- guarded, so a skin that errors leaves that piece in the game's look.
+
+-- EllesmereUI hands its skinner to the callback at login, and only while the
+-- player has its third-party skins on for BeastScout.
+local ellesmere
+function ns.RegisterSkins()
+    ellesmere = nil
+    if type(EllesmereUI) == "table" and type(EllesmereUI.RegisterSkin) == "function" then
+        pcall(EllesmereUI.RegisterSkin, "BeastScout", function(S) ellesmere = S end)
+    end
+end
+ns.RegisterSkins()
+
+local SKINNERS = {
+    ellesmere = function()
+        local S = ellesmere
+        if type(S) ~= "table" or (S.IsEnabled and not S.IsEnabled()) then return end
+        return {
+            window = S.Shell and function(f) S.Shell(f) end,
+            button = S.Button and function(b) S.Button(b) end,
+            input = S.EditBox and function(e) S.EditBox(e) end,
+            close = S.CloseButton and function(b) S.CloseButton(b) end,
+            scrollbar = S.ScrollBar and function(s) S.ScrollBar(s) end,
+            font = S.Font and function(fs) S.Font(fs) end,
+        }
+    end,
+    -- ElvUI's Skins module: the helpers its own skins and plugins use.
+    elvui = function()
+        local E = type(ElvUI) == "table" and ElvUI[1]
+        if type(E) ~= "table" or type(E.GetModule) ~= "function" then return end
+        local ok, S = pcall(E.GetModule, E, "Skins", true)
+        if not ok or type(S) ~= "table" then return end
+        local function Method(name)
+            return type(S[name]) == "function" and function(obj) S[name](S, obj) end or nil
+        end
+        return {
+            window = Method("HandleFrame"),
+            button = Method("HandleButton"),
+            input = Method("HandleEditBox"),
+            close = Method("HandleCloseButton"),
+            scrollbar = Method("HandleScrollBar"),
+        }
+    end,
+}
+
+local function Skinner()
+    if Daylight() then return nil end
+    return SKINNERS.ellesmere() or SKINNERS.elvui()
+end
+
+-- Skin one widget; true if the interface addon took it.
+local function Skin(kind, obj)
+    local s = obj and Skinner()
+    local fn = s and s[kind]
+    if not fn then return false end
+    local ok, err = pcall(fn, obj)
+    if not ok and ns.Debug then ns.Debug("skin", kind, "failed:", err) end
+    return ok
+end
+
 -- Text colours by role, named as Daylight UI names them.
 local GREY = { 0.62, 0.62, 0.62 }
 local PLAIN = { TITLE = { 1, 0.82, 0 }, VALUE = { 1, 1, 1 }, TEXT = GREY, LABEL = GREY, OFF = GREY, BAD = { 1, 0.35, 0.35 } }
@@ -34,7 +97,9 @@ end
 local function Text(parent, size, template)
     local API = Daylight()
     if API then return API.Text(parent, size) end
-    return parent:CreateFontString(nil, "OVERLAY", template)
+    local fs = parent:CreateFontString(nil, "OVERLAY", template)
+    Skin("font", fs)
+    return fs
 end
 
 local function Button(parent, text, width, height)
@@ -46,6 +111,7 @@ local function Button(parent, text, width, height)
         b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
         b:SetText(text)
         b:SetHeight(height or 22)
+        Skin("button", b)
     end
     b:SetWidth(width)
     return b
@@ -75,6 +141,8 @@ local function Shell(f, alpha)
         Paint()
         if API.On then API.On("StyleChanged", Paint, "BeastScout") end
         f.accentLine = line
+    elseif Skin("window", f) then
+        -- The interface addon drew the background and border.
     elseif f.SetBackdrop then
         f:SetBackdrop({
             bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -99,11 +167,12 @@ local function Close(f)
     else
         close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
         close:SetPoint("TOPRIGHT", 0, 0)
+        Skin("close", close)
     end
     return close
 end
 
-ns.Look = { Daylight = Daylight, Color = Color, Text = Text, Shell = Shell, Close = Close }
+ns.Look = { Daylight = Daylight, Color = Color, Text = Text, Shell = Shell, Close = Close, Skin = Skin }
 
 local function SavePosition(f)
     local point, _, relativePoint, x, y = f:GetPoint(1)
@@ -193,6 +262,7 @@ local function Make()
         search = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
         search:SetSize(330, 22)
         search:SetPoint("TOPLEFT", 22, -44)
+        Skin("input", search)
     end
     f.search = search
     search:SetAutoFocus(false)
