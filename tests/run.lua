@@ -1719,8 +1719,10 @@ do
         c.ours .. "/" .. c.new .. "/" .. c.handbookOnly)
     SlashCmdList.BEASTSCOUT("help")
     local line
-    for _, p in ipairs(printed) do if p:find("tracked by BeastScout players", 1, true) then line = p end end
-    check("help shows the coverage", line and line:find("2 beasts tracked by BeastScout players (1 the Hunter's Handbook doesn't have), 1 still only from the Handbook, plus 1 with spawn points only", 1, true), line)
+    for _, p in ipairs(printed) do if p:find("Hunters like you", 1, true) then line = p end end
+    check("help shows the coverage", line and line:find("Hunters like you have now shared skills and speeds for 2 beasts (1 the Handbook never had), plus spawn points for 1 more. Every tame", 1, true), line)
+    check("coverage text leaves out zeros", ns.CoverageText({ ours = 6, new = 0, spotsOnly = 0 })
+        == "Hunters like you have now shared skills and speeds for 6 beasts", ns.CoverageText({ ours = 6, new = 0, spotsOnly = 0 }))
     ns.COMMUNITY, ns.HANDBOOK = realC, realH
 end
 

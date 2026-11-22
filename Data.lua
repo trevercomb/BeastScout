@@ -112,3 +112,11 @@ function ns.Coverage()
     end
     return { ours = ours, new = newBeasts, handbookOnly = handbookOnly, spotsOnly = spotsOnly }
 end
+
+-- "Hunters like you have now shared skills and speeds for 54 beasts (5 the
+-- Handbook never had), plus spawn points for 58 more", leaving out zeros.
+function ns.CoverageText(c)
+    return "Hunters like you have now shared skills and speeds for " .. c.ours .. " beasts"
+        .. (c.new > 0 and (" (" .. c.new .. " the Handbook never had)") or "")
+        .. (c.spotsOnly > 0 and (", plus spawn points for " .. c.spotsOnly .. " more") or "")
+end

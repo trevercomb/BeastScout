@@ -17,7 +17,7 @@ Hover any tameable beast to see:
 [*][b]Upgrades for your current pet[/b], e.g. [i]Upgrade for Shalma: Claw 2 (new)[/i], or [i]Claw 3 (at pet level 16)[/i] when your pet is too young.
 [/list]
 
-Every value says where it came from: [i](you, tamed)[/i], [i](players, tamed x3)[/i] or [i](Handbook)[/i]. Every tame you share helps: [b]/beastscout help[/b] shows how many beasts BeastScout players have tracked so far, and how many still rely on the Handbook.
+Every value says where it came from: [i](you, tamed)[/i], [i](players, tamed x3)[/i] or [i](Handbook)[/i]. Every tame you share helps: [b]/beastscout help[/b] shows how many beasts hunters like you have shared so far.
 
 [size=4][b]Your pet[/b][/size]
 

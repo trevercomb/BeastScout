@@ -45,7 +45,7 @@ BeastScout's own data comes first; Hunter's Handbook only fills in what we haven
 3. **Shared in game:** what other BeastScout players online found, shared automatically (see below). Used over the players' data only when it's more reliable. Shown as e.g. `(shared, tamed x2)`.
 4. **Hunter's Handbook:** the fallback in `Handbook.lua`, 660 beasts converted from [Hunter's Handbook](https://www.curseforge.com/wow/addons/hunters-handbook) by Wood (GPLv3). Thanks to them for the research. Shown as `(Handbook)`.
 
-As players share more, the community data fills in and the fallback is needed less. `/beastscout help` shows how many beasts players' data covers, how many still come only from the Handbook, and how many more players have given spawn points for, and each release's changelog notes the count.
+As players share more, the community data fills in and the fallback is needed less. `/beastscout help` shows how many beasts' skills and speeds hunters have shared so far, and each release's changelog notes the count.
 
 Family abilities and diets are from [Seemeta](https://seemeta.com/en/wow-forever/pets), game version 1.60.1.
 

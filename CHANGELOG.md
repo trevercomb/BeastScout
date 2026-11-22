@@ -6,7 +6,7 @@
 - Sharing is harder to fool. Reports are now votes, with a tame counting more than Beast Lore: one tame still beats one Beast Lore, but a single bad report can no longer outvote several players. A level range far from what other players saw is left out.
 - Shared data now replaces your own record only when at least two players saw it themselves.
 - Saved shared data has a limit: up to 2000 beasts, dropping the one heard from least recently, and reports nobody has sent for a year are dropped at login.
-- Data: 54 beasts tracked by BeastScout players (5 the Hunter's Handbook doesn't have); 554 still come only from the Handbook. Plus 58 with spawn points only.
+- Hunters like you have now shared skills and speeds for 54 beasts (5 the Handbook never had), plus spawn points for 58 more.
 
 ## 0.13.7
 
@@ -16,7 +16,7 @@
 - Fixed: a beast targeted in combat could fail to record when its name or level was hidden.
 - Sharing is safer: a malformed share can no longer store a beast ID your saved data can't load back, and shared beast names can't carry icons, links or colours.
 - Bundled data: Savannah Patriarch's Cower 4 is back to the Hunter's Handbook's Cower 2 until a second player's tame confirms it.
-- Data: 54 beasts tracked by BeastScout players (5 the Hunter's Handbook doesn't have); 554 still come only from the Handbook. Plus 58 with spawn points only.
+- Hunters like you have now shared skills and speeds for 54 beasts (5 the Handbook never had), plus spawn points for 58 more.
 
 ## 0.13.6
 
@@ -26,41 +26,41 @@
 - `/beastscout way Ashenvale 42.6 72.1` puts a waypoint anywhere, and `/beastscout way 42.6 72.1` does it in the zone you're in. The start of a zone's name is enough (`way ashen 42.6 72.1`).
 - Bundled data from players' tames: Gray Fox (Duskwood, Trickster's Dance 1, 2.0) and Ghostfang (Dun Morogh, Claw 2), which the Hunter's Handbook doesn't have; Mottled Scytheclaw teaches Savage Rend 2; Giant Moss Creeper teaches Bite 4 and Web 2; Savannah Patriarch teaches Cower 4, not Cower 2; Young, adult and Elder Stranglethorn Tigers, Prideclaw, Winter Wolf, Windsong Crawler and Elder Ashenvale Bear.
 - More spawn points in Duskwood, Wetlands, Ashenvale and Hillsbrad.
-- Data: 55 beasts tracked by BeastScout players (5 the Hunter's Handbook doesn't have); 553 still come only from the Handbook. Plus 58 with spawn points only.
+- Hunters like you have now shared skills and speeds for 55 beasts (5 the Handbook never had), plus spawn points for 58 more.
 
 ## 0.13.5
 
 - With Daylight UI installed, the BeastScout and export windows use its look: its window shell, fonts, buttons, search box and text colours. Without it, nothing changes.
 - Bundled data, confirmed by two players' tames: Ombassa (Riverglades, Dash 2), which the Hunter's Handbook doesn't have; Ironfur Bear also teaches Swipe 3; Elder Razormaw teaches Savage Rend 2; Longtooth Runner, Scorpashi Snapper, Young Mesa Buzzard, Moonstalker Sire and Ornery Plainstrider.
 - More spawn points in Duskwood, Loch Modan, Arathi Highlands, The Barrens and Feralas.
-- Data: 42 beasts tracked by BeastScout players (4 the Hunter's Handbook doesn't have); 565 still come only from the Handbook. Plus 57 with spawn points only.
+- Hunters like you have now shared skills and speeds for 42 beasts (4 the Handbook never had), plus spawn points for 57 more.
 
 ## 0.13.4
 
 - Checked on Forever's November 20 client patch (build 71037): everything works. That patch blanks the realm name, so `/bs help` no longer shows which virtual realm you're on.
 - Bundled data, confirmed by two players' tames: Sandstrider (Desolace, Dash 1 and Dust Cloud 2), which the Hunter's Handbook doesn't have; Swamp Jaguar, Starving Mountain Lion, Thistle Bear, Forest Lurker, Young Goretusk, Rockhide Boar, Elder Crag Boar, Moonstalker Runt and Ashenvale Bear.
-- Data: 34 beasts tracked by BeastScout players (3 the Hunter's Handbook doesn't have); 572 still come only from the Handbook. Plus 54 with spawn points only.
+- Hunters like you have now shared skills and speeds for 34 beasts (3 the Handbook never had), plus spawn points for 54 more.
 
 ## 0.13.3
 
 - Beasts shared by players whose game is in another language now show their English name in `find`, and searching by the shared name still finds them.
 - Bundled data, each confirmed by at least two players' tames: Low Plains Buzzard (Riverglades, Claw 5), which the Hunter's Handbook doesn't have; Shore Crawler also teaches Pinch 1 (four players); Young Forest Bear, Goretusk, Black Ravager Mastiff, Giant Wetlands Crocolisk and Feral Mountain Lion.
 - More spawn points in Duskwood, Darkshore, Ashenvale, Stranglethorn and Searing Gorge.
-- Data: 24 beasts tracked by BeastScout players (2 the Hunter's Handbook doesn't have); 581 still come only from the Handbook. Plus 57 with spawn points only.
+- Hunters like you have now shared skills and speeds for 24 beasts (2 the Handbook never had), plus spawn points for 57 more.
 
 ## 0.13.2
 
 - `find` for a rank no known beast teaches (like `find swipe 2`) now says which ranks are known, instead of just "no beast found". Swipe is new in Forever, so few bears are recorded with it yet.
 - Bundled data: Swipe 2 for Elder Gray Bear, Big Samras and Maddened Rotclaw. Coldrasp (Tirisfal Glades) teaches Faster Attack 2 with 1.6 speed, not Faster Attack 3, confirmed by two players' tames.
 - More tames shared by players (Black Ravager, Snow Tracker Wolf, Mangy Mountain Boar, Coyote Packleader, Black Bear Patriarch, Grizzled Black Bear), and spawn points for beasts in Hillsbrad, Arathi, Wetlands, Stranglethorn, the Barrens, Stonetalon and Redridge.
-- Data: 19 beasts tracked by BeastScout players (1 the Hunter's Handbook doesn't have); 585 still come only from the Handbook. Plus 46 with spawn points only.
+- Hunters like you have now shared skills and speeds for 19 beasts (1 the Handbook never had), plus spawn points for 46 more.
 
 ## 0.13.1
 
 - Forever's new zones Riverglades, Mount Hyjal, Shen'dralas and Darkspear Islands are now known zones: their beasts get a distance and a Go button in `find`, and in-game shares from there keep their location.
 - Zephras Isle is recognized on both of its maps, so spawn points and distances work on either copy of the island.
 - Bundled data: Greater Tarantula (Redridge Mountains), Bite 3 and 2.0 speed, confirmed by two players' tames.
-- Data: 9 beasts tracked by BeastScout players (0 the Hunter's Handbook doesn't have); 594 still come only from the Handbook. Plus 18 with spawn points only.
+- Hunters like you have now shared skills and speeds for 9 beasts, plus spawn points for 18 more.
 
 ## 0.13.0
 
@@ -69,7 +69,7 @@
 - `/bs find` searches beast names too: `/bs find mystmane`, or part of a name like `/bs find shal`, to find a rare's spawn.
 - Bundled data: Wood Lurker (Loch Modan) confirmed by a tame, with real spawn points, so `find` can point you to it.
 - Bundled data now includes spawn points from sightings, not just tames, so more beasts get a distance and a waypoint in `find`, including Forever-only beasts like Mystmane on Zephras Isle.
-- Data: 8 beasts tracked by BeastScout players (0 the Hunter's Handbook doesn't have); 595 still come only from the Handbook. Plus 17 with spawn points only.
+- Hunters like you have now shared skills and speeds for 8 beasts, plus spawn points for 17 more.
 
 ## 0.12.3
 
@@ -105,7 +105,7 @@
 - Beast tooltips no longer call a skill an upgrade when you can already teach that rank at Beast Training.
 - Fixed skill costs showing as 0 TP after opening Beast Training with a pet that already knows the skill.
 - Shadowgale Ursera teaches Claw 2, not Claw 3 (confirmed by a tame).
-- Data: 7 beasts tracked by BeastScout players (0 the Hunter's Handbook doesn't have); 596 still come only from the Handbook. Plus 0 with spawn points only.
+- Hunters like you have now shared skills and speeds for 7 beasts.
 
 ## 0.11.0
 
@@ -130,4 +130,4 @@ First release.
 - The BeastScout window (/beastscout or the minimap button): upgrades for your pet grouped by skill, the fastest beasts, tank families, and search by skill or family, with map waypoints.
 - Reads Beast Training when you open it, so skills you already know say "train it" with their real costs.
 - Records your tames and Beast Lore so your own data can improve on the built-in data; share it with /beastscout export.
-- Data: 6 beasts tracked by BeastScout players (0 the Hunter's Handbook doesn't have); 597 still come only from the Handbook. Plus 0 with spawn points only.
+- Hunters like you have now shared skills and speeds for 6 beasts.

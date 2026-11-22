@@ -385,10 +385,8 @@ SlashCmdList.BEASTSCOUT = function(msg)
     local function Count(t) local n = 0 for _ in pairs(t) do n = n + 1 end return n end
     local cov = ns.Coverage()
     print(HEADER .. ": " .. Count(BeastScoutDB.npcs) .. " beasts recorded by you, " .. Count(BeastScoutDB.guild or {})
-        .. " shared in game. Bundled: " .. cov.ours .. " beasts tracked by BeastScout players (" .. cov.new
-        .. " the Hunter's Handbook doesn't have), " .. cov.handbookOnly .. " still only from the Handbook, plus " .. cov.spotsOnly
-        .. " with spawn points only. Client interface: "
-        .. select(4, GetBuildInfo()))
+        .. " shared in game. Client interface: " .. select(4, GetBuildInfo()))
+    print("  " .. ns.CoverageText(cov) .. ". Every tame you share adds to it!")
     print("  " .. ns.ShareStatus())
     print("  /bs works as a short form of /beastscout for every command.")
     print("  /beastscout - open the BeastScout window   /beastscout minimap - hide or show its minimap button")
