@@ -1,5 +1,10 @@
 # BeastScout changelog
 
+## 0.13.9
+
+- `/beastscout help` now shows how many beasts' skills and speeds hunters like you have shared, so you can watch it grow. Every tame you share adds to it.
+- Hunters like you have now shared skills and speeds for 54 beasts (5 the Handbook never had), plus spawn points for 58 more.
+
 ## 0.13.8
 
 - With EllesmereUI or ElvUI installed, the BeastScout and export windows are skinned to match, through their skinning APIs. EllesmereUI can turn this off per addon under Blizzard Skins+ > Window Skins > Third-Party Addons. This is new and lightly tested, so please report anything that looks wrong. Without them, nothing changes.
