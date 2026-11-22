@@ -177,7 +177,34 @@ def main():
     shared = sorted((tmp / "contributions").glob("shared-*.lua"))
     shared_text = "".join(f.read_text(encoding="utf-8") for f in shared)
 
+    # Players who disagree hold a beast back.
+    def rep(source, ability, rank, spot=None):
+        r = {"name": "Dispute Cat", "family": "Cat", "levelMin": 9, "levelMax": 9,
+             "source": source, "teaches": [[ability, rank]]}
+        if spot:
+            r["spot"] = ["Dun Morogh", spot, spot]
+        return r
+    reports = {
+        5001: {"A": rep("tame", "Bite", 2), "B": rep("tame", "Bite", 2),
+               "C": rep("tame", "Bite", 3), "D": rep("tame", "Bite", 3)},
+        5002: {"A": rep("tame", "Bite", 2), "B": rep("tame", "Bite", 2), "C": rep("tame", "Bite", 3)},
+        5003: {"Alt1": rep("tame", "Claw", 1), "Alt2": rep("tame", "Claw", 1),
+               "E": rep("lore", "Claw", 2), "F": rep("lore", "Claw", 2), "G": rep("lore", "Claw", 2)},
+        5004: {"A": rep("tame", "Bite", 2), "B": rep("tame", "Bite", 2),
+               "C": rep("tame", "Bite", 3), "D": rep("tame", "Bite", 3),
+               "~E": rep("tame", "Bite", 2, 10), "~F": rep("tame", "Bite", 2, 20)},
+    }
+    families, abilities = sync_local.known_names()
+    held = []
+    disputed = sync_local.shared_files([{"BeastScoutDB": {"guildReports": reports}}], "salt",
+                                       families, abilities, {}, held)
+    bundled = {i for beasts in disputed.values() for i in beasts}
+
     checks = {
+        "disputed: two against two is held back": 5001 not in bundled and 5001 in held,
+        "disputed: two against one is bundled": 5002 in bundled,
+        "disputed: two tames don't outweigh three Beast Lores": 5003 not in bundled,
+        "disputed: relays don't settle a first-hand dispute": 5004 not in bundled,
         "escaped quote read": parsed[3035]["name"] == 'Flatland "Big" Cougar',
         "nested lists read": parsed[2958]["teaches"] == [["Bite", 1]],
         "first sync writes": first is True,

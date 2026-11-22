@@ -171,7 +171,7 @@ def agreement_key(b):
     return ("speed", b["speed"])
 
 
-def shared_files(saved_list, salt, families, abilities, own=None):
+def shared_files(saved_list, salt, families, abilities, own=None, held=None):
     """Reports other players shared in game, kept only where at least MIN_AGREEING
     players agree, grouped into one file per (hashed) player so the merge counts
     each player once. Returns {author: {npc_id: beast}}."""
@@ -208,8 +208,25 @@ def shared_files(saved_list, salt, families, abilities, own=None):
                     if b["speed"]:
                         speed_votes[passed].setdefault(b["speed"], set()).add(sender)
         # Passed-on data only when no first-hand agreement exists for the beast.
+        # Players who disagree hold a beast back: an agreed list must outvote
+        # every other one (a tame counting more than Beast Lore, as in game),
+        # so two alts can't outweigh players who saw something else.
+        def score(key, members):
+            return len(members) * TRUST.get(key[1], 1) if key[0] == "teaches" else len(members)
         for passed in (False, True):
-            agreed = [m for m in groups[passed].values() if len(m) >= MIN_AGREEING]
+            agreed, contested = [], False
+            for key, members in groups[passed].items():
+                if len(members) < MIN_AGREEING:
+                    continue
+                rivals = [score(k, m) for k, m in groups[passed].items() if k != key]
+                if rivals and max(rivals) >= score(key, members):
+                    contested = True
+                    continue
+                agreed.append(members)
+            if contested and not agreed:
+                if held is not None:
+                    held.append(npc_id)
+                break  # disputed first-hand: relays don't settle it
             for members in agreed:
                 for sender, b in members:
                     if b["speed"] and len(speed_votes[passed][b["speed"]]) < MIN_AGREEING:
@@ -278,7 +295,10 @@ def sync(wtf):
     if not config.get("author_salt"):
         config["author_salt"] = secrets.token_hex(16)
         CONFIG.write_text(json.dumps(config, indent=2) + "\n")
-    shared = shared_files(saved_list, config["author_salt"], families, abilities, own_spots)
+    held = []
+    shared = shared_files(saved_list, config["author_salt"], families, abilities, own_spots, held)
+    if held:
+        print(f"Held back, players disagree: {', '.join(str(i) for i in sorted(set(held)))}")
     shared_changed = write_shared(shared)
     shared_count = len({i for beasts_ in shared.values() for i in beasts_})
 

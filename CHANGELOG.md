@@ -1,5 +1,11 @@
 # BeastScout changelog
 
+## Unreleased
+
+- Sharing is harder to fool. Reports are now votes, with a tame counting more than Beast Lore: one tame still beats one Beast Lore, but a single bad report can no longer outvote several players. A level range far from what other players saw is left out.
+- Shared data now replaces your own record only when at least two players saw it themselves.
+- Saved shared data has a limit: up to 2000 beasts, dropping the one heard from least recently, and reports nobody has sent for a year are dropped at login.
+
 ## 0.13.7
 
 - Fixed: a tame that was interrupted or failed, followed by calling your own pet back within a minute, could record your pet's skills as the wild beast's.

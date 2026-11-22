@@ -1399,9 +1399,11 @@ do
     end
     check("first-hand players outvote passed-on reports", BeastScoutDB.guild[1198].teaches[1][2] == 2,
         BeastScoutDB.guild[1198].teaches[1][2])
-    -- And a real tame beats any number of Beast Lore reports.
+    -- A tame counts more than a Beast Lore, but one can't outvote two players.
     ns.ReceiveRecord("Sam", "R1;1198;Ridge Stalker;Cat;9;9;t;;Claw1;")
-    check("a tame beats Beast Lore", BeastScoutDB.guild[1198].teaches[1][2] == 1)
+    check("one tame doesn't outvote two players' Beast Lore", BeastScoutDB.guild[1198].teaches[1][2] == 2)
+    ns.ReceiveRecord("Rosie", "R1;1198;Ridge Stalker;Cat;9;9;t;;Claw1;")
+    check("two tames beat two Beast Lores", BeastScoutDB.guild[1198].teaches[1][2] == 1)
 
     -- When a beast's list is full, passed-on reports go first.
     BeastScoutDB.guildReports[1199] = {}
@@ -1445,7 +1447,10 @@ do
     BeastScoutDB.guildReports[1192] = {}
     ns.ReceiveRecord("Dee", "R1;1192;Rock Cat;Cat;9;9;t;;Bite1;")
     local t5, from5 = ns.Lookup(1192, ns.TeachesOf)
-    check("shared tame beats your own Beast Lore", t5[1][2] == 1 and from5:find("shared", 1, true), from5)
+    check("one shared tame doesn't beat your own Beast Lore", t5[1][2] == 2 and from5:find("you", 1, true), from5)
+    ns.ReceiveRecord("Eli", "R1;1192;Rock Cat;Cat;9;9;t;;Bite1;")
+    t5, from5 = ns.Lookup(1192, ns.TeachesOf)
+    check("two players' shared tame beats your own Beast Lore", t5[1][2] == 1 and from5:find("shared", 1, true), from5)
     BeastScoutDB.npcs[1192].teachesSource = "tame"
     t5, from5 = ns.Lookup(1192, ns.TeachesOf)
     check("your own tame beats a shared tame", t5[1][2] == 2 and from5:find("you", 1, true), from5)
@@ -1566,6 +1571,57 @@ do
     SlashCmdList.BEASTSCOUT("way clear")
     runTimers()
     C_Map, UiMapPoint = realMap, realPoint
+end
+
+-- Sharing trust and size -------------------------------------------------------------
+do
+    local realTime = time
+    local clock = 500000
+    time = function() return clock end
+    BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+
+    -- The reviewer's case: five players' Beast Lore, then one forged tame.
+    for i = 1, 5 do ns.ReceiveRecord("Honest" .. i, "R1;990301;Rock Cat;Cat;9;10;l;;Claw4;") end
+    check("forged tame accepted as a report", ns.ReceiveRecord("Forger", "R1;990301;Rock Cat;Cat;1;80;t;;Faster Attack5;"))
+    local g = BeastScoutDB.guild[990301]
+    check("forged tame doesn't outvote five Beast Lores", g.teaches[1][1] == "Claw" and g.teaches[1][2] == 4)
+    check("forged 1-80 doesn't stretch the levels", g.levelMin == 9 and g.levelMax == 10, (g.levelMin or "?") .. "-" .. (g.levelMax or "?"))
+    -- One report alone, honest levels kept; a lone 1-80 is no level at all.
+    ns.ReceiveRecord("Solo", "R1;990302;Lone Cat;Cat;7;8;t;;Bite1;")
+    check("a single report keeps its levels", BeastScoutDB.guild[990302].levelMin == 7 and BeastScoutDB.guild[990302].levelMax == 8)
+
+    -- One limit per player, first-hand and passed on together.
+    BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+    for i = 1, 600 do ns.ReceiveRecord("Spam", "R1;" .. (3000000 + i) .. ";Junk;Cat;1;1;t;;Bite1;") end
+    check("passed-on reports share the player's limit",
+        ns.ReceiveRecord("Spam", "P1;3001000;Junk;Cat;1;1;t;;Bite1;") == false)
+
+    -- At most MAX_BEASTS beasts: a new one pushes out the least recently heard.
+    for s = 1, 3 do
+        for i = 1, 500 do
+            clock = clock + 1
+            ns.ReceiveRecord("Filler" .. s, "R1;" .. (3100000 + s * 1000 + i) .. ";Junk;Cat;1;1;t;;Bite1;")
+        end
+    end
+    local function count() local n = 0 for _ in pairs(BeastScoutDB.guildReports) do n = n + 1 end return n end
+    check("shared beasts capped at 2000", count() == 2000, count())
+    clock = clock + 1
+    ns.ReceiveRecord("Late", "R1;3200001;New Cat;Cat;1;1;t;;Bite1;")
+    check("full: a new beast still gets in", BeastScoutDB.guildReports[3200001] ~= nil and count() == 2000, count())
+    check("full: the least recently heard went", BeastScoutDB.guildReports[3000001] == nil
+        and BeastScoutDB.guild[3000001] == nil)
+    check("full: passed-on data doesn't push anything out",
+        ns.ReceiveRecord("Late", "P1;3200002;New Cat;Cat;1;1;t;;Bite1;") == false)
+
+    -- Reports nobody has sent for a year are dropped at startup.
+    BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+    ns.ReceiveRecord("Old", "R1;990303;Old Cat;Cat;5;5;t;;Bite1;")
+    ns.ReceiveRecord("Fresh", "R1;990304;Fresh Cat;Cat;5;5;t;;Bite1;")
+    BeastScoutDB.guildReports[990303].Old.time = clock - 366 * 86400
+    ns.StartSharing({ RegisterEvent = function() end })
+    check("year-old report dropped", BeastScoutDB.guildReports[990303] == nil and BeastScoutDB.guild[990303] == nil)
+    check("recent report kept", BeastScoutDB.guild[990304] ~= nil)
+    time = realTime
 end
 
 print = realPrint

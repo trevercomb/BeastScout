@@ -22,8 +22,11 @@ local SEP = ";"
 local TRUST = { lore = 2, tame = 3 }
 local SEND_GAP = 1.2           -- seconds between messages, under the client's throttle
 local FULL_SHARE_EVERY = 1200  -- seconds between sending everything you know
-local MAX_PER_SENDER = 400     -- new or changed records accepted from one player per session
+local MAX_PER_SENDER = 600     -- new or changed records accepted from one player per session (theirs and passed on)
 local MAX_REPORTS = 10         -- players' reports kept per beast (newest), so saved data stays small
+local MAX_BEASTS = 2000        -- beasts kept in shared data; past this the least recently heard goes
+local REPORT_DAYS = 365        -- a report not heard again for this long is dropped
+local LEVEL_SPREAD = 5         -- levels further than this from the middle report are left out
 local MAX_PASS_ON = 150        -- agreed beasts passed on per full share
 
 function ns.SharingOn()
@@ -137,7 +140,7 @@ local function Merge(npcId)
         return
     end
     local r = {}
-    local lists, speeds, names = {}, {}, {}
+    local lists, speeds, names, levels = {}, {}, {}, {}
     for _, rep in pairs(reports) do
         -- Name and family: most players, like everything else, so one odd
         -- report can't rename a beast or move it to another family.
@@ -146,8 +149,8 @@ local function Merge(npcId)
         n.count = n.count + (rep.passed and 0.5 or 1)
         n.time = math.max(n.time, rep.time or 0)
         names[nkey] = n
-        if rep.levelMin then r.levelMin = math.min(r.levelMin or rep.levelMin, rep.levelMin) end
-        if rep.levelMax then r.levelMax = math.max(r.levelMax or rep.levelMax, rep.levelMax) end
+        if rep.levelMin then levels[#levels + 1] = rep.levelMin end
+        if rep.levelMax then levels[#levels + 1] = rep.levelMax end
         if rep.spot then
             r.spots = r.spots or {}
             local known = false
@@ -187,12 +190,29 @@ local function Merge(npcId)
         end
     end
     r.name, r.family = bestName.name, bestName.family
-    -- Teaches: most trusted source, then most players, then newest.
+    -- Levels: the widest range, leaving out levels far from the middle one,
+    -- so one report of 1-80 can't stretch a level 9 beast.
+    if #levels > 0 then
+        table.sort(levels)
+        local half = #levels / 2
+        local middle = (levels[math.floor(half + 0.5)] + levels[math.floor(half) + 1]) / 2
+        for _, l in ipairs(levels) do
+            if math.abs(l - middle) <= LEVEL_SPREAD then
+                r.levelMin = math.min(r.levelMin or l, l)
+                r.levelMax = math.max(r.levelMax or l, l)
+            end
+        end
+    end
+    -- Teaches: players weighted by source (a tame counts 3, Beast Lore 2), so
+    -- one tame beats one Lore but one forged tame can't outvote several
+    -- players' Lore. Ties: more trusted source, then most players, then newest.
     local best
+    local function score(e) return e.count * TRUST[e.source] end
     for _, e in pairs(lists) do
-        if not best or TRUST[e.source] > TRUST[best.source]
-            or (TRUST[e.source] == TRUST[best.source] and (e.count > best.count
-                or (e.count == best.count and e.time > best.time))) then
+        if not best or score(e) > score(best)
+            or (score(e) == score(best) and (TRUST[e.source] > TRUST[best.source]
+                or (TRUST[e.source] == TRUST[best.source] and (e.count > best.count
+                    or (e.count == best.count and e.time > best.time))))) then
             best = e
         end
     end
@@ -223,6 +243,25 @@ end
 
 local accepted = {}
 
+local function CountBeasts()
+    local n = 0
+    for _ in pairs(BeastScoutDB.guildReports or {}) do n = n + 1 end
+    return n
+end
+
+-- The beast whose newest report is oldest.
+local function DropOldestBeast()
+    local oldestId, oldestTime = nil, math.huge
+    for id, by in pairs(BeastScoutDB.guildReports) do
+        local newest = 0
+        for _, rep in pairs(by) do newest = math.max(newest, rep.time or 0) end
+        if newest < oldestTime then oldestId, oldestTime = id, newest end
+    end
+    if oldestId == nil then return end
+    BeastScoutDB.guildReports[oldestId] = nil
+    if BeastScoutDB.guild then BeastScoutDB.guild[oldestId] = nil end
+end
+
 function ns.ReceiveRecord(sender, msg)
     local npcId, report = ns.DecodeRecord(msg)
     if not npcId then return false end
@@ -234,12 +273,23 @@ function ns.ReceiveRecord(sender, msg)
         old.time = report.time -- the same report again (a catch-up): still current
         return true
     end
-    accepted[sender] = (accepted[sender] or 0) + 1
-    if accepted[sender] > MAX_PER_SENDER then return false end
+    -- One limit per player, whether they saw it or passed it on.
+    local who = sender:gsub("^~", "")
+    accepted[who] = (accepted[who] or 0) + 1
+    if accepted[who] > MAX_PER_SENDER then return false end
     report.raw = msg
     BeastScoutDB.guild = BeastScoutDB.guild or {}
     BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
     local list = BeastScoutDB.guildReports[npcId]
+    if not list then
+        -- A beast we've no reports for: past the limit, make room by dropping
+        -- the beast heard from least recently, so made-up IDs can't grow the
+        -- saved file without end.
+        if CountBeasts() >= MAX_BEASTS then
+            if report.passed then return false end
+            DropOldestBeast()
+        end
+    end
     if list and not list[sender] then
         -- Full: drop the oldest passed-on report first, else the oldest. A
         -- passed-on report never pushes out one from a player who saw it.
@@ -413,8 +463,10 @@ end
 ns.IsMe = IsMe
 
 -- Saved reports: drop your own echoes (saved before IsMe could spot them),
--- and redo speeds the way DecodeRecord does now.
+-- redo speeds the way DecodeRecord does now, and drop reports nobody has
+-- sent again for REPORT_DAYS (catch-ups refresh the ones still around).
 local function CleanSavedReports()
+    local now = time and time() or 0
     for npcId, by in pairs(BeastScoutDB.guildReports or {}) do
         if not GoodNpcId(npcId) then
             BeastScoutDB.guildReports[npcId] = nil
@@ -423,7 +475,8 @@ local function CleanSavedReports()
         end
         for sender, rep in pairs(by) do
             if rep.name then rep.name = Clean(rep.name) end
-            if IsMe(sender) then
+            rep.time = rep.time or now
+            if IsMe(sender) or now - rep.time > REPORT_DAYS * 86400 then
                 by[sender] = nil
             else
                 rep.speed = rep.source == "tame" and ns.TameSpeed(rep.teaches) or nil
@@ -431,7 +484,10 @@ local function CleanSavedReports()
             end
         end
         Merge(npcId)
+        if not next(by) then BeastScoutDB.guildReports[npcId] = nil end
     end
+    -- Saved by a version with no limit: trim to it.
+    for _ = MAX_BEASTS + 1, CountBeasts() do DropOldestBeast() end
 end
 
 local HELLO = "HI;1" -- "I just joined: share what you have"

@@ -65,7 +65,8 @@ end
 
 -- The most trusted value wins: your own notes, the bundled player data and
 -- what other players shared in game. On a tie your notes win, then the
--- bundled data. The Hunter's Handbook is the fallback.
+-- bundled data; in-game shares beat your notes only with two players behind
+-- them. The Hunter's Handbook is the fallback.
 function ns.Lookup(npcId, getter)
     if not npcId then return nil end
     local mine, community = BeastScoutDB.npcs[npcId], ns.COMMUNITY[npcId]
@@ -74,7 +75,10 @@ function ns.Lookup(npcId, getter)
     if mine then mv, mt, msf, mnote = getter(mine) end
     if community then cv, ct, csf, cnote = getter(community) end
     if guild then gv, gt, gsf, gnote = getter(guild) end
-    if mv and (not cv or mt >= ct) and (not gv or mt >= gt) then
+    -- Shared data needs two players who saw it themselves to beat what you
+    -- saw, so one forged message can't.
+    local gReports = gv and gsf and guild[gsf:gsub("Source$", "Reports")] or 0
+    if mv and (not cv or mt >= ct) and (not gv or mt >= gt or gReports < 2) then
         return mv, SourceLabel("mine", mine, msf, mnote)
     end
     if gv and (not cv or gt > ct) then return gv, SourceLabel("guild", guild, gsf, gnote) end
