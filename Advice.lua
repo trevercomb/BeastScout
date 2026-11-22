@@ -615,7 +615,7 @@ local function SearchBeasts(query, limit)
             if anyFamily or (family and Field(npcId, "family") == family) or (rares and Field(npcId, "rare"))
                 or (nameKey and NameMatches(npcId, nameKey)) then
                 -- Speed is what you compare when picking between beasts.
-                matches[#matches + 1] = Describe(npcId, here, { speed = ns.Lookup(npcId, ns.SpeedOf),
+                matches[#matches + 1] = Describe(npcId, here, { speed = ns.PetSpeed(npcId),
                     unsure = rares and not ns.KnownTameable(npcId) })
             end
         else

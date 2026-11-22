@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- A beast whose skills are known from a tame or Beast Lore, with no Faster or Slower Attack among them, now shows attack speed 2.0 (no attack speed skill) instead of unknown. Every such tame so far was 2.0; a tame's own reading still wins.
 - BeastScout's waypoints clear themselves when you get there, and `/beastscout way clear` removes one.
 - `/beastscout way Ashenvale 42.6 72.1` puts a waypoint anywhere, and `/beastscout way 42.6 72.1` does it in the zone you're in. The start of a zone's name is enough (`way ashen 42.6 72.1`).
 

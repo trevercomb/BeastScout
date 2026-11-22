@@ -2,7 +2,7 @@
 
 A small World of Warcraft: Forever addon for hunters. Hover over a wild beast and its tooltip shows what you'd get by taming it:
 
-- **Attack speed:** the swing timer your pet will have. In Forever that's set by the Faster/Slower Attack passive the beast comes with: Faster Attack I–VII gives 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.0; no passive gives 2.0. The tooltip names the passive, e.g. `1.3 (Faster Attack V, Handbook)`.
+- **Attack speed:** the swing timer your pet will have. In Forever that's set by the Faster/Slower Attack passive the beast comes with: Faster Attack I–VII gives 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.0; no passive gives 2.0. The tooltip names the passive, e.g. `1.3 (Faster Attack V, Handbook)`. Once a tame or Beast Lore has listed a beast's skills and none of them is a speed passive, it shows `2.0 (no attack speed skill)`.
 - **Teaches:** the exact ability ranks the beast teaches, including Faster/Slower Attack passives.
 - **Family:** the abilities its family can learn and the pet level for each.
 - **Diet:** what the family eats.

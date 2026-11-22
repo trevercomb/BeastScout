@@ -1092,6 +1092,24 @@ do
     check("no passive: the tame reading", ns.SpeedOf({ speed = 1.96, speedSource = "tame" }) == 1.96)
 end
 
+-- Skills known, none of them a speed passive: the base 2.0.
+do
+    local saveMine, saveCommunity = BeastScoutDB.npcs, ns.COMMUNITY
+    BeastScoutDB.npcs = {
+        [990101] = { name = "Gray Fox", family = "Fox", teaches = { { "Bite", 4 } }, teachesSource = "lore" },
+        [990102] = { name = "Lore Cat", family = "Cat", teaches = { { "Claw", 3 } }, teachesSource = "lore" },
+        [990103] = { name = "Spotted Fox", family = "Fox" },
+        [990104] = { name = "Timed Fox", family = "Fox", speed = 1.8, speedSource = "tame", teaches = { { "Bite", 4 } }, teachesSource = "tame" },
+    }
+    ns.COMMUNITY = { [990102] = { name = "Lore Cat", family = "Cat", teaches = { { "Claw", 3 }, { "Faster Attack", 5 } }, teachesSource = "tame" } }
+    local speed, from = ns.PetSpeed(990101)
+    check("no speed passive among known skills: 2.0", speed == 2 and from:find("no attack speed skill", 1, true), tostring(from))
+    check("a speed passive another source knows wins", ns.PetSpeed(990102) == 1.3, tostring(ns.PetSpeed(990102)))
+    check("no skills known: speed stays unknown", ns.PetSpeed(990103) == nil)
+    check("a tame's reading beats the guess", ns.PetSpeed(990104) == 1.8)
+    BeastScoutDB.npcs, ns.COMMUNITY = saveMine, saveCommunity
+end
+
 -- In-game sharing.
 do
     local saveCommunity = ns.COMMUNITY

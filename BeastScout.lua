@@ -86,6 +86,25 @@ function ns.Lookup(npcId, getter)
     end
 end
 
+-- A pet swings at 2.0 unless a Faster or Slower Attack passive changes it
+-- (every tame without one so far was 2.0). So once a tame or Beast Lore has
+-- listed a beast's skills and none of them is a speed passive, its speed is
+-- 2.0. Only when nothing better is known: Beast Lore can show part of the list.
+ns.BASE_SPEED = 2.0
+
+function ns.PetSpeed(npcId)
+    local speed, from = ns.Lookup(npcId, ns.SpeedOf)
+    if speed or not npcId then return speed, from end
+    local listed
+    for _, r in ipairs({ BeastScoutDB.npcs[npcId], ns.COMMUNITY[npcId], BeastScoutDB.guild and BeastScoutDB.guild[npcId] }) do
+        if r and r.teaches and #r.teaches > 0 then
+            if PassiveOf(r) then return nil end
+            listed = true
+        end
+    end
+    if listed then return ns.BASE_SPEED, GREY .. " (no attack speed skill)|r" end
+end
+
 local function AddLines(tooltip, unit)
     local ok, family = ns.IsWildBeast(unit)
     if not ok then return end
@@ -93,12 +112,12 @@ local function AddLines(tooltip, unit)
 
     tooltip:AddLine(HEADER .. " " .. family)
 
-    local speed, speedFrom = ns.Lookup(npcId, ns.SpeedOf)
+    local speed, speedFrom = ns.PetSpeed(npcId)
     if speed then
         -- Source goes on the left: long right-hand text got clipped in game.
         tooltip:AddDoubleLine("Attack speed" .. speedFrom, string.format("%.1f", speed), 1, 1, 1, 1, 1, 1)
     else
-        tooltip:AddLine(GREY .. "Attack speed: unknown, cast Beast Lore to check|r")
+        tooltip:AddLine(GREY .. "Attack speed: unknown, Beast Lore or a tame tells|r")
     end
 
     local teaches, teachesFrom = ns.Lookup(npcId, ns.TeachesOf)

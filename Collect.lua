@@ -205,6 +205,7 @@ function ns.ReadBeastLore(tooltip, unit)
 
     local found = {}
     local name = tooltip:GetName()
+    ns.DumpLoreTooltip(tooltip, npcId)
     for i = 2, tooltip:NumLines() do
         local left = _G[name .. "TextLeft" .. i]
         local right = _G[name .. "TextRight" .. i]
@@ -233,6 +234,28 @@ function ns.Debug(...)
 end
 local Debug = ns.Debug
 
+-- With debug on, for two minutes after a Beast Lore cast, print each new
+-- tooltip build of a wild beast, so an unread Lore tooltip can be seen.
+local BEAST_LORE_SPELL_ID = 1462
+local loreAt, lastDump
+function ns.DumpLoreTooltip(tooltip, npcId)
+    if not (BeastScoutDB and BeastScoutDB.debug and loreAt and GetTime() - loreAt < 120) then return end
+    local name, n = tooltip:GetName(), tooltip:NumLines()
+    local key = npcId .. ":" .. n
+    if key == lastDump then return end
+    lastDump = key
+    Debug("tooltip for", npcId, "has", n, "lines:")
+    for i = 1, n do
+        local left, right = _G[name .. "TextLeft" .. i], _G[name .. "TextRight" .. i]
+        local l, r = left and left:GetText(), right and right:GetText()
+        if IsSecret(l) or IsSecret(r) then
+            Debug(" ", i, "(secret)")
+        elseif not ns.IsOwnLine(l) then
+            Debug(" ", i, tostring(l), r and ("| " .. r) or "")
+        end
+    end
+end
+
 local pending      -- the wild beast a Tame Beast cast is working on
 local lastWild     -- the last wild beast you targeted, in case the target changes as the tame lands
 
@@ -256,6 +279,14 @@ local function OnTameSpell(event, spellId)
     local channel = UnitChannelInfo and UnitChannelInfo("player")
     local isTame = IsTameSpell(spellId) or channel == "Tame Beast"
     Debug(event, "spell", spellId, "channel", channel, "tame:", isTame)
+    if spellId == BEAST_LORE_SPELL_ID and event == "UNIT_SPELLCAST_SUCCEEDED" then
+        loreAt, lastDump = GetTime(), nil
+        if GameTooltip and GameTooltip:IsShown() then
+            local _, unit = GameTooltip:GetUnit()
+            local npcId = unit and not IsSecret(unit) and ns.NpcIdFromGUID(UnitGUID(unit))
+            if npcId then ns.DumpLoreTooltip(GameTooltip, npcId) end
+        end
+    end
     if not isTame then return end
     -- A new cast starts over; later events of the same cast keep its target.
     if event ~= "UNIT_SPELLCAST_SENT" and pending and GetTime() - pending.at < 30 then return end
