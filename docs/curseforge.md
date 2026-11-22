@@ -39,7 +39,7 @@ When a rare tameable beast's nameplate shows up near you, BeastScout plays a sou
 
 ## Data that gets better as you play
 
-BeastScout records what it sees: your tames (the pet's real abilities), Beast Lore, and your Beast Training list with real costs. Your own observations override the bundled data. Share them with **/beastscout export** and they're merged into everyone's next update. BeastScout players online also share with each other in game automatically, guild or not (**/beastscout sharing** turns it off). Sharing through export is private: your name isn't stored with your data, and your submission is deleted once it's merged.
+BeastScout records what it sees: your tames (the pet's real abilities) and your Beast Training list with real costs. Your own observations override the bundled data. Share them with **/beastscout export** and they're merged into everyone's next update. BeastScout players online also share with each other in game automatically, guild or not (**/beastscout sharing** turns it off). Sharing through export is private: your name isn't stored with your data, and your submission is deleted once it's merged.
 
 Built-in data: beast data from **Hunter's Handbook** by Wood (GPLv3), family abilities from Seemeta, Classic family bonuses from Highground Gaming. Thanks to all of them.
 

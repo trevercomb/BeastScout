@@ -117,7 +117,7 @@ local function AddLines(tooltip, unit)
         -- Source goes on the left: long right-hand text got clipped in game.
         tooltip:AddDoubleLine("Attack speed" .. speedFrom, string.format("%.1f", speed), 1, 1, 1, 1, 1, 1)
     else
-        tooltip:AddLine(GREY .. "Attack speed: unknown, Beast Lore or a tame tells|r")
+        tooltip:AddLine(GREY .. "Attack speed: unknown until someone tames one|r")
     end
 
     local teaches, teachesFrom = ns.Lookup(npcId, ns.TeachesOf)
@@ -198,7 +198,7 @@ local SHARE_URL = "github.com/trevercomb/BeastScout/issues/new?template=observat
 function ns.ShowExport()
     local lines = ns.ExportLines()
     if #lines == 0 then
-        print(HEADER .. ": nothing to export yet. Target beasts out of combat, use Beast Lore, or tame one.")
+        print(HEADER .. ": nothing to export yet. Target beasts out of combat, or tame one.")
         return
     end
     if not exportFrame then
