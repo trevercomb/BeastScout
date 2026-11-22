@@ -1,7 +1,7 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
 -- Only beasts at least two players agreed on. Regenerated on every sync.
 -- author: p-574968587aba
-    [681] = { name="Young Stranglethorn Tiger", family="Cat", levelMin=30, levelMax=31, speed=1.3, speedSource="tame", teaches={ {"Cower", 3}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 35.58, 17.04} }, zones={ "Stranglethorn Vale" } },
+    [822] = { name="Young Forest Bear", family="Bear", levelMin=8, levelMax=9, speed=2.5, speedSource="tame", teaches={ {"Claw", 2}, {"Slower Attack", 2} }, teachesSource="tame", spots={ {"Elwynn Forest", 25.85, 81.76} }, zones={ "Elwynn Forest" } },
     [833] = { name="Coyote Packleader", family="Wolf", levelMin=12, levelMax=12, speed=2, speedSource="tame", teaches={ {"Bite", 2}, {"Furious Howl", 1} }, teachesSource="tame", spots={ {"Westfall", 49.43, 15.78} }, zones={ "Westfall" } },
     [1127] = { name="Elder Crag Boar", family="Boar", levelMin=7, levelMax=8, speed=2, speedSource="tame", teaches={ {"Charge", 1} }, teachesSource="tame", spots={ {"Dun Morogh", 55.95, 54.58} }, zones={ "Dun Morogh" } },
     [2384] = { name="Starving Mountain Lion", family="Cat", levelMin=23, levelMax=24, speed=1.2, speedSource="tame", teaches={ {"Cower", 2}, {"Faster Attack", 6} }, teachesSource="tame", spots={ {"Hillsbrad Foothills", 43.26, 38.84} }, zones={ "Hillsbrad Foothills" } },
