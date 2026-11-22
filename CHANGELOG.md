@@ -1,12 +1,13 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.7
 
 - Fixed: a tame that was interrupted or failed, followed by calling your own pet back within a minute, could record your pet's skills as the wild beast's.
 - Fixed: the window's Go buttons could set a waypoint for a different beast after a `/bs find` in chat.
 - Fixed: if adding BeastScout's lines to a tooltip ever failed, it kept retrying and could pile up partial lines.
 - Fixed: a beast targeted in combat could fail to record when its name or level was hidden.
 - Sharing is safer: a malformed share can no longer store a beast ID your saved data can't load back, and shared beast names can't carry icons, links or colours.
+- Bundled data: Savannah Patriarch's Cower 4 is back to the Hunter's Handbook's Cower 2 until a second player's tame confirms it.
 
 ## 0.13.6
 
