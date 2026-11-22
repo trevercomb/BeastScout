@@ -91,3 +91,24 @@ do
     end
     table.sort(ns.TAME_ABILITIES, function(a, b) return #a > #b end)
 end
+
+-- How much of the data is BeastScout's own: beasts whose speed or skills come
+-- from players (bundled), how many of those the Hunter's Handbook doesn't
+-- have, Handbook beasts with speed or skills nobody has confirmed yet, and
+-- beasts players gave only spawn points for (used by find and waypoints).
+-- /beastscout help shows it, and tools/coverage.lua prints it for the changelog.
+function ns.Coverage()
+    local function known(r) return r and (r.speed or (r.teaches and #r.teaches > 0)) end
+    local ours, newBeasts, handbookOnly, spotsOnly = 0, 0, 0, 0
+    for id, r in pairs(ns.COMMUNITY or {}) do
+        if not known(r) and r.spots and #r.spots > 0 then spotsOnly = spotsOnly + 1 end
+        if known(r) then
+            ours = ours + 1
+            if not known((ns.HANDBOOK or {})[id]) then newBeasts = newBeasts + 1 end
+        end
+    end
+    for id, r in pairs(ns.HANDBOOK or {}) do
+        if known(r) and not known((ns.COMMUNITY or {})[id]) then handbookOnly = handbookOnly + 1 end
+    end
+    return { ours = ours, new = newBeasts, handbookOnly = handbookOnly, spotsOnly = spotsOnly }
+end

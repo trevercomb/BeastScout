@@ -1701,6 +1701,29 @@ do
     time = realTime
 end
 
+-- Coverage: how many beasts are BeastScout's own vs Handbook only.
+do
+    local realC, realH = ns.COMMUNITY, ns.HANDBOOK
+    ns.COMMUNITY = {
+        [1] = { name = "A", family = "Cat", speed = 1.5 },                       -- confirms a Handbook beast
+        [2] = { name = "B", family = "Cat", teaches = { { "Bite", 1 } } },      -- not in the Handbook
+        [3] = { name = "C", family = "Cat", spots = { { "Elwynn Forest", 1, 1 } } }, -- spots only: not counted
+    }
+    ns.HANDBOOK = {
+        [1] = { name = "A", family = "Cat", speed = 1.5 },
+        [4] = { name = "D", family = "Cat", teaches = { { "Claw", 1 } } },
+        [5] = { name = "E", family = "Cat" },                                    -- nothing known: not counted
+    }
+    local c = ns.Coverage()
+    check("coverage: ours, new to the Handbook, Handbook only", c.ours == 2 and c.new == 1 and c.handbookOnly == 1 and c.spotsOnly == 1,
+        c.ours .. "/" .. c.new .. "/" .. c.handbookOnly)
+    SlashCmdList.BEASTSCOUT("help")
+    local line
+    for _, p in ipairs(printed) do if p:find("tracked by BeastScout players", 1, true) then line = p end end
+    check("help shows the coverage", line and line:find("2 beasts tracked by BeastScout players (1 the Hunter's Handbook doesn't have), 1 still only from the Handbook, plus 1 with spawn points only", 1, true), line)
+    ns.COMMUNITY, ns.HANDBOOK = realC, realH
+end
+
 print = realPrint
 print(failures == 0 and "\nALL PASSED" or ("\n" .. failures .. " FAILED"))
 os.exit(failures == 0 and 0 or 1)

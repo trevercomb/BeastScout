@@ -12,7 +12,7 @@ Hover any tameable beast to see:
 - **Pet food** on item tooltips: whether your summoned pet will eat it.
 - **Upgrades for your current pet**, e.g. *Upgrade for Shalma: Claw 2 (new)*, or *Claw 3 (at pet level 16)* when your pet is too young.
 
-Every value says where it came from: *(you, tamed)*, *(players, tamed x3)* or *(Handbook)*.
+Every value says where it came from: *(you, tamed)*, *(players, tamed x3)* or *(Handbook)*. Every tame you share helps: **/beastscout help** shows how many beasts BeastScout players have tracked so far, and how many still rely on the Handbook.
 
 ## Your pet
 
