@@ -1,6 +1,6 @@
 # BeastScout changelog
 
-## Unreleased
+## 0.13.8
 
 - With EllesmereUI or ElvUI installed, the BeastScout and export windows are skinned to match, through their skinning APIs. EllesmereUI can turn this off per addon under Blizzard Skins+ > Window Skins > Third-Party Addons. This is new and lightly tested, so please report anything that looks wrong. Without them, nothing changes.
 - Sharing is harder to fool. Reports are now votes, with a tame counting more than Beast Lore: one tame still beats one Beast Lore, but a single bad report can no longer outvote several players. A level range far from what other players saw is left out.
