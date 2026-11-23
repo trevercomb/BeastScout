@@ -392,7 +392,7 @@ SlashCmdList.BEASTSCOUT = function(msg)
     print("  /beastscout - open the BeastScout window   /beastscout minimap - hide or show its minimap button")
     print("  /beastscout export - copy your observations   /beastscout reset - forget them")
     print("  /beastscout find bite 2 - beasts that teach a skill (or a family, or a name), closest first   /beastscout way 1 - waypoint to one")
-    print("  /beastscout way Ashenvale 42.6 72.1 - waypoint anywhere (way 42.6 72.1: your zone)   /beastscout way clear - remove it")
+    print("  /beastscout way Ashenvale 42.6 72.1 - waypoint from a guide's coordinates (way 42.6 72.1: your zone)   /beastscout way clear - remove it")
     print("  /beastscout find tank - best tank families   /beastscout stats - your pets' measured health and armor")
     print("  /beastscout find rares - rare tameable beasts seen   /beastscout alert - turn the rare beast alert (alert test: try it on your target) "
         .. (ns.RareAlertOn() and "off" or "on"))
