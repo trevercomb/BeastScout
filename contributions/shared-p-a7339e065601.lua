@@ -1,5 +1,5 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
--- Only beasts at least two players agreed on. Regenerated on every sync.
+-- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-a7339e065601
     [681] = { name="Young Stranglethorn Tiger", family="Cat", levelMin=30, levelMax=31, speed=1.3, speedSource="tame", teaches={ {"Cower", 3}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 34.81, 12.18} }, zones={ "Stranglethorn Vale" } },
     [682] = { name="Stranglethorn Tiger", family="Cat", levelMin=32, levelMax=33, speed=1.3, speedSource="tame", teaches={ {"Dash", 1}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 30.48, 13.13} }, zones={ "Stranglethorn Vale" } },

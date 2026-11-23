@@ -30,7 +30,7 @@ TEACH = re.compile(r'\{ability="([^"]+)", rank=(\d+)\}')
 KNOWN = re.compile(r'knownAbilities=\{([^}]*)\}')
 PASSIVES = ("Faster Attack", "Slower Attack")
 # One line of our own format: [id] = { name="..", family="..", ... },
-OURS = re.compile(r'^\s*\[(\d+)\] = \{(.*)\},\s*$', re.M)
+OURS = re.compile(r'^\s*\[(\d+)\] = \{(.*)\},\s*(?:--.*)?$', re.M)  # a line may end in a comment
 OURS_TEACH = re.compile(r'\{"([^"]+)", (\d+)\}')
 
 

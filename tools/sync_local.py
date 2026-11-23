@@ -8,6 +8,9 @@ contributions/shared-<player hash>.lua, but only for beasts at least two
 players agree on, so one bad report can't reach everyone.
 Passed-on reports (what a player heard from others) count only when two
 players passed on the same thing and nobody's first-hand reports agree.
+Reports already bundled stay bundled: the game keeps only the newest reports
+per beast, so a report it drops (or /beastscout forget shared) doesn't remove
+it here. A player's newer report for the same beast replaces their old one.
 If the addon folder is linked to this repo, a /reload in game picks it up.
 
 First run (remembers the path in tools/local.json, which is not committed):
@@ -27,7 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from build_bestiary import TRUST, build, to_line  # noqa: E402
+from build_bestiary import TRUST, build, parse_ours_text, to_line  # noqa: E402
 from pull_contributions import author_hash, known_names, problems  # noqa: E402
 
 CONFIG = ROOT / "tools" / "local.json"
@@ -35,6 +38,7 @@ OUT = ROOT / "contributions" / "local.lua"
 SHARED_DIR = ROOT / "contributions"
 SHARED_GLOB = "shared-*.lua"
 MIN_AGREEING = 2  # players who must report the same thing before it's bundled
+PASSED_MARK = " -- passed on"  # ends a shared file's line bundled from passed-on reports
 
 # --- SavedVariables reader --------------------------------------------------------
 # WoW writes plain Lua tables: NAME = { ["key"] = value, -- [1] comments, ... }
@@ -171,10 +175,31 @@ def agreement_key(b):
     return ("speed", b["speed"])
 
 
-def shared_files(saved_list, salt, families, abilities, own=None, held=None):
+def read_shared():
+    """What earlier syncs bundled: {npc_id: {sender key: beast}}, where the key is
+    "#<author>", or "~#<author>" for a line bundled from passed-on reports."""
+    kept = {}
+    for f in SHARED_DIR.glob(SHARED_GLOB):
+        text = f.read_text(encoding="utf-8")
+        author = re.search(r"^-- author: (\S+)", text, re.M)
+        if not author:
+            continue
+        for line in text.splitlines():
+            for npc_id, b in parse_ours_text(line).items():
+                key = ("~#" if line.endswith(PASSED_MARK) else "#") + author.group(1)
+                kept.setdefault(npc_id, {})[key] = b
+    return kept
+
+
+def shared_files(saved_list, salt, families, abilities, own=None, held=None, kept=None):
     """Reports other players shared in game, kept only where at least MIN_AGREEING
     players agree, grouped into one file per (hashed) player so the merge counts
-    each player once. Returns {author: {npc_id: beast}}."""
+    each player once. kept (from read_shared) adds what earlier syncs bundled,
+    unless the same player has a report for that beast now.
+    Returns {author: {npc_id: beast}}; a beast from passed-on reports has passed=True."""
+    def author(sender):
+        return sender[1:] if sender.startswith("#") else author_hash("wow:" + sender, salt)
+
     reports = {}  # npc_id -> sender -> beast
     for saved in saved_list:
         for npc_id, by_sender in ((saved.get("BeastScoutDB") or {}).get("guildReports") or {}).items():
@@ -183,6 +208,12 @@ def shared_files(saved_list, salt, families, abilities, own=None, held=None):
             for sender, rep in by_sender.items():
                 if isinstance(rep, dict) and isinstance(sender, str):
                     reports.setdefault(npc_id, {})[sender] = shared_beast(rep)
+    for npc_id, by_key in (kept or {}).items():
+        current = reports.setdefault(npc_id, {})
+        now = {("~" if s.startswith("~") else "") + "#" + author(s.lstrip("~")) for s in current}
+        for key, b in by_key.items():
+            if key not in now:
+                current[key] = b
     out = {}
     for npc_id, by_sender in reports.items():
         # First-hand reports, and passed-on ones (sender "~Name"), kept apart.
@@ -232,7 +263,7 @@ def shared_files(saved_list, salt, families, abilities, own=None, held=None):
                     if b["speed"] and len(speed_votes[passed][b["speed"]]) < MIN_AGREEING:
                         b = dict(b, speed=None, speedSource=None)
                     # "wow:" keeps character names apart from GitHub logins.
-                    out.setdefault(author_hash("wow:" + sender, salt), {})[npc_id] = b
+                    out.setdefault(author(sender), {})[npc_id] = dict(b, passed=passed)
             if agreed:
                 break
     return out
@@ -244,9 +275,10 @@ def write_shared(by_author):
     new = {}
     for author, beasts in by_author.items():
         lines = ["-- Shared in game by another BeastScout player, synced by tools/sync_local.py.",
-                 "-- Only beasts at least two players agreed on. Regenerated on every sync.",
+                 "-- Only beasts at least two players agreed on. Kept until that player reports again.",
                  "-- author: " + author]
-        lines += [to_line(i, beasts[i]) for i in sorted(beasts)]
+        lines += [to_line(i, beasts[i]) + (PASSED_MARK if beasts[i].get("passed") else "")
+                  for i in sorted(beasts)]
         new[f"shared-{author}.lua"] = "\n".join(lines) + "\n"
     if new == old:
         return False
@@ -296,7 +328,8 @@ def sync(wtf):
         config["author_salt"] = secrets.token_hex(16)
         CONFIG.write_text(json.dumps(config, indent=2) + "\n")
     held = []
-    shared = shared_files(saved_list, config["author_salt"], families, abilities, own_spots, held)
+    shared = shared_files(saved_list, config["author_salt"], families, abilities, own_spots, held,
+                          read_shared())
     if held:
         print(f"Held back, players disagree: {', '.join(str(i) for i in sorted(set(held)))}")
     shared_changed = write_shared(shared)

@@ -1,5 +1,5 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
--- Only beasts at least two players agreed on. Regenerated on every sync.
+-- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-fda33e5352c2
     [157] = { name="Goretusk", family="Boar", levelMin=14, levelMax=15, speed=2, speedSource="tame", teaches={ {"Charge", 2} }, teachesSource="tame", spots={ {"Westfall", 48.04, 51.94} }, zones={ "Westfall" } },
     [524] = { name="Rockhide Boar", family="Boar", levelMin=7, levelMax=8, speed=2, speedSource="tame", teaches={ {"Charge", 1} }, teachesSource="tame", spots={ {"Elwynn Forest", 59.53, 79.79} }, zones={ "Elwynn Forest" } },

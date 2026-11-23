@@ -1,5 +1,5 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
--- Only beasts at least two players agreed on. Regenerated on every sync.
+-- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-90664e072bfd
     [1019] = { name="Elder Razormaw", family="Raptor", levelMin=29, levelMax=29, speed=2, speedSource="tame", teaches={ {"Savage Rend", 2} }, teachesSource="tame", spots={ {"Wetlands", 31.61, 16.87} }, zones={ "Wetlands" } },
     [1085] = { name="Elder Stranglethorn Tiger", family="Cat", levelMin=34, levelMax=35, speed=1.3, speedSource="tame", teaches={ {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 32.16, 17.03} }, zones={ "Stranglethorn Vale" } },

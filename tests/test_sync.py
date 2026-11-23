@@ -200,11 +200,41 @@ def main():
                                        families, abilities, {}, held)
     bundled = {i for beasts in disputed.values() for i in beasts}
 
+    # Reports earlier syncs bundled are kept when the game has dropped them.
+    hash_of = lambda name: sync_local.author_hash("wow:" + name, "salt")
+    def kept_beast(source, ability, rank, speed=None):
+        return {"name": "Kept Boar", "family": "Boar", "levelMin": 7, "levelMax": 8, "speed": speed,
+                "speedSource": "tame" if speed else None, "teaches": [(ability, rank)],
+                "teachesSource": source, "zones": [], "spots": [], "rare": False}
+    kept = {
+        6001: {"#p-aaa": kept_beast("tame", "Charge", 1, 2), "#p-bbb": kept_beast("tame", "Charge", 1, 2),
+               "#p-ccc": kept_beast("tame", "Charge", 1, 2)},
+        6002: {"#" + hash_of("P"): kept_beast("tame", "Bite", 2), "#p-ddd": kept_beast("tame", "Bite", 2)},
+    }
+    later = {
+        6001: {"L1": rep("lore", "Charge", 1), "L2": rep("lore", "Charge", 1)},
+        6002: {"P": rep("tame", "Bite", 3), "Q": rep("tame", "Bite", 3), "R": rep("tame", "Bite", 3)},
+    }
+    resynced = sync_local.shared_files([{"BeastScoutDB": {"guildReports": later}}], "salt",
+                                       families, abilities, {}, [], kept)
+    gone = sync_local.shared_files([], "salt", families, abilities, {}, [], kept)
+    # A passed-on line is marked, and read back as passed on.
+    sync_local.write_shared({"p-eee": {6003: dict(kept_beast("tame", "Claw", 1), passed=True)},
+                             "p-fff": {6003: kept_beast("tame", "Claw", 1)}})
+    read_back = sync_local.read_shared()
+
     checks = {
         "disputed: two against two is held back": 5001 not in bundled and 5001 in held,
         "disputed: two against one is bundled": 5002 in bundled,
         "disputed: two tames don't outweigh three Beast Lores": 5003 not in bundled,
         "disputed: relays don't settle a first-hand dispute": 5004 not in bundled,
+        "kept: tames the game dropped still beat newer Beast Lores":
+            all(resynced.get(h, {}).get(6001, {}).get("speed") == 2 for h in ("p-aaa", "p-bbb", "p-ccc")),
+        "kept: a player's newer report replaces their old one":
+            resynced[hash_of("P")][6002]["teaches"] == [("Bite", 3)] and 6002 not in resynced.get("p-ddd", {}),
+        "kept: forgetting shared data in game removes nothing": set(gone) == {"p-aaa", "p-bbb", "p-ccc", "p-ddd",
+                                                                               hash_of("P")},
+        "kept: a passed-on line is read back as passed on": set(read_back.get(6003, {})) == {"~#p-eee", "#p-fff"},
         "escaped quote read": parsed[3035]["name"] == 'Flatland "Big" Cougar',
         "nested lists read": parsed[2958]["teaches"] == [["Bite", 1]],
         "first sync writes": first is True,
