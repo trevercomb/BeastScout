@@ -11,6 +11,9 @@ local unpack = unpack or table.unpack
 --   in BeastScoutDB.guildReports and merged into BeastScoutDB.guild, which
 --   tooltips and find use after your notes and the bundled player data, and
 --   before the Hunter's Handbook.
+-- Pet stats go the same way: each family and level's lowest health and armor
+-- reading (S1 messages), kept per player in BeastScoutDB.guildStats, so find
+-- tank can work out Forever's family bonuses from everyone's pets.
 -- Your own observations are sent, plus beasts at least two other players
 -- saw themselves and agreed on (passed on, counted half), never passed-on data,
 -- and guild data never goes into /beastscout export. /beastscout sharing
@@ -80,6 +83,30 @@ end
 local function Level(text)
     local n = tonumber(text)
     return n and n >= 1 and n <= 80 and math.floor(n) or nil
+end
+
+-- Pet stats: S1;family;petLevel;health;armor;loyalty
+local STAT = "S1"
+local MAX_STAT = 100000 -- far above any pet's health or armor
+
+function ns.EncodeStat(family, level, s)
+    if not (s and s.health and ns.FAMILIES[family]) then return nil end
+    return table.concat({ STAT, family, level, s.health, s.armor or "", s.loyalty or "" }, SEP)
+end
+
+local function Whole(text, low, high)
+    local n = tonumber(text)
+    return n and n >= low and n <= high and n == math.floor(n) and n or nil
+end
+
+-- Returns family, level, reading, or nil for anything malformed.
+function ns.DecodeStat(msg)
+    local f = {}
+    for field in (msg .. SEP):gmatch("(.-)" .. SEP) do f[#f + 1] = field end
+    if f[1] ~= STAT or #f < 6 or not ns.FAMILIES[f[2]] then return nil end
+    local level, health = Whole(f[3], 1, 80), Whole(f[4], 1, MAX_STAT)
+    if not (level and health) then return nil end
+    return f[2], level, { health = health, armor = Whole(f[5], 1, MAX_STAT), loyalty = Whole(f[6], 1, 6) }
 end
 
 -- Returns npcId, report, or nil for anything malformed.
@@ -310,6 +337,47 @@ function ns.ReceiveRecord(sender, msg)
     return true
 end
 
+-- One reading per player per family and level, the newest MAX_REPORTS kept.
+-- Not passed on: a reading is only worth anything first-hand.
+function ns.ReceiveStat(sender, msg)
+    local family, level, reading = ns.DecodeStat(msg)
+    if not family then return false end
+    reading.time = time and time() or 0
+    BeastScoutDB.guildStats = BeastScoutDB.guildStats or {}
+    local byLevel = BeastScoutDB.guildStats[family] or {}
+    BeastScoutDB.guildStats[family] = byLevel
+    local list = byLevel[level] or {}
+    byLevel[level] = list
+    local old = list[sender]
+    if old and old.health == reading.health and old.armor == reading.armor then
+        old.time = reading.time
+        return true
+    end
+    accepted[sender] = (accepted[sender] or 0) + 1
+    if accepted[sender] > MAX_PER_SENDER then return false end
+    if not old then
+        local count, oldestName, oldestTime = 0, nil, math.huge
+        for name, r in pairs(list) do
+            count = count + 1
+            if (r.time or 0) < oldestTime then oldestName, oldestTime = name, r.time or 0 end
+        end
+        if count >= MAX_REPORTS then list[oldestName] = nil end
+    end
+    list[sender] = reading
+    return true
+end
+
+-- Every pet reading heard from other players: { {family, level, health, armor}, ... }
+function ns.SharedStats()
+    local out = {}
+    for family, byLevel in pairs(BeastScoutDB.guildStats or {}) do
+        for level, list in pairs(byLevel) do
+            for _, r in pairs(list) do out[#out + 1] = { family, level, r.health, r.armor } end
+        end
+    end
+    return out
+end
+
 -- Sending -------------------------------------------------------------------------
 -- Everyone running BeastScout joins a hidden chat channel, so sharing reaches
 -- every BeastScout user online on your current virtual realm, guild or not. If the channel
@@ -375,7 +443,10 @@ local function Pump()
     end
     queued[item.key] = nil
     local msg
-    if item.passed then
+    if item.stat then
+        local byLevel = BeastScoutDB.petStats and BeastScoutDB.petStats[item.family]
+        msg = ns.EncodeStat(item.family, item.level, byLevel and byLevel[item.level])
+    elseif item.passed then
         msg = ns.EncodeRecord(item.npcId, PassOnRecord(item.npcId), true)
     else
         msg = ns.EncodeRecord(item.npcId, BeastScoutDB.npcs[item.npcId])
@@ -396,6 +467,26 @@ local function Enqueue(npcId, channels, passed)
         pumping = true
         C_Timer.After(SEND_GAP, Pump)
     end
+end
+
+local function EnqueueStat(family, level, channels)
+    for _, channel in ipairs(channels) do
+        local key = "S" .. family .. level .. channel
+        if not queued[key] then
+            queued[key] = true
+            queue[#queue + 1] = { stat = true, family = family, level = level, channel = channel, key = key }
+        end
+    end
+    if not pumping and #queue > 0 then
+        pumping = true
+        C_Timer.After(SEND_GAP, Pump)
+    end
+end
+
+-- A new lowest pet reading: right away.
+function ns.QueueStatShare(family, level)
+    if not ns.SharingOn() then return end
+    EnqueueStat(family, level, Channels())
 end
 
 -- A new tame or Beast Lore finding: right away.
@@ -428,7 +519,16 @@ function ns.ShareAll(force)
     end
     table.sort(passing)
     for i = 1, math.min(#passing, MAX_PASS_ON) do Enqueue(passing[i], channels, true) end
-    return #ids + math.min(#passing, MAX_PASS_ON)
+    local stats = 0
+    for family, byLevel in pairs(BeastScoutDB.petStats or {}) do
+        for level, reading in pairs(byLevel) do
+            if ns.EncodeStat(family, level, reading) then
+                EnqueueStat(family, level, channels)
+                stats = stats + 1
+            end
+        end
+    end
+    return #ids + math.min(#passing, MAX_PASS_ON) + stats
 end
 
 -- Events --------------------------------------------------------------------------
@@ -486,6 +586,16 @@ local function CleanSavedReports()
         Merge(npcId)
         if not next(by) then BeastScoutDB.guildReports[npcId] = nil end
     end
+    for family, byLevel in pairs(BeastScoutDB.guildStats or {}) do
+        for level, list in pairs(byLevel) do
+            for sender, r in pairs(list) do
+                r.time = r.time or now
+                if IsMe(sender) or now - r.time > REPORT_DAYS * 86400 then list[sender] = nil end
+            end
+            if not next(list) then byLevel[level] = nil end
+        end
+        if not next(byLevel) then BeastScoutDB.guildStats[family] = nil end
+    end
     -- Saved by a version with no limit: trim to it.
     for _ = MAX_BEASTS + 1, CountBeasts() do DropOldestBeast() end
 end
@@ -540,7 +650,11 @@ function ns.OnAddonMessage(prefix, msg, channel, sender, _, _, _, channelName)
         C_Timer.After(5 + math.random(0, 25), function() ns.ShareAll() end)
         return
     end
-    ns.ReceiveRecord(sender, msg)
+    if msg:sub(1, #STAT + 1) == STAT .. SEP then
+        ns.ReceiveStat(sender, msg)
+    else
+        ns.ReceiveRecord(sender, msg)
+    end
 end
 
 -- Keep the channel out of every chat window.
@@ -611,7 +725,7 @@ function ns.ShareStatus()
 end
 
 function ns.ForgetGuildData()
-    BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
+    BeastScoutDB.guild, BeastScoutDB.guildReports, BeastScoutDB.guildStats = {}, {}, {}
 end
 
 -- /beastscout channeltest: can addon messages go over a custom chat channel

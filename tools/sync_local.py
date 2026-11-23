@@ -11,6 +11,9 @@ players passed on the same thing and nobody's first-hand reports agree.
 Reports already bundled stay bundled: the game keeps only the newest reports
 per beast, so a report it drops (or /beastscout forget shared) doesn't remove
 it here. A player's newer report for the same beast replaces their old one.
+Pet health and armor readings (yours in BeastScoutDB.petStats, other players'
+in BeastScoutDB.guildStats) go into contributions/pets/stats.lua, one line per
+player, family and pet level, and are kept the same way.
 If the addon folder is linked to this repo, a /reload in game picks it up.
 
 First run (remembers the path in tools/local.json, which is not committed):
@@ -30,13 +33,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from build_bestiary import TRUST, build, parse_ours_text, to_line  # noqa: E402
+from build_bestiary import (TRUST, build, parse_ours_text, parse_pet_stats,  # noqa: E402
+                            pet_stat_line, to_line)
 from pull_contributions import author_hash, known_names, problems  # noqa: E402
 
 CONFIG = ROOT / "tools" / "local.json"
 OUT = ROOT / "contributions" / "local.lua"
 SHARED_DIR = ROOT / "contributions"
 SHARED_GLOB = "shared-*.lua"
+PET_STATS = ROOT / "contributions" / "pets" / "stats.lua"
 MIN_AGREEING = 2  # players who must report the same thing before it's bundled
 PASSED_MARK = " -- passed on"  # ends a shared file's line bundled from passed-on reports
 
@@ -291,6 +296,56 @@ def write_shared(by_author):
     return True
 
 
+def pet_stats(saved_list, salt, families):
+    """Readings from your saved files: {(author, family, level): {health, armor, loyalty}}.
+    Yours count as one player (lowest reading across accounts), others' are hashed."""
+    def whole(v, low, high):
+        return int(v) if isinstance(v, (int, float)) and low <= v <= high and v == int(v) else None
+
+    out = {}
+
+    def add(author, family, level, r):
+        level, health = whole(level, 1, 80), whole((r or {}).get("health"), 1, 100000)
+        if family not in families or not level or not health:
+            return
+        reading = {"health": health, "armor": whole(r.get("armor"), 1, 100000), "loyalty": whole(r.get("loyalty"), 1, 6)}
+        old = out.get((author, family, level))
+        if old:
+            reading["health"] = min(old["health"], health)
+            reading["armor"] = min(v for v in (old["armor"], reading["armor"]) if v) if (old["armor"] or reading["armor"]) else None
+            reading["loyalty"] = reading["loyalty"] or old["loyalty"]
+        out[(author, family, level)] = reading
+
+    for saved in saved_list:
+        db = saved.get("BeastScoutDB") or {}
+        for family, by_level in (db.get("petStats") or {}).items():
+            for level, r in (by_level or {}).items():
+                if isinstance(r, dict):
+                    add("maintainer", family, level, r)
+        for family, by_level in (db.get("guildStats") or {}).items():
+            for level, by_sender in (by_level or {}).items():
+                for sender, r in (by_sender or {}).items():
+                    if isinstance(r, dict) and isinstance(sender, str):
+                        add(author_hash("wow:" + sender, salt), family, level, r)
+    return out
+
+
+def write_pet_stats(readings):
+    """Adds the new readings to contributions/pets/stats.lua, keeping older ones
+    nobody has replaced; returns whether anything changed."""
+    kept = parse_pet_stats(PET_STATS)
+    merged = {**kept, **readings}
+    if merged == kept and PET_STATS.exists():
+        return False
+    lines = ["-- Pets' lowest health and armor, from your saved data and other players' shares,",
+             "-- synced by tools/sync_local.py. One line per player, family and pet level;",
+             "-- kept until that player measures it again. Player names are hashed."]
+    lines += [pet_stat_line(k, merged[k]) for k in sorted(merged)]
+    PET_STATS.parent.mkdir(parents=True, exist_ok=True)
+    PET_STATS.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return True
+
+
 def sync(wtf):
     files = saved_files(wtf)
     if not files:
@@ -333,6 +388,8 @@ def sync(wtf):
     if held:
         print(f"Held back, players disagree: {', '.join(str(i) for i in sorted(set(held)))}")
     shared_changed = write_shared(shared)
+    readings = pet_stats(saved_list, config["author_salt"], families)
+    shared_changed = write_pet_stats(readings) or shared_changed
     shared_count = len({i for beasts_ in shared.values() for i in beasts_})
 
     if OUT.exists() and OUT.read_text(encoding="utf-8") == text and not shared_changed:
@@ -343,7 +400,7 @@ def sync(wtf):
     OUT.write_text(text, encoding="utf-8", newline="\n")
     print(f"{time.strftime('%H:%M:%S')} synced {len(beasts)} beasts"
           + (f" ({skipped} skipped as invalid)" if skipped else "")
-          + f", {shared_count} shared by other players")
+          + f", {shared_count} shared by other players, {len(readings)} pet readings")
     build()
     print("/reload in game to see it.")
     return True

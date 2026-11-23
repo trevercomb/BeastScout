@@ -166,8 +166,10 @@ def main():
     sync_local.OUT = tmp / "contributions" / "local.lua"
     sync_local.SHARED_DIR = tmp / "contributions"
     sync_local.CONFIG = tmp / "local.json"
+    sync_local.PET_STATS = tmp / "contributions" / "pets" / "stats.lua"
     sync_local.build = lambda: build_bestiary.build(str(tmp / "contributions" / "*.lua"),
-                                                    build_bestiary.DEFAULT_HANDBOOK, out_dir)
+                                                    build_bestiary.DEFAULT_HANDBOOK, out_dir,
+                                                    pet_stats_path=sync_local.PET_STATS)
 
     parsed = sync_local.read_saved_variables(ACCOUNT_A)["BeastScoutDB"]["npcs"]
     first = sync_local.sync(str(wtf))
@@ -199,6 +201,21 @@ def main():
     disputed = sync_local.shared_files([{"BeastScoutDB": {"guildReports": reports}}], "salt",
                                        families, abilities, {}, held)
     bundled = {i for beasts in disputed.values() for i in beasts}
+
+    # Pet readings: yours as one player, others hashed, junk dropped, old ones kept.
+    stats_saved = [
+        {"BeastScoutDB": {"petStats": {"Bear": {24: {"health": 1081, "armor": 1416, "loyalty": 3}}},
+                          "guildStats": {"Wolf": {24: {"Arwen": {"health": 918, "armor": 1254}}},
+                                         "Dragon": {24: {"Arwen": {"health": 1, "armor": 1}}},
+                                         "Cat": {0: {"Arwen": {"health": 500}}}}}},
+        {"BeastScoutDB": {"petStats": {"Bear": {24: {"health": 1100, "armor": 1400}}}}},
+    ]
+    readings = sync_local.pet_stats(stats_saved, "salt", families)
+    sync_local.write_pet_stats(readings)
+    sync_local.write_pet_stats({})  # the game forgot them: kept anyway
+    kept_stats = build_bestiary.parse_pet_stats(sync_local.PET_STATS)
+    build_bestiary.write_pet_stats_table(out_dir / "PetStats.lua", kept_stats)
+    pet_table = (out_dir / "PetStats.lua").read_text(encoding="utf-8")
 
     # Reports earlier syncs bundled are kept when the game has dropped them.
     hash_of = lambda name: sync_local.author_hash("wow:" + name, "salt")
@@ -235,6 +252,14 @@ def main():
         "kept: forgetting shared data in game removes nothing": set(gone) == {"p-aaa", "p-bbb", "p-ccc", "p-ddd",
                                                                                hash_of("P")},
         "kept: a passed-on line is read back as passed on": set(read_back.get(6003, {})) == {"~#p-eee", "#p-fff"},
+        "pet stats: yours, lowest across accounts":
+            readings.get(("maintainer", "Bear", 24)) == {"health": 1081, "armor": 1400, "loyalty": 3},
+        "pet stats: another player's, hashed": (hash_of("Arwen"), "Wolf", 24) in readings
+            and "Arwen" not in sync_local.PET_STATS.read_text(encoding="utf-8"),
+        "pet stats: unknown family and level 0 dropped": len(readings) == 2,
+        "pet stats: kept when the game forgets them": len(kept_stats) == 2,
+        "pet stats: bundled without who measured them":
+            '{ "Bear", 24, 1081, 1400 },' in pet_table and "maintainer" not in pet_table,
         "escaped quote read": parsed[3035]["name"] == 'Flatland "Big" Cougar',
         "nested lists read": parsed[2958]["teaches"] == [["Bite", 1]],
         "first sync writes": first is True,

@@ -88,7 +88,7 @@ end
 -- Load the addon in .toc order ---------------------------------------------------
 
 local ns = {}
-for _, file in ipairs({ "Data.lua", "Training.lua", "Locale.lua", "Community.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "Food.lua", "Share.lua", "UI.lua", "BeastScout.lua" }) do
+for _, file in ipairs({ "Data.lua", "Training.lua", "Locale.lua", "Community.lua", "PetStats.lua", "Handbook.lua", "Collect.lua", "Advice.lua", "Food.lua", "Share.lua", "UI.lua", "BeastScout.lua" }) do
     local chunk = assert(loadfile(file))
     chunk("BeastScout", ns)
 end
@@ -1724,6 +1724,100 @@ do
     check("coverage text leaves out zeros", ns.CoverageText({ ours = 6, new = 0, spotsOnly = 0 })
         == "Hunters like you have now shared skills and speeds for 6 beasts", ns.CoverageText({ ours = 6, new = 0, spotsOnly = 0 }))
     ns.COMMUNITY, ns.HANDBOOK = realC, realH
+end
+
+-- Shared pet stats: readings travel as S1 messages and feed find tank.
+do
+    local saveStats, saveOwn, saveGuild = ns.PET_STATS, BeastScoutDB.petStats, BeastScoutDB.guildStats
+    BeastScoutDB.petStats, BeastScoutDB.guildStats = {}, {}
+
+    local msg = ns.EncodeStat("Bear", 24, { health = 1081, armor = 1416, loyalty = 3 })
+    check("stat encoded", msg == "S1;Bear;24;1081;1416;3", msg)
+    local family, level, r = ns.DecodeStat(msg)
+    check("stat decoded", family == "Bear" and level == 24 and r.health == 1081 and r.armor == 1416 and r.loyalty == 3)
+    check("stat: unknown family rejected", ns.DecodeStat("S1;Dragon;24;1081;1416;3") == nil)
+    check("stat: level 0 rejected", ns.DecodeStat("S1;Bear;0;1081;1416;3") == nil)
+    check("stat: silly health rejected", ns.DecodeStat("S1;Bear;24;1e999;1416;3") == nil
+        and ns.DecodeStat("S1;Bear;24;12.5;1416;3") == nil)
+    check("stat: no armor is fine", select(3, ns.DecodeStat("S1;Bear;24;1081;;")).armor == nil)
+
+    ns.OnAddonMessage("BeastScout", msg, "GUILD", "Arwen-Realm")
+    check("stat stored per player", BeastScoutDB.guildStats.Bear[24].Arwen.health == 1081)
+    check("stat doesn't become a beast", not (BeastScoutDB.guildReports or {})[24])
+    for i = 1, 12 do ns.ReceiveStat("Hunter" .. i, "S1;Bear;24;" .. (1000 + i) .. ";1400;") end
+    local count = 0
+    for _ in pairs(BeastScoutDB.guildStats.Bear[24]) do count = count + 1 end
+    check("stat: 10 players kept per family and level", count == 10, count)
+
+    -- A new lowest reading is shared, with the pet's loyalty.
+    local queuedStat
+    local realQueue = ns.QueueStatShare
+    ns.QueueStatShare = function(f, l) queuedStat = f .. l end
+    local realLoyalty = ns.PetLoyalty
+    ns.PetLoyalty = function() return "Submissive", 3 end
+    units.pet = { name = "Roxie", family = "Bear", level = 20, guid = "Pet-0-1-2-3-165189-ROXI" }
+    UnitHealthMax, UnitArmor = function() return 823 end, function() return 1219 end
+    ns.MeasurePet()
+    check("new reading shared", queuedStat == "Bear20", queuedStat)
+    check("loyalty kept with the reading", BeastScoutDB.petStats.Bear[20].loyalty == 3)
+    queuedStat = nil
+    ns.MeasurePet()
+    check("the same reading isn't shared again", queuedStat == nil)
+    ns.QueueStatShare, ns.PetLoyalty = realQueue, realLoyalty
+    UnitHealthMax, UnitArmor, units.pet = nil, nil, nil
+
+    -- Sending your readings, in a full share too.
+    local sent = {}
+    C_ChatInfo = { SendAddonMessage = function(_, m, channel) sent[#sent + 1] = m end }
+    IsInGuild = function() return true end
+    ns.QueueStatShare("Bear", 20)
+    runTimers()
+    check("reading sent", sent[1] == "S1;Bear;20;823;1219;3", sent[1])
+    sent = {}
+    BeastScoutDB.sharedAt = nil
+    ns.ShareAll()
+    runTimers()
+    local hasStat = false
+    for _, m in ipairs(sent) do hasStat = hasStat or m == "S1;Bear;20;823;1219;3" end
+    check("full share sends readings", hasStat)
+    C_ChatInfo, IsInGuild, BeastScoutDB.sharedAt = nil, nil, nil
+
+    -- Working out the bonuses: families measured at the same levels, from
+    -- Classic's numbers, plus Fox, which Classic doesn't have.
+    BeastScoutDB.petStats, BeastScoutDB.guildStats = {}, {}
+    local truth = { Bear = { 1.08, 1.05 }, Wolf = { 1.00, 1.05 }, Cat = { 0.98, 1.00 }, Fox = { 1.10, 1.02 } }
+    ns.PET_STATS = {}
+    for fam, m in pairs(truth) do
+        for _, lvl in ipairs({ 10, 20, 30 }) do
+            ns.PET_STATS[#ns.PET_STATS + 1] = { fam, lvl, (100 + 40 * lvl) * m[1], (50 * lvl) * m[2] }
+        end
+    end
+    ns.PET_STATS[#ns.PET_STATS + 1] = { "Bear", 20, 900 * 1.08, 500 } -- a debuffed reading
+    local mods = ns.MeasuredFamilyMods()
+    local function near(a, b) return a and math.abs(a - b) < 0.005 end
+    check("measured: Bear", near(mods.Bear and mods.Bear.health, 1.08) and near(mods.Bear.armor, 1.05),
+        mods.Bear and (mods.Bear.health .. " " .. mods.Bear.armor))
+    check("measured: Fox, new in Forever", near(mods.Fox and mods.Fox.health, 1.10) and near(mods.Fox.armor, 1.02),
+        mods.Fox and (mods.Fox.health .. " " .. mods.Fox.armor))
+    check("measured: every pet counted", mods.Bear.pets == 4, mods.Bear.pets)
+    units.player = { level = 30 }
+    local mark = #printed
+    SlashCmdList.BEASTSCOUT("find tank")
+    local found = table.concat(printed, "\n", mark + 1)
+    check("tank: says it's measured", found:find("measured in Forever where shown", 1, true), found)
+    check("tank: Fox ranked with its measured bonus", found:find("Fox (+10% health, +2% armor; measured, 3 pets)", 1, true), found)
+    check("tank: unmeasured families keep Classic's", found:find("Boar (+4% health, +9% armor, Charge)", 1, true), found)
+    check("tank: lists what isn't measured yet", found:find("Not measured yet: Bird of Prey, Core Hound.", 1, true), found)
+
+    ns.PET_STATS = { { "Bear", 20, 900, 1000 }, { "Bear", 21, 950, 1050 }, { "Bear", 22, 1000, 1100 } }
+    check("one family alone: nothing measured", next(ns.MeasuredFamilyMods()) == nil)
+    ns.PET_STATS = {}
+    check("no readings: nothing measured", next(ns.MeasuredFamilyMods()) == nil)
+
+    BeastScoutDB.guildStats = { Bear = { [20] = { Arwen = { health = 1 } } } }
+    ns.ForgetGuildData()
+    check("forget shared forgets readings", next(BeastScoutDB.guildStats) == nil)
+    ns.PET_STATS, BeastScoutDB.petStats, BeastScoutDB.guildStats = saveStats, saveOwn, saveGuild
 end
 
 print = realPrint

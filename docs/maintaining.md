@@ -35,6 +35,8 @@ Your observations go through the same checks and merge rules as shared ones, and
 
 The sync also picks up what other players shared with you in game. Beasts where at least two players agree go into `contributions/shared-<player hash>.lua`, one file per player so each counts once; single reports stay in your game only. Player names are hashed with the salt in `tools/local.json`, like GitHub logins. Passed-on data is bundled only when two players passed on the same thing and no first-hand reports agree. A passed-on report keeps the original tame's spot, so relays with the same spot count as one source, and a relay at a spot you recorded yourself (your own tame coming back) doesn't count at all. What's been bundled stays bundled: the game keeps only the newest 10 reports per beast, so a report it drops (or `/beastscout forget shared`) doesn't remove it from the repo, and only that player's newer report for the same beast replaces it. Lines bundled from passed-on reports end in `-- passed on`. To take out a bad report, delete its line.
 
+Pet health and armor readings (yours and other players') go into `contributions/pets/stats.lua`, one line per player, family and pet level, kept the same way. The build writes them to `PetStats.lua` without who measured them, and `find tank` fits each family's bonus from them in game.
+
 ## Releasing
 
 Releases are built by `.github/workflows/release.yml` with the [BigWigs packager](https://github.com/BigWigsMods/packager); `.pkgmeta` keeps tests, tools and data sources out of the zip.

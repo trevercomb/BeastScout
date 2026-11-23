@@ -679,6 +679,172 @@ local function Percent(mult)
     return (p > 0 and "+" or "") .. p .. "%"
 end
 
+-- Measured bonuses ---------------------------------------------------------------
+-- Every pet reading (bundled, heard in game, your own), fitted as
+--   log(value) = family bonus + a curve over pet level,
+-- so pets of different levels can still be compared. Readings more than 15%
+-- off the fit (a debuff, a stray buff) are dropped and the fit redone. The
+-- bonuses are then scaled to match the Classic table on average, so measured
+-- and Classic numbers read the same way.
+local MIN_PETS = 3      -- readings a family needs before its measured bonus is used
+local unpack = unpack or table.unpack
+local OUTLIER = math.log(1.15)
+
+local function Solve(a, b)
+    local n = #b
+    for col = 1, n do
+        local pivot = col
+        for row = col + 1, n do
+            if math.abs(a[row][col]) > math.abs(a[pivot][col]) then pivot = row end
+        end
+        if math.abs(a[pivot][col]) < 1e-12 then return nil end
+        a[col], a[pivot], b[col], b[pivot] = a[pivot], a[col], b[pivot], b[col]
+        for row = col + 1, n do
+            local f = a[row][col] / a[col][col]
+            for k = col, n do a[row][k] = a[row][k] - f * a[col][k] end
+            b[row] = b[row] - f * b[col]
+        end
+    end
+    local x = {}
+    for row = n, 1, -1 do
+        local sum = b[row]
+        for k = row + 1, n do sum = sum - a[row][k] * x[k] end
+        x[row] = sum / a[row][row]
+    end
+    return x
+end
+
+-- samples: { {family, level, value} }. Returns { family = log bonus }, counts,
+-- and a function giving a sample's distance from the fit.
+local function Fit(samples)
+    local families, index = {}, {}
+    for _, s in ipairs(samples) do
+        if not index[s[1]] then
+            families[#families + 1] = s[1]
+            index[s[1]] = #families
+        end
+    end
+    if #families < 2 then return nil end
+    local n = #families + 2 -- one per family, then level and level squared
+    local function row(s)
+        local x = {}
+        for i = 1, n do x[i] = 0 end
+        local l = s[2] / 60
+        x[index[s[1]]], x[n - 1], x[n] = 1, l, l * l
+        return x
+    end
+    local a, b = {}, {}
+    for i = 1, n do
+        a[i], b[i] = {}, 0
+        for k = 1, n do a[i][k] = i == k and 1e-6 or 0 end
+    end
+    for _, s in ipairs(samples) do
+        local x, y = row(s), math.log(s[3])
+        for i = 1, n do
+            if x[i] ~= 0 then
+                b[i] = b[i] + x[i] * y
+                for k = 1, n do a[i][k] = a[i][k] + x[i] * x[k] end
+            end
+        end
+    end
+    local coef = Solve(a, b)
+    if not coef then return nil end
+    local out, counts = {}, {}
+    for _, s in ipairs(samples) do counts[s[1]] = (counts[s[1]] or 0) + 1 end
+    for f, i in pairs(index) do out[f] = coef[i] end
+    return out, counts, function(s)
+        local x, sum = row(s), 0
+        for i = 1, n do sum = sum + x[i] * coef[i] end
+        return math.log(s[3]) - sum
+    end
+end
+
+-- One bad reading pulls the whole fit, so drop only the worst one, refit,
+-- and repeat while anything is still too far off (up to 10, and at most a
+-- quarter of them).
+local function FitRobust(samples)
+    local kept = {}
+    for i, s in ipairs(samples) do kept[i] = s end
+    local bonus, counts, residual = Fit(kept)
+    for _ = 1, math.min(10, math.floor(#samples / 4)) do
+        if not bonus then return nil end
+        local worst, worstAt = OUTLIER, nil
+        for i, s in ipairs(kept) do
+            local r = math.abs(residual(s))
+            if r > worst then worst, worstAt = r, i end
+        end
+        if not worstAt then break end
+        table.remove(kept, worstAt)
+        bonus, counts, residual = Fit(kept)
+    end
+    return bonus, counts
+end
+
+-- Every reading: bundled, then heard from players, then your own.
+local function AllReadings()
+    local out = {}
+    for _, r in ipairs(ns.PET_STATS or {}) do out[#out + 1] = r end
+    for _, r in ipairs(ns.SharedStats and ns.SharedStats() or {}) do out[#out + 1] = r end
+    for family, byLevel in pairs(BeastScoutDB.petStats or {}) do
+        for level, s in pairs(byLevel) do out[#out + 1] = { family, level, s.health, s.armor } end
+    end
+    return out
+end
+
+-- { family = { health = 1.08, armor = 1.05, pets = 12 } } for families with
+-- at least MIN_PETS readings of both, or {} while there's too little data.
+function ns.MeasuredFamilyMods()
+    local readings = AllReadings()
+    local out = {}
+    for stat, column in pairs({ health = 3, armor = 4 }) do
+        -- One median per family and level keeps the fit small however many
+        -- players share, and already outvotes a stray reading.
+        local groups, counts = {}, {}
+        for _, r in ipairs(readings) do
+            local v = r[column]
+            if ns.FAMILIES[r[1]] and type(v) == "number" and v > 0 and type(r[2]) == "number" then
+                local key = r[1] .. " " .. r[2]
+                groups[key] = groups[key] or { r[1], r[2] }
+                table.insert(groups[key], v)
+                counts[r[1]] = (counts[r[1]] or 0) + 1
+            end
+        end
+        local samples = {}
+        for _, g in pairs(groups) do
+            local values = { unpack(g, 3) }
+            table.sort(values)
+            local half = #values / 2
+            local median = (values[math.floor(half + 0.5)] + values[math.floor(half) + 1]) / 2
+            samples[#samples + 1] = { g[1], g[2], median }
+        end
+        table.sort(samples, function(a, b) return a[1] < b[1] or (a[1] == b[1] and a[2] < b[2]) end)
+        local bonus = FitRobust(samples)
+        if not bonus then return {} end
+        -- Scale so families in the Classic table average their Classic bonus.
+        local shift, n = 0, 0
+        for f, b in pairs(bonus) do
+            local classic = ns.CLASSIC_FAMILY_MODS[f]
+            if classic then shift, n = shift + b - math.log(classic[stat]), n + 1 end
+        end
+        if n == 0 then return {} end
+        shift = shift / n
+        for f, b in pairs(bonus) do
+            if counts[f] >= MIN_PETS then
+                out[f] = out[f] or {}
+                out[f][stat] = math.exp(b - shift)
+                out[f].pets = math.min(out[f].pets or counts[f], counts[f])
+            end
+        end
+    end
+    for f, m in pairs(out) do
+        if not (m.health and m.armor) then out[f] = nil end
+    end
+    -- One measured family has nothing to be compared against.
+    local count = 0
+    for _ in pairs(out) do count = count + 1 end
+    return count >= 2 and out or {}
+end
+
 local function SearchTank()
     local level, here = UnitLevel("player") or 0, Here()
     local best = {}
@@ -695,11 +861,16 @@ local function SearchTank()
         end
     end
 
+    local measured = ns.MeasuredFamilyMods()
     local ranked = {}
-    for family, mods in pairs(ns.CLASSIC_FAMILY_MODS) do
+    local function add(family, mods)
         if mods.health * mods.armor > 1.001 then
             ranked[#ranked + 1] = { family = family, mods = mods, score = mods.health * mods.armor }
         end
+    end
+    for family, mods in pairs(measured) do add(family, mods) end
+    for family, mods in pairs(ns.CLASSIC_FAMILY_MODS) do
+        if not measured[family] then add(family, mods) end
     end
     table.sort(ranked, function(a, b)
         if a.score ~= b.score then return a.score > b.score end
@@ -712,7 +883,8 @@ local function SearchTank()
         if r.mods.health ~= 1 then bonus[#bonus + 1] = Percent(r.mods.health) .. " health" end
         if r.mods.armor ~= 1 then bonus[#bonus + 1] = Percent(r.mods.armor) .. " armor" end
         local skill = ns.TANK_SKILLS[r.family] and (", " .. ns.TANK_SKILLS[r.family]) or ""
-        local head = r.family .. " (" .. table.concat(bonus, ", ") .. skill .. ")"
+        local how = r.mods.pets and ("; measured, " .. r.mods.pets .. " pets") or ""
+        local head = r.family .. " (" .. table.concat(bonus, ", ") .. skill .. how .. ")"
         local m = best[r.family]
         if m then
             m.text = head .. ": " .. m.name .. " (" .. Levels(m) .. ")" .. Place(m)
@@ -721,10 +893,23 @@ local function SearchTank()
             rows[i] = { text = head .. ": none at your level", grey = true }
         end
     end
+    if not next(measured) then
+        return {
+            title = "tank families, toughest first (Classic numbers, not yet confirmed for Forever)",
+            rows = rows,
+            note = "Fox, Bird of Prey and Core Hound are new in Forever; their bonuses are unknown."
+                .. " Every hunter's pets are measured and shared to work them out.",
+        }
+    end
+    local unknown = {}
+    for _, f in ipairs({ "Fox", "Bird of Prey", "Core Hound" }) do
+        if not measured[f] then unknown[#unknown + 1] = f end
+    end
     return {
-        title = "tank families, toughest first (Classic numbers, not yet confirmed for Forever)",
+        title = "tank families, toughest first (measured in Forever where shown, else Classic numbers)",
         rows = rows,
-        note = "Fox, Bird of Prey and Core Hound are new in Forever; their bonuses are unknown.",
+        note = "Measured from players' pets, shared in game." .. (#unknown > 0
+            and (" Not measured yet: " .. table.concat(unknown, ", ") .. ".") or ""),
     }
 end
 
@@ -899,7 +1084,10 @@ local function SearchStats()
                 forget = function() ns.ForgetPetStat(family, lvl) end, forgetTip = "Forget this measurement" }
         end
     end
-    return { title = "measured pet stats (lowest seen, so buffs don't count)", rows = rows }
+    local heard = ns.SharedStats and #ns.SharedStats() or 0
+    return { title = "measured pet stats (lowest seen, so buffs don't count)", rows = rows,
+        note = "Shared with other hunters to work out Forever's family bonuses for find tank"
+            .. (heard > 0 and (" (" .. heard .. " readings heard from other players)") or "") .. "." }
 end
 
 -- Every pet BeastScout remembers, with its skills; Remove forgets one (a pet
@@ -1029,6 +1217,7 @@ local function Loyalty()
     end
     return name or (level and LOYALTY[level]), level
 end
+ns.PetLoyalty = Loyalty
 
 local function Happiness()
     local level, _, rate = Call("GetPetHappiness")

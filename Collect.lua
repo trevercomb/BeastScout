@@ -405,8 +405,9 @@ end
 
 -- Pet stats ----------------------------------------------------------------------
 -- Family health/armor bonuses aren't published for Forever, so measure them:
--- BeastScoutDB.petStats[family][petLevel] = { health, armor, name }. Keep the
--- lowest reading, since buffs only ever add.
+-- BeastScoutDB.petStats[family][petLevel] = { health, armor, loyalty, name }.
+-- Keep the lowest reading, since buffs only ever add. A new lowest reading is
+-- shared, so every hunter's pets help work out each family's bonuses.
 
 function ns.MeasurePet()
     if not UnitExists("pet") or UnitAffectingCombat("pet") then return end
@@ -423,9 +424,13 @@ function ns.MeasurePet()
     BeastScoutDB.petStats[family] = byLevel
     local s = byLevel[level] or {}
     byLevel[level] = s
-    if not s.health or health < s.health then s.health = health end
-    if armor and armor > 0 and (not s.armor or armor < s.armor) then s.armor = armor end
+    local changed = false
+    if not s.health or health < s.health then s.health, changed = health, true end
+    if armor and armor > 0 and (not s.armor or armor < s.armor) then s.armor, changed = armor, true end
+    local loyalty = ns.PetLoyalty and select(2, ns.PetLoyalty())
+    if changed and loyalty and not IsSecret(loyalty) then s.loyalty = loyalty end
     s.name = UnitName("pet")
+    if changed and ns.QueueStatShare then ns.QueueStatShare(family, level) end
 end
 
 -- Rare alert -----------------------------------------------------------------------

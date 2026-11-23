@@ -12,6 +12,7 @@ Data.lua
 Training.lua
 Locale.lua
 Community.lua
+PetStats.lua
 Handbook.lua
 Collect.lua
 Advice.lua
