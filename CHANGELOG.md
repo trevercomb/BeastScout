@@ -1,5 +1,12 @@
 # BeastScout changelog
 
+## 0.13.10
+
+- New from players' tames: Ta'shkal in Mount Hyjal (Faster Attack VII, a 1.0 attack speed), Vulgara the Insatiable on Zephras Isle (Faster Attack II), Prairie Wolf Alpha and Savannah Patriarch (Faster Attack V), Elder Cloud Serpent (Lightning Breath 3), Mistvale Gorilla (Thunderstomp 1), Mottled Screecher (Savage Rend 2), Deathstrike Tarantula (Bite 6), Silvermane Stalker and Starving Blisterpaw (Dash 2), Deepmoss Creeper (Bite 3) and Elder Gray Bear (Swipe 2).
+- Savannah Patriarch's Cower 4 is confirmed by three players' tames.
+- Older players' reports now stay in the bundled data instead of dropping out as new ones arrive, so many beasts show more confirmations, e.g. Black Bear Patriarch `(players, tamed x6)`.
+- Hunters like you have now shared skills and speeds for 66 beasts (6 the Handbook never had), plus spawn points for 61 more.
+
 ## 0.13.9
 
 - `/beastscout help` now shows how many beasts' skills and speeds hunters like you have shared, so you can watch it grow. Every tame you share adds to it.

@@ -3,7 +3,7 @@
 ## Notes: Hunter taming info on beast tooltips: attack speed, skills taught, family abilities and diet.
 ## Author: Tony
 ## IconTexture: Interface\AddOns\BeastScout\Media\icon
-## Version: 0.13.9
+## Version: 0.13.10
 ## SavedVariables: BeastScoutDB
 ## OptionalDeps: DaylightUI, EllesmereUI, ElvUI
 ## X-Curse-Project-ID: 1802153
