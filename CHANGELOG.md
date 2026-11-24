@@ -1,5 +1,12 @@
 # BeastScout changelog
 
+## 0.13.13
+
+- Right after a tame, the game sometimes shows a lower Faster or Slower Attack rank than the pet really has. BeastScout now remembers the beast each new pet came from, and if the pet's spellbook later shows a different rank within two weeks, it corrects that beast's skills and speed, tells you in chat, and shares the fix.
+- Mystmane on Zephras Isle corrected to Faster Attack II (1.6), matching the Hunter's Handbook. Its tame first showed Faster Attack I.
+- Your pet readings now include your own stamina and armor, so the measured family bonuses for `/beastscout find tank` can take your gear out once enough readings come in. `/beastscout pet` shows both your pet's and your own current numbers.
+- Hunters like you have now shared skills and speeds for 74 beasts (6 the Handbook never had), plus spawn points for 58 more.
+
 ## 0.13.12
 
 - `/beastscout find tank` is back to Classic's numbers. The first pet readings players shared varied far more than family bonuses can explain (most likely your own gear counts toward your pet's health and armor), so measured bonuses could rank families wrongly. Readings are still collected and shared, so they can return once that's accounted for.
