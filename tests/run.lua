@@ -1795,6 +1795,8 @@ do
     -- Working out the bonuses: families measured at the same levels, from
     -- Classic's numbers, plus Fox, which Classic doesn't have.
     BeastScoutDB.petStats, BeastScoutDB.guildStats = {}, {}
+    local shippedInherit = ns.PET_INHERIT
+    ns.PET_INHERIT = {} -- these synthetic pets inherit nothing
     local truth = { Bear = { 1.08, 1.05 }, Wolf = { 1.00, 1.05 }, Cat = { 0.98, 1.00 }, Fox = { 1.10, 1.02 } }
     ns.PET_STATS = {}
     for fam, m in pairs(truth) do
@@ -1840,14 +1842,14 @@ do
     check("inherited: without the share, Cat's armor comes out wrong", not near(raw.Cat and raw.Cat.armor, 1.00))
     ns.PET_INHERIT = { health = 3, armor = 0.35 }
     local fixed = ns.MeasuredFamilyMods()
-    ns.PET_INHERIT = { health = nil, armor = nil }
+    ns.PET_INHERIT = {}
     check("inherited: with it, the bonuses come back", near(fixed.Cat and fixed.Cat.armor, 1.00)
         and near(fixed.Bear.health, 1.08) and near(fixed.Fox.health, 1.10),
         fixed.Cat and (fixed.Cat.armor .. " " .. fixed.Bear.health))
     ns.PET_INHERIT = { health = 3 }
     ns.PET_STATS = { { "Bear", 20, 900, 1000 }, { "Wolf", 20, 850, 950 }, { "Cat", 20, 800, 900 } }
     check("inherited: readings without the hunter's numbers are left out", next(ns.MeasuredFamilyMods()) == nil)
-    ns.PET_INHERIT = { health = nil, armor = nil }
+    ns.PET_INHERIT = shippedInherit
 
     ns.PET_STATS = { { "Bear", 20, 900, 1000 }, { "Bear", 21, 950, 1050 }, { "Bear", 22, 1000, 1100 } }
     check("one family alone: nothing measured", next(ns.MeasuredFamilyMods()) == nil)

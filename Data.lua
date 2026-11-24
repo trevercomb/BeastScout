@@ -52,11 +52,13 @@ ns.CLASSIC_FAMILY_MODS = {
 ns.SHOW_MEASURED_BONUSES = false
 
 -- How much of its hunter a pet gets: health per point of the hunter's stamina,
--- and armor per point of the hunter's total armor (in TBC, 3 and 0.35). nil
--- until measured in Forever (swap a stamina or armor piece and compare
--- /beastscout pet before and after); once set, the fit takes it out of every
--- reading that came with the hunter's numbers.
-ns.PET_INHERIT = { health = nil, armor = nil }
+-- and armor per point of the hunter's total armor (in TBC, 3 and 0.35). Once
+-- set, the fit takes it out of every reading that came with the hunter's
+-- numbers and ignores the rest. Measured 2026-11-24 on a level 13 bear by
+-- taking off a chest piece: hunter armor 628 -> 540 moved the pet 834 -> 808
+-- (0.3 per point), while hunter stamina 75 -> 68 left its 491 health alone,
+-- so health stays nil (nothing to take out, and every reading counts).
+ns.PET_INHERIT = { health = nil, armor = 0.3 }
 
 -- Family abilities that help a pet hold aggro or survive.
 ns.TANK_SKILLS = { ["Bear"] = "Swipe", ["Boar"] = "Charge", ["Turtle"] = "Shell Shield", ["Gorilla"] = "Thunderstomp" }
