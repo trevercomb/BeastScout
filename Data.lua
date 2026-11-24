@@ -44,6 +44,13 @@ ns.CLASSIC_FAMILY_MODS = {
     ["Wolf"]         = { health = 1.00, armor = 1.05, damage = 1.00 },
 }
 
+-- find tank shows bonuses measured from players' pets (ns.MeasuredFamilyMods)
+-- only when this is on. Off since 0.13.12: the first 59 shared readings spread
+-- far more than family bonuses could explain (Cat came out with the most
+-- armor), most likely because Forever pets inherit part of their hunter's
+-- stamina and armor. Readings are still collected and shared meanwhile.
+ns.SHOW_MEASURED_BONUSES = false
+
 -- Family abilities that help a pet hold aggro or survive.
 ns.TANK_SKILLS = { ["Bear"] = "Swipe", ["Boar"] = "Charge", ["Turtle"] = "Shell Shield", ["Gorilla"] = "Thunderstomp" }
 

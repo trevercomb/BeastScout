@@ -1,5 +1,11 @@
 # BeastScout changelog
 
+## 0.13.12
+
+- `/beastscout find tank` is back to Classic's numbers. The first pet readings players shared varied far more than family bonuses can explain (most likely your own gear counts toward your pet's health and armor), so measured bonuses could rank families wrongly. Readings are still collected and shared, so they can return once that's accounted for.
+- New from a player's tame: Mystmane, the rare bear on Zephras Isle, teaches Faster Attack I (1.7) and Swipe 1. The Hunter's Handbook says Faster Attack II.
+- Hunters like you have now shared skills and speeds for 74 beasts (6 the Handbook never had), plus spawn points for 58 more.
+
 ## 0.13.11
 
 - Your pets' health and armor are now shared with other BeastScout players (family, level and loyalty, not the pet's name), to work out Forever's family bonuses, which aren't published. Once enough pets are measured, `/beastscout find tank` ranks families by what was measured in Forever, shown as e.g. `measured, 12 pets`, and can rank Fox, Bird of Prey and Core Hound too. Until then it uses Classic's numbers, as before.

@@ -803,7 +803,7 @@ function ns.MeasuredFamilyMods()
         for _, r in ipairs(readings) do
             local v = r[column]
             if ns.FAMILIES[r[1]] and type(v) == "number" and v > 0 and type(r[2]) == "number" then
-                local key = r[1] .. " " .. r[2]
+                local key = r[1] .. "#" .. r[2]
                 groups[key] = groups[key] or { r[1], r[2] }
                 table.insert(groups[key], v)
                 counts[r[1]] = (counts[r[1]] or 0) + 1
@@ -861,7 +861,7 @@ local function SearchTank()
         end
     end
 
-    local measured = ns.MeasuredFamilyMods()
+    local measured = ns.SHOW_MEASURED_BONUSES and ns.MeasuredFamilyMods() or {}
     local ranked = {}
     local function add(family, mods)
         if mods.health * mods.armor > 1.001 then

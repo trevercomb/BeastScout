@@ -1804,6 +1804,13 @@ do
     local mark = #printed
     SlashCmdList.BEASTSCOUT("find tank")
     local found = table.concat(printed, "\n", mark + 1)
+    check("tank: measured bonuses stay off by default", ns.SHOW_MEASURED_BONUSES == false
+        and found:find("Classic numbers, not yet confirmed", 1, true) and not found:find("measured,", 1, true), found)
+    ns.SHOW_MEASURED_BONUSES = true
+    mark = #printed
+    SlashCmdList.BEASTSCOUT("find tank")
+    found = table.concat(printed, "\n", mark + 1)
+    ns.SHOW_MEASURED_BONUSES = false
     check("tank: says it's measured", found:find("measured in Forever where shown", 1, true), found)
     check("tank: Fox ranked with its measured bonus", found:find("Fox (+10% health, +2% armor; measured, 3 pets)", 1, true), found)
     check("tank: unmeasured families keep Classic's", found:find("Boar (+4% health, +9% armor, Charge)", 1, true), found)
