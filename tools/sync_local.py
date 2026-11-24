@@ -297,8 +297,9 @@ def write_shared(by_author):
 
 
 def pet_stats(saved_list, salt, families):
-    """Readings from your saved files: {(author, family, level): {health, armor, loyalty}}.
-    Yours count as one player (lowest reading across accounts), others' are hashed."""
+    """Readings from your saved files: {(author, family, level): {health, armor, loyalty,
+    hunterStamina, hunterArmor}}. Yours count as one player (lowest reading across
+    accounts, with the hunter's numbers that went with it), others' are hashed."""
     def whole(v, low, high):
         return int(v) if isinstance(v, (int, float)) and low <= v <= high and v == int(v) else None
 
@@ -308,11 +309,17 @@ def pet_stats(saved_list, salt, families):
         level, health = whole(level, 1, 80), whole((r or {}).get("health"), 1, 100000)
         if family not in families or not level or not health:
             return
-        reading = {"health": health, "armor": whole(r.get("armor"), 1, 100000), "loyalty": whole(r.get("loyalty"), 1, 6)}
+        reading = {"health": health, "armor": whole(r.get("armor"), 1, 100000),
+                   "loyalty": whole(r.get("loyalty"), 1, 6),
+                   "hunterStamina": whole(r.get("hunterStamina"), 1, 100000),
+                   "hunterArmor": whole(r.get("hunterArmor"), 1, 100000)}
         old = out.get((author, family, level))
         if old:
-            reading["health"] = min(old["health"], health)
-            reading["armor"] = min(v for v in (old["armor"], reading["armor"]) if v) if (old["armor"] or reading["armor"]) else None
+            # The lower reading wins, and the hunter's number taken with it.
+            if old["health"] < reading["health"]:
+                reading["health"], reading["hunterStamina"] = old["health"], old["hunterStamina"]
+            if old["armor"] and (not reading["armor"] or old["armor"] < reading["armor"]):
+                reading["armor"], reading["hunterArmor"] = old["armor"], old["hunterArmor"]
             reading["loyalty"] = reading["loyalty"] or old["loyalty"]
         out[(author, family, level)] = reading
 

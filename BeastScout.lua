@@ -372,6 +372,10 @@ SlashCmdList.BEASTSCOUT = function(msg)
         local spells = ns.PetSpellbook()
         print(HEADER .. ": pet " .. tostring(UnitName("pet")) .. ", " .. tostring(UnitCreatureFamily("pet"))
             .. ", level " .. tostring(UnitLevel("pet")) .. ", swing " .. tostring(UnitAttackSpeed("pet")))
+        local hStamina, hArmor = ns.HunterStats()
+        print("  now: pet " .. tostring(UnitHealthMax and UnitHealthMax("pet")) .. " health, "
+            .. tostring(UnitArmor and UnitArmor("pet")) .. " armor; you " .. tostring(hStamina)
+            .. " stamina, " .. tostring(hArmor) .. " armor")
         print("  GUID: " .. tostring(UnitGUID("pet")))
         print("  spellbook: " .. (#spells > 0 and table.concat(spells, ", ") or "(empty)"))
         return

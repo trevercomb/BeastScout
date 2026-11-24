@@ -204,11 +204,12 @@ def main():
 
     # Pet readings: yours as one player, others hashed, junk dropped, old ones kept.
     stats_saved = [
-        {"BeastScoutDB": {"petStats": {"Bear": {24: {"health": 1081, "armor": 1416, "loyalty": 3}}},
+        {"BeastScoutDB": {"petStats": {"Bear": {24: {"health": 1081, "armor": 1416, "loyalty": 3,
+                                                      "hunterStamina": 210, "hunterArmor": 1500}}},
                           "guildStats": {"Wolf": {24: {"Arwen": {"health": 918, "armor": 1254}}},
                                          "Dragon": {24: {"Arwen": {"health": 1, "armor": 1}}},
                                          "Cat": {0: {"Arwen": {"health": 500}}}}}},
-        {"BeastScoutDB": {"petStats": {"Bear": {24: {"health": 1100, "armor": 1400}}}}},
+        {"BeastScoutDB": {"petStats": {"Bear": {24: {"health": 1100, "armor": 1400, "hunterArmor": 1300}}}}},
     ]
     readings = sync_local.pet_stats(stats_saved, "salt", families)
     sync_local.write_pet_stats(readings)
@@ -252,14 +253,18 @@ def main():
         "kept: forgetting shared data in game removes nothing": set(gone) == {"p-aaa", "p-bbb", "p-ccc", "p-ddd",
                                                                                hash_of("P")},
         "kept: a passed-on line is read back as passed on": set(read_back.get(6003, {})) == {"~#p-eee", "#p-fff"},
-        "pet stats: yours, lowest across accounts":
-            readings.get(("maintainer", "Bear", 24)) == {"health": 1081, "armor": 1400, "loyalty": 3},
+        "pet stats: yours, lowest across accounts, with the hunter's numbers taken with each":
+            readings.get(("maintainer", "Bear", 24)) == {"health": 1081, "armor": 1400, "loyalty": 3,
+                                                         "hunterStamina": 210, "hunterArmor": 1300},
+        "pet stats: the hunter's numbers survive the file": kept_stats.get(("maintainer", "Bear", 24), {})
+            .get("hunterStamina") == 210,
         "pet stats: another player's, hashed": (hash_of("Arwen"), "Wolf", 24) in readings
             and "Arwen" not in sync_local.PET_STATS.read_text(encoding="utf-8"),
         "pet stats: unknown family and level 0 dropped": len(readings) == 2,
         "pet stats: kept when the game forgets them": len(kept_stats) == 2,
         "pet stats: bundled without who measured them":
-            '{ "Bear", 24, 1081, 1400 },' in pet_table and "maintainer" not in pet_table,
+            '{ "Bear", 24, 1081, 1400, 210, 1300 },' in pet_table and "maintainer" not in pet_table
+            and '{ "Wolf", 24, 918, 1254 },' in pet_table,
         "escaped quote read": parsed[3035]["name"] == 'Flatland "Big" Cougar',
         "nested lists read": parsed[2958]["teaches"] == [["Bite", 1]],
         "first sync writes": first is True,

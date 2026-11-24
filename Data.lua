@@ -51,6 +51,13 @@ ns.CLASSIC_FAMILY_MODS = {
 -- stamina and armor. Readings are still collected and shared meanwhile.
 ns.SHOW_MEASURED_BONUSES = false
 
+-- How much of its hunter a pet gets: health per point of the hunter's stamina,
+-- and armor per point of the hunter's total armor (in TBC, 3 and 0.35). nil
+-- until measured in Forever (swap a stamina or armor piece and compare
+-- /beastscout pet before and after); once set, the fit takes it out of every
+-- reading that came with the hunter's numbers.
+ns.PET_INHERIT = { health = nil, armor = nil }
+
 -- Family abilities that help a pet hold aggro or survive.
 ns.TANK_SKILLS = { ["Bear"] = "Swipe", ["Boar"] = "Charge", ["Turtle"] = "Shell Shield", ["Gorilla"] = "Thunderstomp" }
 

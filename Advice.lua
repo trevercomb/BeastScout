@@ -786,7 +786,9 @@ local function AllReadings()
     for _, r in ipairs(ns.PET_STATS or {}) do out[#out + 1] = r end
     for _, r in ipairs(ns.SharedStats and ns.SharedStats() or {}) do out[#out + 1] = r end
     for family, byLevel in pairs(BeastScoutDB.petStats or {}) do
-        for level, s in pairs(byLevel) do out[#out + 1] = { family, level, s.health, s.armor } end
+        for level, s in pairs(byLevel) do
+            out[#out + 1] = { family, level, s.health, s.armor, s.hunterStamina, s.hunterArmor }
+        end
     end
     return out
 end
@@ -800,8 +802,15 @@ function ns.MeasuredFamilyMods()
         -- One median per family and level keeps the fit small however many
         -- players share, and already outvotes a stray reading.
         local groups, counts = {}, {}
+        -- Take out what the pet got from its hunter, once we know how much
+        -- that is; then only readings that came with the hunter's numbers count.
+        local inherit = ns.PET_INHERIT and ns.PET_INHERIT[stat]
         for _, r in ipairs(readings) do
             local v = r[column]
+            if inherit then
+                local hunter = r[column + 2]
+                v = type(v) == "number" and type(hunter) == "number" and v - inherit * hunter or nil
+            end
             if ns.FAMILIES[r[1]] and type(v) == "number" and v > 0 and type(r[2]) == "number" then
                 local key = r[1] .. "#" .. r[2]
                 groups[key] = groups[key] or { r[1], r[2] }

@@ -405,9 +405,20 @@ end
 
 -- Pet stats ----------------------------------------------------------------------
 -- Family health/armor bonuses aren't published for Forever, so measure them:
--- BeastScoutDB.petStats[family][petLevel] = { health, armor, loyalty, name }.
--- Keep the lowest reading, since buffs only ever add. A new lowest reading is
--- shared, so every hunter's pets help work out each family's bonuses.
+-- BeastScoutDB.petStats[family][petLevel] = { health, armor, loyalty, name,
+-- hunterStamina, hunterArmor }. Keep the lowest reading, since buffs only ever
+-- add. A new lowest reading is shared, so every hunter's pets help work out
+-- each family's bonuses. The hunter's own stamina and armor at that moment go
+-- with it: Forever pets seem to inherit part of them (0.13.12), and without
+-- them readings from different hunters can't be compared.
+
+-- Your stamina and total armor right now, or nil.
+function ns.HunterStats()
+    local stamina = UnitStat and select(2, UnitStat("player", 3))
+    local armor = UnitArmor and select(2, UnitArmor("player"))
+    if IsSecret(stamina) or IsSecret(armor) then return nil end
+    return tonumber(stamina), tonumber(armor)
+end
 
 function ns.MeasurePet()
     if not UnitExists("pet") or UnitAffectingCombat("pet") then return end
@@ -425,8 +436,13 @@ function ns.MeasurePet()
     local s = byLevel[level] or {}
     byLevel[level] = s
     local changed = false
-    if not s.health or health < s.health then s.health, changed = health, true end
-    if armor and armor > 0 and (not s.armor or armor < s.armor) then s.armor, changed = armor, true end
+    local hStamina, hArmor = ns.HunterStats()
+    if not s.health or health < s.health then
+        s.health, s.hunterStamina, changed = health, hStamina, true
+    end
+    if armor and armor > 0 and (not s.armor or armor < s.armor) then
+        s.armor, s.hunterArmor, changed = armor, hArmor, true
+    end
     local loyalty = ns.PetLoyalty and select(2, ns.PetLoyalty())
     if changed and loyalty and not IsSecret(loyalty) then s.loyalty = loyalty end
     s.name = UnitName("pet")

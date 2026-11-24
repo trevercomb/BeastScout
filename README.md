@@ -81,7 +81,7 @@ Everything in the window also works in chat. `/bs` is a short form of `/beastsco
 - `/beastscout find rares`: rare tameable beasts you (or bundled players) have seen. When a rare beast's nameplate shows up near you, BeastScout plays a sound and puts up a warning; rares that aren't in the Hunter's Handbook only get a quiet chat line, since they may not be tameable. Needs enemy nameplates on (V). `/beastscout alert` turns it off or on.
 - `/beastscout export`: opens a window with your observations, ready to copy.
 - `/beastscout food`: checks pet food for the item under your mouse (or `/beastscout food 117` for an item ID).
-- `/beastscout pet`: shows what BeastScout reads from your current pet (spellbook, swing timer).
+- `/beastscout pet`: shows what BeastScout reads from your current pet (spellbook, swing timer), and its health and armor next to your stamina and armor right now.
 - `/beastscout debug`: reports each step of a tame in chat, for troubleshooting.
 - `/beastscout reset`: forgets your observations.
 - `/beastscout sharing`: turns in-game sharing off (or back on).
@@ -95,7 +95,7 @@ Everyone running BeastScout shares automatically, guild or not, through hidden a
 - Each new tame or Beast Lore finding goes out right away to every BeastScout player online on your virtual realm. Forever moves you between virtual realms as you change zones or join a party, and custom chat channels don't cross them, so live sharing reaches the players on yours (`/beastscout help` shows which one). What players agree on still reaches everyone through the bundled data in each update.
 - When you log in, you send everything you've recorded, and a handful of players online (picked at random, so it stays light however many people use BeastScout) send theirs, so you catch up.
 - Your own observations are sent, plus beasts at least two other players saw for themselves and agreed on, so findings keep spreading after the player who made them logs off. Passed-on data is never passed on again, counts half as much as a first-hand report, and shows as `(shared, passed on)`. Shared data stays out of `/beastscout export`.
-- Your pets' measured health and armor are shared too (with the pet's family, level and loyalty, not its name), so `find tank` can work out Forever's family bonuses. Pets of different levels are compared on a curve, and readings far off the rest (a debuff, say) are left out.
+- Your pets' measured health and armor are shared too (with the pet's family, level and loyalty, not its name, plus your own stamina and armor at the time, since pets seem to get part of their hunter's), so `find tank` can work out Forever's family bonuses. Pets of different levels are compared on a curve, and readings far off the rest (a debuff, say) are left out.
 - Junk is dropped: unknown skills, impossible ranks or families. Each beast keeps the newest reports from up to 10 players. Reports are votes, with a tame counting more than Beast Lore, so one tame beats one Beast Lore but several players outvote a bad report. A level range far from what other players saw is left out.
 - Shared data beats your own record only when at least two players saw it themselves.
 - Saved shared data stays small: up to 2000 beasts (the least recently heard goes first), and a report nobody has sent for a year is dropped.

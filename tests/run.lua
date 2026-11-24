@@ -1732,7 +1732,13 @@ do
     BeastScoutDB.petStats, BeastScoutDB.guildStats = {}, {}
 
     local msg = ns.EncodeStat("Bear", 24, { health = 1081, armor = 1416, loyalty = 3 })
-    check("stat encoded", msg == "S1;Bear;24;1081;1416;3", msg)
+    check("stat encoded", msg == "S1;Bear;24;1081;1416;3;;", msg)
+    local withHunter = ns.EncodeStat("Bear", 24, { health = 1081, armor = 1416, loyalty = 3, hunterStamina = 210, hunterArmor = 1500 })
+    check("stat encoded with the hunter's stamina and armor", withHunter == "S1;Bear;24;1081;1416;3;210;1500", withHunter)
+    local _, _, hr = ns.DecodeStat(withHunter)
+    check("hunter's stats decoded", hr.hunterStamina == 210 and hr.hunterArmor == 1500)
+    check("0.13.11's shorter reading still decoded", ns.DecodeStat("S1;Bear;24;1081;1416;3") ~= nil
+        and select(3, ns.DecodeStat("S1;Bear;24;1081;1416;3")).hunterStamina == nil)
     local family, level, r = ns.DecodeStat(msg)
     check("stat decoded", family == "Bear" and level == 24 and r.health == 1081 and r.armor == 1416 and r.loyalty == 3)
     check("stat: unknown family rejected", ns.DecodeStat("S1;Dragon;24;1081;1416;3") == nil)
@@ -1756,15 +1762,19 @@ do
     local realLoyalty = ns.PetLoyalty
     ns.PetLoyalty = function() return "Submissive", 3 end
     units.pet = { name = "Roxie", family = "Bear", level = 20, guid = "Pet-0-1-2-3-165189-ROXI" }
-    UnitHealthMax, UnitArmor = function() return 823 end, function() return 1219 end
+    UnitHealthMax = function() return 823 end
+    UnitArmor = function(unit) if unit == "player" then return 1400, 1500 end return 1219 end
+    UnitStat = function(unit, i) if unit == "player" and i == 3 then return 150, 210, 60, 0 end end
     ns.MeasurePet()
     check("new reading shared", queuedStat == "Bear20", queuedStat)
     check("loyalty kept with the reading", BeastScoutDB.petStats.Bear[20].loyalty == 3)
+    check("hunter's stamina and total armor kept with it", BeastScoutDB.petStats.Bear[20].hunterStamina == 210
+        and BeastScoutDB.petStats.Bear[20].hunterArmor == 1500)
     queuedStat = nil
     ns.MeasurePet()
     check("the same reading isn't shared again", queuedStat == nil)
     ns.QueueStatShare, ns.PetLoyalty = realQueue, realLoyalty
-    UnitHealthMax, UnitArmor, units.pet = nil, nil, nil
+    UnitHealthMax, UnitArmor, UnitStat, units.pet = nil, nil, nil, nil
 
     -- Sending your readings, in a full share too.
     local sent = {}
@@ -1772,13 +1782,13 @@ do
     IsInGuild = function() return true end
     ns.QueueStatShare("Bear", 20)
     runTimers()
-    check("reading sent", sent[1] == "S1;Bear;20;823;1219;3", sent[1])
+    check("reading sent", sent[1] == "S1;Bear;20;823;1219;3;210;1500", sent[1])
     sent = {}
     BeastScoutDB.sharedAt = nil
     ns.ShareAll()
     runTimers()
     local hasStat = false
-    for _, m in ipairs(sent) do hasStat = hasStat or m == "S1;Bear;20;823;1219;3" end
+    for _, m in ipairs(sent) do hasStat = hasStat or m == "S1;Bear;20;823;1219;3;210;1500" end
     check("full share sends readings", hasStat)
     C_ChatInfo, IsInGuild, BeastScoutDB.sharedAt = nil, nil, nil
 
@@ -1815,6 +1825,29 @@ do
     check("tank: Fox ranked with its measured bonus", found:find("Fox (+10% health, +2% armor; measured, 3 pets)", 1, true), found)
     check("tank: unmeasured families keep Classic's", found:find("Boar (+4% health, +9% armor, Charge)", 1, true), found)
     check("tank: lists what isn't measured yet", found:find("Not measured yet: Bird of Prey, Core Hound.", 1, true), found)
+
+    -- Pets that inherit from their hunters: with the share known, it comes out.
+    ns.PET_STATS = {}
+    local gear = { 120, 260, 180 }
+    for fam, m in pairs(truth) do
+        for i, lvl in ipairs({ 10, 20, 30 }) do
+            local stam, harm = gear[i] + lvl, 400 + 30 * lvl + (fam == "Cat" and 600 or 0)
+            ns.PET_STATS[#ns.PET_STATS + 1] = { fam, lvl, (100 + 40 * lvl) * m[1] + 3 * stam,
+                (50 * lvl) * m[2] + 0.35 * harm, stam, harm }
+        end
+    end
+    local raw = ns.MeasuredFamilyMods()
+    check("inherited: without the share, Cat's armor comes out wrong", not near(raw.Cat and raw.Cat.armor, 1.00))
+    ns.PET_INHERIT = { health = 3, armor = 0.35 }
+    local fixed = ns.MeasuredFamilyMods()
+    ns.PET_INHERIT = { health = nil, armor = nil }
+    check("inherited: with it, the bonuses come back", near(fixed.Cat and fixed.Cat.armor, 1.00)
+        and near(fixed.Bear.health, 1.08) and near(fixed.Fox.health, 1.10),
+        fixed.Cat and (fixed.Cat.armor .. " " .. fixed.Bear.health))
+    ns.PET_INHERIT = { health = 3 }
+    ns.PET_STATS = { { "Bear", 20, 900, 1000 }, { "Wolf", 20, 850, 950 }, { "Cat", 20, 800, 900 } }
+    check("inherited: readings without the hunter's numbers are left out", next(ns.MeasuredFamilyMods()) == nil)
+    ns.PET_INHERIT = { health = nil, armor = nil }
 
     ns.PET_STATS = { { "Bear", 20, 900, 1000 }, { "Bear", 21, 950, 1050 }, { "Bear", 22, 1000, 1100 } }
     check("one family alone: nothing measured", next(ns.MeasuredFamilyMods()) == nil)

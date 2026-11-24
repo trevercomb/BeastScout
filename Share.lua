@@ -85,13 +85,18 @@ local function Level(text)
     return n and n >= 1 and n <= 80 and math.floor(n) or nil
 end
 
--- Pet stats: S1;family;petLevel;health;armor;loyalty
+-- Pet stats: S1;family;petLevel;health;armor;loyalty;hunterStamina;hunterArmor
+-- The hunter's stamina (at the health reading) and armor (at the armor
+-- reading) were added in 0.13.13 as extra fields, so 0.13.11 and 0.13.12,
+-- which read the first six, still understand it, and their shorter
+-- messages still count.
 local STAT = "S1"
 local MAX_STAT = 100000 -- far above any pet's health or armor
 
 function ns.EncodeStat(family, level, s)
     if not (s and s.health and ns.FAMILIES[family]) then return nil end
-    return table.concat({ STAT, family, level, s.health, s.armor or "", s.loyalty or "" }, SEP)
+    return table.concat({ STAT, family, level, s.health, s.armor or "", s.loyalty or "",
+        s.hunterStamina or "", s.hunterArmor or "" }, SEP)
 end
 
 local function Whole(text, low, high)
@@ -106,7 +111,8 @@ function ns.DecodeStat(msg)
     if f[1] ~= STAT or #f < 6 or not ns.FAMILIES[f[2]] then return nil end
     local level, health = Whole(f[3], 1, 80), Whole(f[4], 1, MAX_STAT)
     if not (level and health) then return nil end
-    return f[2], level, { health = health, armor = Whole(f[5], 1, MAX_STAT), loyalty = Whole(f[6], 1, 6) }
+    return f[2], level, { health = health, armor = Whole(f[5], 1, MAX_STAT), loyalty = Whole(f[6], 1, 6),
+        hunterStamina = Whole(f[7], 1, MAX_STAT), hunterArmor = Whole(f[8], 1, MAX_STAT) }
 end
 
 -- Returns npcId, report, or nil for anything malformed.
@@ -349,7 +355,8 @@ function ns.ReceiveStat(sender, msg)
     local list = byLevel[level] or {}
     byLevel[level] = list
     local old = list[sender]
-    if old and old.health == reading.health and old.armor == reading.armor then
+    if old and old.health == reading.health and old.armor == reading.armor
+        and old.hunterStamina == reading.hunterStamina and old.hunterArmor == reading.hunterArmor then
         old.time = reading.time
         return true
     end
@@ -367,12 +374,15 @@ function ns.ReceiveStat(sender, msg)
     return true
 end
 
--- Every pet reading heard from other players: { {family, level, health, armor}, ... }
+-- Every pet reading heard from other players:
+-- { {family, level, health, armor, hunterStamina, hunterArmor}, ... }
 function ns.SharedStats()
     local out = {}
     for family, byLevel in pairs(BeastScoutDB.guildStats or {}) do
         for level, list in pairs(byLevel) do
-            for _, r in pairs(list) do out[#out + 1] = { family, level, r.health, r.armor } end
+            for _, r in pairs(list) do
+                out[#out + 1] = { family, level, r.health, r.armor, r.hunterStamina, r.hunterArmor }
+            end
         end
     end
     return out
