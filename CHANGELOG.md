@@ -1,5 +1,12 @@
 # BeastScout changelog
 
+## 0.13.11
+
+- Your pets' health and armor are now shared with other BeastScout players (family, level and loyalty, not the pet's name), to work out Forever's family bonuses, which aren't published. Once enough pets are measured, `/beastscout find tank` ranks families by what was measured in Forever, shown as e.g. `measured, 12 pets`, and can rank Fox, Bird of Prey and Core Hound too. Until then it uses Classic's numbers, as before.
+- New from players' tames: Mountain Lion (Faster Attack V, Prowl 1), Needles Cougar (Faster Attack VI), Bloodsnout Worg (Bite 3) and Webwood Silkspinner (Bite 2). Coyote, Scarred Crag Boar and Sunscale Screecher now list their skills.
+- `/beastscout help` describes `/beastscout way` as what it's for: putting a beast's coordinates from a guide on your map.
+- Hunters like you have now shared skills and speeds for 72 beasts (6 the Handbook never had), plus spawn points for 59 more.
+
 ## 0.13.10
 
 - New from players' tames: Ta'shkal in Mount Hyjal (Faster Attack VII, a 1.0 attack speed), Vulgara the Insatiable on Zephras Isle (Faster Attack II), Prairie Wolf Alpha and Savannah Patriarch (Faster Attack V), Elder Cloud Serpent (Lightning Breath 3), Mistvale Gorilla (Thunderstomp 1), Mottled Screecher (Savage Rend 2), Deathstrike Tarantula (Bite 6), Silvermane Stalker and Starving Blisterpaw (Dash 2), Deepmoss Creeper (Bite 3) and Elder Gray Bear (Swipe 2).
