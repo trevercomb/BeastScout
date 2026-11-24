@@ -359,6 +359,7 @@ local function TryCaptureTame(final)
         r.speed, r.speedSource = speed, speed and "tame" or nil
     end
     Debug("pet swing timer", UnitAttackSpeed("pet"), "(not recorded; speed comes from the passive)")
+    ns.LinkTame(pending.npcId, petGuid, UnitName("pet"), petFamily)
     print("|cffabd473BeastScout|r: recorded tame of " .. pending.name .. ".")
     if ns.QueueShare then ns.QueueShare(pending.npcId) end
     pending = nil
@@ -393,6 +394,77 @@ function ns.PetKey(name, family)
     return tostring(name) .. "|" .. tostring(family)
 end
 
+-- Fresh tames: right after a tame the game can show the passive a rank low.
+-- Mystmane read Faster Attack I at the tame and in the hour after, then II
+-- (and a 1.6 swing) with loyalty unchanged (2026-11-24). So each tame
+-- remembers its pet: BeastScoutDB.tamedPets[npcId] = { guid, key, at }, and
+-- later readings of that pet correct the tame's Faster/Slower Attack. The
+-- link follows the pet by GUID (a rename while it's out) or by name and
+-- family (a summon with a new GUID), and lasts TAME_LINK_DAYS.
+local TAME_LINK_DAYS = 14
+local PASSIVES = { "Faster Attack", "Slower Attack" }
+
+function ns.LinkTame(npcId, guid, name, family)
+    if not npcId or IsSecret(guid) or IsSecret(name) then return end
+    BeastScoutDB.tamedPets = BeastScoutDB.tamedPets or {}
+    local key = ns.PetKey(name, family)
+    -- Two fresh bears are both "Bear": a name can only point at the newest.
+    for id, link in pairs(BeastScoutDB.tamedPets) do
+        if link.key == key then BeastScoutDB.tamedPets[id] = nil end
+    end
+    BeastScoutDB.tamedPets[npcId] = { guid = guid, key = key, at = time and time() or 0 }
+end
+
+local function PassiveOf(found)
+    for _, p in ipairs(PASSIVES) do
+        if found[p] then return p, found[p] end
+    end
+end
+
+-- Correct the tame this pet came from, if its passive now reads differently.
+local function CheckTamedPet(guid, key, known)
+    local now = time and time() or 0
+    local passive, rank = PassiveOf(known)
+    local links, byGuid, byKey = BeastScoutDB.tamedPets or {}, nil, nil
+    for id, link in pairs(links) do
+        if now - (link.at or 0) > TAME_LINK_DAYS * 86400 then
+            links[id] = nil
+        elseif guid and link.guid == guid then
+            byGuid = id
+        elseif link.key == key then
+            byKey = id
+        end
+    end
+    local npcId = byGuid or byKey
+    if npcId then
+        local link = links[npcId]
+        link.guid, link.key = guid or link.guid, key
+        local r = BeastScoutDB.npcs[npcId]
+        if passive and r and r.teachesSource == "tame" then
+            local teaches, old = {}, nil
+            for _, t in ipairs(r.teaches or {}) do
+                if t[1] == "Faster Attack" or t[1] == "Slower Attack" then
+                    old = t[1] .. " " .. t[2]
+                else
+                    teaches[#teaches + 1] = t
+                end
+            end
+            if old ~= passive .. " " .. rank then
+                teaches[#teaches + 1] = { passive, rank }
+                table.sort(teaches, function(a, b) return a[1] < b[1] end)
+                r.teaches = teaches
+                r.speed = ns.TameSpeed(teaches)
+                r.speedSource = r.speed and "tame" or nil
+                print("|cffabd473BeastScout|r: corrected your tame of " .. tostring(r.name) .. ": "
+                    .. passive .. " " .. rank .. (r.speed and (", attack speed " .. r.speed) or "")
+                    .. " (it showed " .. (old or "no passive") .. " at first).")
+                if ns.QueueShare then ns.QueueShare(npcId) end
+            end
+        end
+    end
+end
+ns.CheckTamedPet = CheckTamedPet
+
 function ns.RememberPet()
     if not UnitExists("pet") then return end
     local name, family, level = UnitName("pet"), ns.FamilyOf("pet"), UnitLevel("pet")
@@ -400,7 +472,10 @@ function ns.RememberPet()
     local known = {}
     for _, spell in ipairs(PetSpellbook()) do FindAbilities(spell, known) end
     BeastScoutDB.pets = BeastScoutDB.pets or {}
-    BeastScoutDB.pets[ns.PetKey(name, family)] = { name = name, family = family, level = level, known = known }
+    local key = ns.PetKey(name, family)
+    BeastScoutDB.pets[key] = { name = name, family = family, level = level, known = known }
+    local guid = UnitGUID("pet")
+    CheckTamedPet(not IsSecret(guid) and guid or nil, key, known)
 end
 
 -- Pet stats ----------------------------------------------------------------------

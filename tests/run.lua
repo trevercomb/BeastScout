@@ -1860,6 +1860,64 @@ do
     ns.PET_STATS, BeastScoutDB.petStats, BeastScoutDB.guildStats = saveStats, saveOwn, saveGuild
 end
 
+-- A fresh tame's passive read a rank low, corrected when the pet is read again.
+do
+    local saveNpcs, saveLinks, savePets = BeastScoutDB.npcs, BeastScoutDB.tamedPets, BeastScoutDB.pets
+    BeastScoutDB.npcs, BeastScoutDB.tamedPets, BeastScoutDB.pets = {}, {}, {}
+    local shared = {}
+    local realQueue = ns.QueueShare
+    ns.QueueShare = function(id) shared[#shared + 1] = id end
+    BeastScoutDB.npcs[259388] = { name = "Mystmane", family = "Bear", teachesSource = "tame", speedSource = "tame",
+        speed = 1.7, teaches = { { "Faster Attack", 1 }, { "Swipe", 1 } } }
+    BeastScoutDB.npcs[2163] = { name = "Thistle Bear", family = "Bear", teachesSource = "tame", speedSource = "tame",
+        speed = 2.0, teaches = { { "Claw", 2 } } }
+    ns.LinkTame(259388, "Pet-0-1-2-3-165189-AAAA", "Bear", "Bear")
+
+    units.pet = { name = "Bear", family = "Bear", level = 13, guid = "Pet-0-1-2-3-165189-AAAA" }
+    petSpells = { { "Faster Attack I", "" }, { "Swipe", "Rank 1" } }
+    ns.RememberPet()
+    check("tame link: same reading changes nothing", BeastScoutDB.npcs[259388].teaches[1][2] == 1 and #shared == 0)
+
+    -- Renamed while out (same GUID), then the game shows the real rank.
+    units.pet.name = "River"
+    petSpells = { { "Faster Attack II", "" }, { "Swipe", "Rank 1" } }
+    local mark = #printed
+    ns.RememberPet()
+    local r = BeastScoutDB.npcs[259388]
+    check("tame link: passive corrected", r.teaches[1][1] == "Faster Attack" and r.teaches[1][2] == 2
+        and r.teaches[2][1] == "Swipe" and r.speed == 1.6, r.teaches[1][2] .. " " .. tostring(r.speed))
+    check("tame link: correction shared and said", shared[1] == 259388
+        and printed[mark + 1]:find("Faster Attack 2, attack speed 1.6 (it showed Faster Attack 1 at first)", 1, true),
+        printed[mark + 1])
+    check("tame link: follows the rename", BeastScoutDB.tamedPets[259388].key == "River|Bear")
+
+    -- Summoned again with a new GUID: found by name.
+    units.pet.guid = "Pet-0-1-2-3-165189-BBBB"
+    petSpells = { { "Faster Attack III", "" }, { "Swipe", "Rank 1" } }
+    ns.RememberPet()
+    check("tame link: found by name after a new GUID", BeastScoutDB.npcs[259388].teaches[1][2] == 3
+        and BeastScoutDB.tamedPets[259388].guid == "Pet-0-1-2-3-165189-BBBB")
+
+    -- A later tame with the same default name takes the name over.
+    ns.LinkTame(2163, "Pet-0-1-2-3-165189-CCCC", "River", "Bear")
+    units.pet = { name = "River", family = "Bear", level = 12, guid = "Pet-0-1-2-3-165189-DDDD" }
+    petSpells = { { "Claw", "Rank 2" }, { "Slower Attack II", "" } }
+    ns.RememberPet()
+    check("tame link: a name points only at the newest tame", BeastScoutDB.npcs[259388].teaches[1][2] == 3
+        and BeastScoutDB.npcs[2163].speed == 2.5)
+
+    -- No passive showing: nothing taken away. Old links expire.
+    petSpells = { { "Claw", "Rank 2" } }
+    ns.RememberPet()
+    check("tame link: a missing passive isn't a correction", BeastScoutDB.npcs[2163].speed == 2.5)
+    BeastScoutDB.tamedPets[2163].at = -1e9
+    ns.RememberPet()
+    check("tame link: expires after two weeks", BeastScoutDB.tamedPets[2163] == nil)
+
+    ns.QueueShare, units.pet, petSpells = realQueue, nil, {}
+    BeastScoutDB.npcs, BeastScoutDB.tamedPets, BeastScoutDB.pets = saveNpcs, saveLinks, savePets
+end
+
 print = realPrint
 print(failures == 0 and "\nALL PASSED" or ("\n" .. failures .. " FAILED"))
 os.exit(failures == 0 and 0 or 1)
