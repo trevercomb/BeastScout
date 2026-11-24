@@ -7,3 +7,4 @@
     [1085] = { name="Elder Stranglethorn Tiger", family="Cat", levelMin=34, levelMax=35, speed=1.3, speedSource="tame", teaches={ {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 30.37, 16.55} }, zones={ "Stranglethorn Vale" } },
     [1108] = { name="Mistvale Gorilla", family="Gorilla", levelMin=32, levelMax=33, speed=2, speedSource="tame", teaches={ {"Thunderstomp", 1} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 36.21, 15.9} }, zones={ "Stranglethorn Vale" } },
     [2578] = { name="Young Mesa Buzzard", family="Carrion Bird", levelMin=31, levelMax=31, speed=2, speedSource="tame", teaches={ {"Dive", 1} }, teachesSource="tame", spots={ {"Arathi Highlands", 43.7, 61.88} }, zones={ "Arathi Highlands" } },
+    [271334] = { name="Maddened Rotclaw", family="Bear", levelMin=25, levelMax=26, speed=2, speedSource="tame", teaches={ {"Swipe", 2} }, teachesSource="tame", spots={ {"Wetlands", 63.76, 33.98} }, zones={ "Wetlands" } },

@@ -1,7 +1,7 @@
 -- Pets' lowest health and armor, from your saved data and other players' shares,
 -- synced by tools/sync_local.py. One line per player, family and pet level;
 -- kept until that player measures it again. Player names are hashed.
-    { author="maintainer", family="Bear", level=13, health=491, armor=862, loyalty=1 },
+    { author="maintainer", family="Bear", level=13, health=491, armor=834, loyalty=1 },
     { author="maintainer", family="Bear", level=20, health=823, armor=1219 },
     { author="maintainer", family="Bear", level=21, health=892, armor=907 },
     { author="maintainer", family="Bear", level=22, health=850, armor=1172 },
@@ -15,7 +15,7 @@
     { author="p-00a3504d8281", family="Bear", level=32, health=1798, armor=1955, loyalty=6 },
     { author="p-5fec9c49bbd2", family="Bear", level=42, health=2158, armor=2740 },
     { author="p-5fec9c49bbd2", family="Bear", level=45, health=2525, armor=3596 },
-    { author="p-5fec9c49bbd2", family="Bear", level=46, health=2607, armor=3750 },
+    { author="p-5fec9c49bbd2", family="Bear", level=46, health=2607, armor=3672, loyalty=6 },
     { author="p-5fec9c49bbd2", family="Wind Serpent", level=43, health=2107, armor=2856 },
     { author="p-5fec9c49bbd2", family="Wolf", level=40, health=1865, armor=2444 },
     { author="p-b02e4f6268ca", family="Cat", level=6, health=161, armor=287, loyalty=2 },
@@ -60,3 +60,9 @@
     { author="p-ca34514b7ca0", family="Cat", level=20, health=712, armor=1153 },
     { author="p-ca34514b7ca0", family="Cat", level=21, health=739, armor=1189, loyalty=6 },
     { author="p-ca34514b7ca0", family="Tallstrider", level=16, health=483, armor=856 },
+    { author="p-f364133e65e7", family="Bear", level=25, health=1064, armor=1293 },
+    { author="p-f364133e65e7", family="Bear", level=26, health=1128, armor=1330 },
+    { author="p-f364133e65e7", family="Cat", level=23, health=913, armor=1331 },
+    { author="p-f364133e65e7", family="Cat", level=24, health=1010, armor=1415 },
+    { author="p-f364133e65e7", family="Raptor", level=26, health=983, armor=1287 },
+    { author="p-f364133e65e7", family="Spider", level=22, health=826, armor=1136 },

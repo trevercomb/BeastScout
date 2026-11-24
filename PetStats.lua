@@ -5,7 +5,7 @@ local _, ns = ...
 -- one row per player, family and pet level:
 -- { family, level, health, armor, hunter's stamina, hunter's armor }.
 ns.PET_STATS = {
-    { "Bear", 13, 491, 862 },
+    { "Bear", 13, 491, 834 },
     { "Bear", 20, 823, 1219 },
     { "Bear", 21, 892, 907 },
     { "Bear", 22, 850, 1172 },
@@ -19,7 +19,7 @@ ns.PET_STATS = {
     { "Bear", 32, 1798, 1955 },
     { "Bear", 42, 2158, 2740 },
     { "Bear", 45, 2525, 3596 },
-    { "Bear", 46, 2607, 3750 },
+    { "Bear", 46, 2607, 3672 },
     { "Wind Serpent", 43, 2107, 2856 },
     { "Wolf", 40, 1865, 2444 },
     { "Cat", 6, 161, 287 },
@@ -64,4 +64,10 @@ ns.PET_STATS = {
     { "Cat", 20, 712, 1153 },
     { "Cat", 21, 739, 1189 },
     { "Tallstrider", 16, 483, 856 },
+    { "Bear", 25, 1064, 1293 },
+    { "Bear", 26, 1128, 1330 },
+    { "Cat", 23, 913, 1331 },
+    { "Cat", 24, 1010, 1415 },
+    { "Raptor", 26, 983, 1287 },
+    { "Spider", 22, 826, 1136 },
 }
