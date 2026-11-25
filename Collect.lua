@@ -59,6 +59,8 @@ local function CurrentSpot()
     return ok and spot or nil
 end
 
+ns.CurrentSpot = CurrentSpot
+
 local function AddSpot(r, spot)
     if not spot then return end
     r.spots = r.spots or {}
@@ -600,19 +602,25 @@ ns.KnownTameable = KnownTameable
 -- test: /beastscout alert test, the whole alert for your target as if it
 -- were rare (it isn't saved as rare, and the 5 minute wait doesn't apply).
 function ns.OnNameplate(unit, test)
-    if not test and (not ns.RareAlertOn() or not IsRare(unit)) then return end
+    if not test and not ns.RareAlertOn() then return end
+    local rare = IsRare(unit)
+    -- Beasts on your wishlist ring it too; only rares and wishes are looked up.
+    if not test and not rare and not next(BeastScoutDB.wishlist or {}) then return end
     if not test and UnitIsDead and UnitIsDead(unit) then return end
     local ok, family = ns.IsWildBeast(unit)
     local npcId = ok and ns.NpcIdFromGUID(UnitGUID(unit))
     if not npcId then return false end
+    local wished = ns.OnWishlist and ns.OnWishlist(npcId)
+    if not test and not rare and not wished then return end
     if not test then
         if alerted[npcId] and GetTime() - alerted[npcId] < REALERT_SECONDS then return end
         alerted[npcId] = GetTime()
     end
-    local tameable = KnownTameable(npcId)
-    ns.Observe(unit) -- remembers it as rare, with a spawn point near you
+    local tameable = KnownTameable(npcId) or wished -- you asked to hear about it
+    ns.Observe(unit) -- remembers it (as rare when it is), with a spawn point near you
     local level = UnitLevel(unit)
-    local text = (test and "test: " or "") .. "rare " .. family .. " nearby: " .. tostring(UnitName(unit))
+    local text = (test and "test: " or "") .. ((wished and not rare) and "wishlist " or "rare ") .. family
+        .. " nearby: " .. tostring(UnitName(unit))
         .. ((not IsSecret(level) and level and level > 0) and (" (level " .. level .. ")") or "")
     if not tameable then
         -- Not known to be tameable: just a quiet chat line, no alarm.
@@ -642,6 +650,12 @@ function ns.StartCollecting(frame)
     end
     -- A pet that's already out after a login or /reload.
     ns.RecheckPet(5)
+    -- Beasts here that would upgrade your pets: on arrival in a zone, and
+    -- once after login (after the login chat, so it isn't lost).
+    pcall(frame.RegisterEvent, frame, "ZONE_CHANGED_NEW_AREA")
+    -- Vendors' food, for find food (Food.lua).
+    pcall(frame.RegisterEvent, frame, "MERCHANT_SHOW")
+    C_Timer.After(10, function() pcall(ns.AnnounceZoneUpgrades) end)
     -- Beast Training window events (Classic names); unknown ones are skipped.
     for _, event in ipairs({ "CRAFT_SHOW", "CRAFT_UPDATE", "TRAINER_SHOW", "TRAINER_UPDATE" }) do
         pcall(frame.RegisterEvent, frame, event)
@@ -844,9 +858,16 @@ function ns.OnCollectEvent(event, ...)
         end)
     elseif event == "PET_BAR_UPDATE" or event == "SPELLS_CHANGED" then
         ns.RecheckPet(1)
+    elseif event == "MERCHANT_SHOW" then
+        -- The list fills a moment after the window opens.
+        C_Timer.After(0.3, function() pcall(ns.ReadMerchant) end)
+    elseif event == "ZONE_CHANGED_NEW_AREA" then
+        C_Timer.After(2, function() pcall(ns.AnnounceZoneUpgrades) end)
     elseif event == "PLAYER_REGEN_ENABLED" or event == "UNIT_LEVEL" then
         pcall(ns.MeasurePet)
         pcall(ns.RememberPet)
+        -- Arrived mid-fight: the zone list waited for it to end.
+        if event == "PLAYER_REGEN_ENABLED" then pcall(ns.AnnounceZoneUpgrades) end
     elseif event:find("CRAFT") or event:find("TRAINER") then
         Debug("training window event:", event)
         if event == "TRAINER_SHOW" or event == "TRAINER_UPDATE" then

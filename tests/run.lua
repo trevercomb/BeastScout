@@ -562,6 +562,33 @@ check("alert test on a normal beast", printed[#printed]:find("test: rare Wolf ne
 units.target = nil
 SlashCmdList.BEASTSCOUT("alert test")
 check("alert test needs a target", printed[#printed]:find("target a wild beast first", 1, true), printed[#printed])
+
+-- Wishlist: a normal beast you asked for rings the alert too.
+units.target = units.nameplate4
+SlashCmdList.BEASTSCOUT("wish")
+check("wish: target added", ns.OnWishlist(990202) and printed[#printed]:find("added Plain Wolf to your wishlist", 1, true), printed[#printed])
+units.target = nil
+now = now + 1000
+mark = #printed
+ns.OnCollectEvent("NAME_PLATE_UNIT_ADDED", "nameplate4")
+check("wishlist beast alert", printed[mark + 1] and printed[mark + 1]:find("wishlist Wolf nearby: Plain Wolf (level 11).", 1, true),
+    printed[mark + 1])
+mark = #printed
+SlashCmdList.BEASTSCOUT("wishlist")
+check("wishlist listed", printed[mark + 1] and printed[mark + 1]:find("your wishlist", 1, true)
+    and table.concat(printed, "\n", mark + 1):find("Plain Wolf (Wolf 11)", 1, true), table.concat(printed, "\n", mark + 1))
+SlashCmdList.BEASTSCOUT("forget 1")
+check("wishlist: forget N takes one off", not ns.OnWishlist(990202), printed[#printed])
+SlashCmdList.BEASTSCOUT("wish ghostpaw rare")
+check("wish by name", ns.OnWishlist(990201), printed[#printed])
+SlashCmdList.BEASTSCOUT("wish ghostpaw rare")
+check("wish again takes it off", not ns.OnWishlist(990201) and printed[#printed]:find("took Ghostpaw Rare off", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("wish nosuchbeastzzz")
+check("wish: unknown name explained", printed[#printed]:find("no beast's name has", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("wish ghostpaw")
+check("wish: several matches ask for more", printed[#printed]:find("type more of the name", 1, true), printed[#printed])
+check("wishlist empty explained", ns.Search("wishlist").error:find("wishlist is empty", 1, true))
+BeastScoutDB.wishlist = nil
 units.nameplate3, units.nameplate4, units.nameplate5 = nil, nil, nil
 BeastScoutDB.npcs[990201], BeastScoutDB.npcs[990203], ns.HANDBOOK[990201] = nil, nil, nil
 
@@ -847,6 +874,48 @@ check("upgrades: grouped, learnable skills before coming-soon ones", r.rows[1].t
 check("upgrades: at most 2 beasts per learnable rank", select(2, all:gsub("Bite 2 %(new", "")) <= 2, all)
 check("upgrades: Bite 2 beats Bite 1", all:find("Bite 2 (new, 4 TP)", 1, true) and not all:find("Bite 1", 1, true), all)
 check("upgrades: never Slower Attack", not all:find("Slower Attack", 1, true), all)
+
+-- Zone list: beasts in Dun Morogh (where the fake map puts you) that would
+-- teach River something, and the list on arrival.
+C_Map, UiMapPoint = mapFake, pointFake
+local zoneRes = ns.Search("zone", 50)
+local zoneText = {}
+for _, row in ipairs(zoneRes.rows or {}) do zoneText[#zoneText + 1] = row.text end
+zoneText = table.concat(zoneText, "\n")
+check("zone: title names the zone", zoneRes.title and zoneRes.title:find("beasts in Dun Morogh", 1, true), zoneRes.title or zoneRes.error)
+check("zone: rows name the pet and the upgrade", zoneText:find(" - River: Claw 2 (has 1, 4 TP)", 1, true), zoneText)
+check("zone: a weaker rank than one nearby isn't listed", zoneText:find("Bite 2", 1, true) and not zoneText:find("Bite 1", 1, true), zoneText)
+local onlyHere = true
+for _, row in ipairs(zoneRes.rows or {}) do
+    onlyHere = onlyHere and (row.where == nil or row.where:find("Dun Morogh", 1, true) ~= nil)
+end
+check("zone: only beasts in Dun Morogh", onlyHere, zoneText)
+check("zone: never Slower Attack", not zoneText:find("Slower Attack", 1, true), zoneText)
+local seenGrey, greyLast = false, true
+for _, row in ipairs(zoneRes.rows or {}) do
+    if row.grey then seenGrey = true elseif seenGrey then greyLast = false end
+end
+check("zone: greyed rows last", greyLast, zoneText)
+check("zone: limit trims and says so", #ns.Search("zone", 1).rows == 1)
+
+local savedLast, savedAlert = BeastScoutDB.lastZoneAlert, BeastScoutDB.zoneAlert
+BeastScoutDB.lastZoneAlert = nil
+local before = #printed
+ns.AnnounceZoneUpgrades()
+check("zone arrival: listed", #printed > before and printed[before + 1]:find("beasts in Dun Morogh", 1, true), printed[before + 1])
+check("zone arrival: remembered for a /reload", BeastScoutDB.lastZoneAlert == "Dun Morogh")
+before = #printed
+ns.AnnounceZoneUpgrades()
+check("zone arrival: once per zone", #printed == before)
+SlashCmdList.BEASTSCOUT("zone auto")
+check("/beastscout zone auto turns it off", BeastScoutDB.zoneAlert == false and printed[#printed]:find("aren't listed", 1, true), printed[#printed])
+SlashCmdList.BEASTSCOUT("zone auto")
+check("and on again", ns.ZoneAlertOn())
+before = #printed
+SlashCmdList.BEASTSCOUT("zone")
+check("/beastscout zone lists it on demand", printed[before + 1] and printed[before + 1]:find("beasts in Dun Morogh", 1, true), printed[before + 1])
+BeastScoutDB.lastZoneAlert, BeastScoutDB.zoneAlert = savedLast, savedAlert
+C_Map, UiMapPoint = nil, nil
 units.pet, units.mouseover = nil, nil
 check("upgrades: needs a pet", ns.Search("upgrades").error:find("summon your pet", 1, true))
 
@@ -1175,6 +1244,33 @@ text = itemTooltip(159) -- Refreshing Spring Water
 check("pet won't drink water", text:find("Shal'ma won't eat this", 1, true), text)
 text = itemTooltip(2589) -- Linen Cloth: not a consumable, no line
 check("no food line on non-food", not text:find("eat this", 1, true), text)
+-- Food vendors: opening a vendor remembers its food; find food asks which
+-- of it the pet out eats.
+C_Map, UiMapPoint = mapFake, pointFake
+check("find food: none yet explained", ns.Search("food").error:find("no food vendors yet", 1, true))
+units.npc = { name = "Innkeeper Belm", guid = "Creature-0-1-2-3-1247-0000ABCD" }
+local stock = { { 117, "Tough Jerky" }, { 159, "Refreshing Spring Water" }, { 2589, "Linen Cloth" } }
+function GetMerchantNumItems() return #stock end
+function GetMerchantItemID(i) return stock[i][1] end
+function GetMerchantItemInfo(i) return stock[i][2] end
+ns.OnCollectEvent("MERCHANT_SHOW")
+runTimers()
+local belm = BeastScoutDB.vendors and BeastScoutDB.vendors[1247]
+check("vendor remembered with its food and drink, not cloth", belm and #belm.items == 2 and belm.name == "Innkeeper Belm"
+    and belm.spot and belm.spot[1] == "Dun Morogh")
+local fr = ns.Search("food")
+check("find food: vendor with what the pet eats", fr.rows and fr.rows[1].text:find("Innkeeper Belm, Dun Morogh", 1, true)
+    and fr.rows[1].text:find(": Tough Jerky", 1, true) and not fr.rows[1].text:find("Water", 1, true), fr.rows and fr.rows[1].text or fr.error)
+check("find food: waypoint", fr.rows and fr.rows[1].spot ~= nil)
+edible = {}
+check("find food: nothing the pet eats explained", ns.Search("food").error:find("sells food Shal'ma eats", 1, true))
+edible = { [117] = true }
+stock = { { 2589, "Linen Cloth" } }
+ns.ReadMerchant()
+check("a vendor that stopped selling food is forgotten", BeastScoutDB.vendors[1247] == nil)
+GetMerchantNumItems, GetMerchantItemID, GetMerchantItemInfo, units.npc, BeastScoutDB.vendors = nil, nil, nil, nil, nil
+C_Map, UiMapPoint = nil, nil
+
 local foods = ns.PetFoodTypes()
 check("food types listed", foods[1] == "Fish" and foods[2] == "Meat")
 C_PetInfo.GetPetFoodTypes = function() return "Bread" end

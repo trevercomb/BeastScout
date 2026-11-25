@@ -114,7 +114,7 @@ local function AddLines(tooltip, unit)
     if not ok then return end
     local npcId = ns.NpcIdFromGUID(UnitGUID(unit))
 
-    tooltip:AddLine(HEADER .. " " .. family)
+    tooltip:AddLine(HEADER .. " " .. family .. (ns.OnWishlist(npcId) and (GREY .. " (on your wishlist)|r") or ""))
 
     local speed, speedFrom = ns.PetSpeed(npcId)
     if speed then
@@ -341,6 +341,9 @@ SlashCmdList.BEASTSCOUT = function(msg)
         ns.ForgetGuildData()
         print(HEADER .. ": forgot what other players shared.")
         return
+    elseif msg == "vendors" or msg == "food vendors" then
+        ns.Find("food")
+        return
     elseif msg:find("^food") then
         ns.ProbeFood(msg:match("%d+"))
         return
@@ -352,6 +355,19 @@ SlashCmdList.BEASTSCOUT = function(msg)
         return
     elseif msg == "stats" then
         ns.ShowPetStats()
+        return
+    elseif msg == "wishlist" or msg == "wishes" then
+        ns.Find("wishlist")
+        return
+    elseif msg == "wish" or msg:find("^wish ") then
+        ns.WishCommand(msg:sub(5))
+        return
+    elseif msg == "zone" or msg == "here" then
+        ns.Find("zone")
+        return
+    elseif msg == "zone auto" then
+        print(HEADER .. ": beasts that would upgrade your pets " .. (ns.ToggleZoneAlert() and "are" or "aren't")
+            .. " listed when you arrive in a zone.")
         return
     elseif msg:find("^way") then
         ns.WayCommand(msg:sub(4))
@@ -400,12 +416,15 @@ SlashCmdList.BEASTSCOUT = function(msg)
     print("  /beastscout find bite 2 - beasts that teach a skill (or a family, or a name), closest first   /beastscout way 1 - waypoint to one")
     print("  /beastscout way Ashenvale 42.6 72.1 - waypoint from a guide's coordinates (way 42.6 72.1: your zone)   /beastscout way clear - remove it")
     print("  /beastscout find tank - best tank families   /beastscout stats - your pets' measured health and armor")
+    print("  /beastscout zone - beasts here that would upgrade your pets   /beastscout zone auto - turn listing them on arrival "
+        .. (ns.ZoneAlertOn() and "off" or "on"))
     print("  /beastscout find rares - rare tameable beasts seen   /beastscout alert - turn the rare beast alert (alert test: try it on your target) "
         .. (ns.RareAlertOn() and "off" or "on"))
-    print("  /beastscout forget 2 - remove row 2 of the stats list (e.g. a pet you abandoned)")
+    print("  /beastscout wish - add your target (or wish <name>) to your wishlist; its nameplate rings the rare alert   /beastscout wishlist - list them")
+    print("  /beastscout forget 2 - remove row 2 of the last stats or wishlist list (e.g. a pet you abandoned)")
     print("  /beastscout sharing - turn in-game sharing " .. (ns.SharingOn() and "off" or "on")
         .. "   /beastscout share - send everything you've recorded now")
     print("  /beastscout forget shared - forget what other players shared")
-    print("  /beastscout food - check pet food: hover an item first, or add an item ID")
+    print("  /beastscout vendors - vendors you've visited that sell food your pet eats (find food)   /beastscout food - check pet food: hover an item first, or add an item ID")
     print("  /beastscout pet - what BeastScout reads from your pet   /beastscout debug - narrate tames in chat")
 end
