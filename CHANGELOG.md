@@ -1,5 +1,13 @@
 # BeastScout changelog
 
+## 0.13.14
+
+- 34 more beasts from players' tames, many from Horde zones for the first time: Durotar Tiger, Ghostpaw Alpha, Ridge Stalker and Ridge Stalker Patriarch (Faster Attack V), Savannah Prowler (Faster Attack V; the Hunter's Handbook says IV), Savannah Huntress and Juvenile Snow Leopard (Faster Attack II), Venomtail Scorpid, Scorpid Hunter and Scorpashi Lasher (Scorpid Poison), Hecklefang Hyena (Tendon Rip 1), Fleeting Plainstrider (Dust Cloud 1), Worg (Furious Howl 1), Snapjaw (Shell Shield 1), and more.
+- New beasts the Handbook had no skills for: Wildplains Patriarch (Faster Attack V, Cower 4), Giant Grizzled Bear (Swipe 1), Highland Raptor (Savage Rend 2), Young Wetlands Crocolisk (Dismember 1), Sootfur (Bite 5) and Swoop (Claw 1).
+- Starving Mountain Lion is settled: three tames agree on Faster Attack VI (1.2) and Cower 2.
+- Mystmane is back to Faster Attack II (1.6), checked in a tamed pet's spellbook and swing timer. Tames recorded before 0.13.13 had caught the game showing Faster Attack I right after taming.
+- Hunters like you have now shared skills and speeds for 108 beasts (8 the Handbook never had), plus spawn points for 51 more.
+
 ## 0.13.13
 
 - Right after a tame, the game sometimes shows a lower Faster or Slower Attack rank than the pet really has. BeastScout now remembers the beast each new pet came from, and if the pet's spellbook later shows a different rank within two weeks, it corrects that beast's skills and speed, tells you in chat, and shares the fix.
