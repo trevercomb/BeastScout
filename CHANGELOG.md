@@ -1,5 +1,14 @@
 # BeastScout changelog
 
+## 0.13.15
+
+- Fixed: since 0.11.0, BeastScout misread Faster Attack ranks on your pet. Faster Attack II and III were recorded a rank low and IV as V, so tames and shared data showed the wrong rank and attack speed. VI and VII, and Slower Attack, were always right.
+- Your recorded tames and the shares you've heard are corrected once when you log in with this version. Shares from players still on older versions are corrected as they arrive, so updating is all you need to do. Where the old reading could have been either of two ranks, the Hunter's Handbook decides; if it doesn't know the beast, the reading stays as it was.
+- Corrected: Coldrasp, Savannah Huntress, Juvenile Snow Leopard and Vulgara the Insatiable are Faster Attack III (1.5). Mountain Lion, Prairie Wolf Alpha, Prideclaw and Savannah Prowler are Faster Attack IV (1.4). Mystmane stays Faster Attack II (1.6).
+- A fresh tame is now checked again after a reload, when you use `/beastscout pet`, and when your pet's spellbook updates, not only after a fight, so a wrong reading gets corrected sooner.
+- New from players' tames: Elder Nightsaber (Faster Attack IV), Elmpaw (Claw 2) and Moss Stalker (Web 1).
+- Hunters like you have now shared skills and speeds for 111 beasts (8 the Handbook never had), plus spawn points for 52 more.
+
 ## 0.13.14
 
 - 34 more beasts from players' tames, many from Horde zones for the first time: Durotar Tiger, Ghostpaw Alpha, Ridge Stalker and Ridge Stalker Patriarch (Faster Attack V), Savannah Prowler (Faster Attack V; the Hunter's Handbook says IV), Savannah Huntress and Juvenile Snow Leopard (Faster Attack II), Venomtail Scorpid, Scorpid Hunter and Scorpashi Lasher (Scorpid Poison), Hecklefang Hyena (Tendon Rip 1), Fleeting Plainstrider (Dust Cloud 1), Worg (Furious Howl 1), Snapjaw (Shell Shield 1), and more.
