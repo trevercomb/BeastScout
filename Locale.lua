@@ -62,6 +62,17 @@ end
 
 local abilityNames -- { { localName, english } }, longest local name first
 
+-- The game names the passives' spells with a rank: "Faster Attack I",
+-- "Slower Attack II" (Forever, 2026-11-24). Kept as is, that name matched
+-- inside a higher rank and read the rest as the rank: Faster Attack II and III
+-- came out a rank low and IV as V, Slower Attack III as I (0.11.0 to 0.13.14).
+-- Drop a trailing rank so only the ability's name is left.
+local function WithoutRank(name)
+    local bare = name:gsub("%s+%(?[IVX]+%)?$", ""):gsub("%s+%(?%d+%)?$", "")
+    return bare ~= "" and bare or name
+end
+ns.WithoutRank = WithoutRank
+
 -- Every name an ability can appear under: its English key and the game's own
 -- name for it. Cached once every spell name has resolved (right after login
 -- some can still be missing).
@@ -79,7 +90,7 @@ function ns.AbilityNames()
         local training = ns.TRAINING and ns.TRAINING[english]
         if training and training.spell then
             local name = SpellName(training.spell)
-            if name then Add(name, english) else complete = false end
+            if name then Add(WithoutRank(name), english) else complete = false end
         end
     end
     table.sort(list, function(a, b) return #a[1] > #b[1] end)

@@ -33,7 +33,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from build_bestiary import (TRUST, build, parse_ours_text, parse_pet_stats,  # noqa: E402
+from build_bestiary import (TRUST, build, fix_old_beast, parse_ours_text, parse_pet_stats,  # noqa: E402
                             pet_stat_line, to_line)
 from pull_contributions import author_hash, known_names, problems  # noqa: E402
 
@@ -180,6 +180,21 @@ def agreement_key(b):
     return ("speed", b["speed"])
 
 
+HANDBOOK = ROOT / "Handbook.lua"
+
+
+def handbook_teaches():
+    """{npc_id: teaches} from the bundled Handbook.lua, for fix_old_beast."""
+    if not HANDBOOK.exists():
+        return {}
+    return {i: b["teaches"] for i, b in parse_ours_text(HANDBOOK.read_text(encoding="utf-8")).items()}
+
+
+def ranks_fixed(saved):
+    """A saved file from 0.13.15 on has its Faster Attack ranks translated already."""
+    return str((saved.get("BeastScoutDB") or {}).get("rankScale")) == "2"
+
+
 def read_shared():
     """What earlier syncs bundled: {npc_id: {sender key: beast}}, where the key is
     "#<author>", or "~#<author>" for a line bundled from passed-on reports."""
@@ -206,13 +221,16 @@ def shared_files(saved_list, salt, families, abilities, own=None, held=None, kep
         return sender[1:] if sender.startswith("#") else author_hash("wow:" + sender, salt)
 
     reports = {}  # npc_id -> sender -> beast
+    handbook = handbook_teaches()
     for saved in saved_list:
+        old_ranks = not ranks_fixed(saved)
         for npc_id, by_sender in ((saved.get("BeastScoutDB") or {}).get("guildReports") or {}).items():
             if not isinstance(by_sender, dict):
                 continue
             for sender, rep in by_sender.items():
                 if isinstance(rep, dict) and isinstance(sender, str):
-                    reports.setdefault(npc_id, {})[sender] = shared_beast(rep)
+                    b = shared_beast(rep)
+                    reports.setdefault(npc_id, {})[sender] = fix_old_beast(b, handbook.get(npc_id)) if old_ranks else b
     for npc_id, by_key in (kept or {}).items():
         current = reports.setdefault(npc_id, {})
         now = {("~" if s.startswith("~") else "") + "#" + author(s.lstrip("~")) for s in current}
@@ -360,6 +378,7 @@ def sync(wtf):
         return False
 
     families, abilities = known_names()
+    handbook = handbook_teaches()
     beasts, skipped = {}, 0
     saved_list = []
     own_spots = {}  # npc_id -> every spot you recorded yourself
@@ -370,6 +389,8 @@ def sync(wtf):
             own_spots.setdefault(npc_id, set()).update(
                 (sp[0], float(sp[1]), float(sp[2])) for sp in r.get("spots") or [] if len(sp) == 3)
             b = to_beast(r)
+            if not ranks_fixed(saved):
+                b = fix_old_beast(b, handbook.get(npc_id))
             # A sighting's spawn points count too: they give find a distance
             # and a waypoint where the Hunter's Handbook has none.
             if not (b["name"] and b["family"] and (b["speed"] or b["teaches"] or b["spots"])):

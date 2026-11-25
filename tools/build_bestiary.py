@@ -7,9 +7,8 @@
 
 Merging contributions, per beast and per field (speed, teaches):
   - the most trusted source wins: checked > tame > lore > seen. 'checked' is a
-    pet's spellbook read after the tame (contributions/corrections.lua): the
-    game can show a low passive rank right at the tame. It's written out as
-    'tame', which the addon knows.
+    pet's spellbook and swing timer checked by hand (contributions/corrections.lua).
+    It's written out as 'tame', which the addon knows.
   - among reports from that source, the most common value wins (ties: newest file)
   - <field>Reports counts the reports that agree with the winner
   - level ranges only widen
@@ -135,6 +134,40 @@ def known_speeds():
     data = (ROOT / "Data.lua").read_text(encoding="utf-8")
     block = re.search(r"ns\.PASSIVE_SPEED = \{(.*?)\n\}", data, re.S).group(1)
     return {2.0} | {float(v) for v in re.findall(r"(?<![\[\w])(\d+\.\d+)", block)}
+
+
+def faster_attack_speeds():
+    """{rank: speed} for Faster Attack, from ns.PASSIVE_SPEED in Data.lua."""
+    data = (ROOT / "Data.lua").read_text(encoding="utf-8")
+    row = re.search(r'\["Faster Attack"\] = \{([^}]*)\}', data).group(1)
+    return {i + 1: float(v) for i, v in enumerate(re.findall(r"\d+\.\d+", row))}
+
+
+def fix_old_ranks(teaches, handbook_teaches):
+    """Same as ns.FixOldRanks in Collect.lua: Faster Attack ranks read by
+    0.11.0 to 0.13.14 had I and II as 1, III as 2, IV and V as 5. A 2 was III;
+    a 1 or 5 follows the Hunter's Handbook when it names one of the two ranks,
+    otherwise it stays. Returns (teaches, changed)."""
+    hb = dict(handbook_teaches or []).get("Faster Attack")
+    out, changed = [], False
+    for name, rank in teaches:
+        if name == "Faster Attack":
+            fixed = 3 if rank == 2 else 2 if rank == 1 and hb == 2 else 4 if rank == 5 and hb == 4 else rank
+            changed = changed or fixed != rank
+            rank = fixed
+        out.append((name, rank))
+    return out, changed
+
+
+def fix_old_beast(b, handbook_teaches):
+    """A tame report from before 0.13.15, translated; its speed follows the rank."""
+    if b.get("teachesSource") != "tame" or not b.get("teaches"):
+        return b
+    b["teaches"], changed = fix_old_ranks(b["teaches"], handbook_teaches)
+    rank = dict(b["teaches"]).get("Faster Attack")
+    if changed and b.get("speed") and rank:
+        b["speed"] = faster_attack_speeds().get(rank, b["speed"])
+    return b
 
 
 def snap_speed(speed):

@@ -1012,6 +1012,34 @@ check("forget only works on stats rows", printed[#printed]:find("run /beastscout
 ns.ToggleUI("bite 2")
 check("search rows keep Go", sw.rows[1].way._text == "Go")
 
+-- The game names the passives' spells with their first rank. That name
+-- mustn't swallow part of a higher rank: "Faster Attack I" inside
+-- "Faster Attack II" read as rank 1 (0.11.0 to 0.13.14).
+do
+    local spellNames = { [1263099] = "Faster Attack I", [1263113] = "Slower Attack II", [1515] = "Tame Beast" }
+    local realInfo = GetSpellInfo
+    GetSpellInfo = function(id) return spellNames[id] end
+    check("rank dropped from a spell's name", ns.WithoutRank("Faster Attack I") == "Faster Attack"
+        and ns.WithoutRank("Schnellerer Angriff III") == "Schnellerer Angriff"
+        and ns.WithoutRank("Mine!") == "Mine!")
+    local got = {}
+    for _, roman in ipairs({ "I", "II", "III", "IV", "V", "VI", "VII" }) do
+        local found = {}
+        ns.FindAbilities("Faster Attack " .. roman .. " ", found)
+        got[#got + 1] = tostring(found["Faster Attack"])
+    end
+    check("every Faster Attack rank read right", table.concat(got, ",") == "1,2,3,4,5,6,7", table.concat(got, ","))
+    local slowGot = {}
+    for _, roman in ipairs({ "I", "II", "III" }) do
+        local found = {}
+        ns.FindAbilities("Slower Attack " .. roman .. " ", found)
+        slowGot[#slowGot + 1] = tostring(found["Slower Attack"])
+    end
+    -- Slower Attack only has ranks I and II, so "III" isn't a rank to read.
+    check("every Slower Attack rank read right", table.concat(slowGot, ",") == "1,2,nil", table.concat(slowGot, ","))
+    GetSpellInfo = realInfo
+end
+
 -- A German client: the game hands back German names everywhere.
 local german = { [17253] = "Biss", [16827] = "Klaue", [1742] = "Ducken", [1263099] = "Schnellerer Angriff",
     [1515] = "Wildtier zähmen" }
@@ -1208,6 +1236,34 @@ do
     check("junk rejected: unknown family", ns.DecodeRecord("R1;5;X;Dragon;1;2;t;;Bite1;") == nil)
     check("junk rejected: other version", ns.DecodeRecord("R9;5;X;Cat;1;2;t;;Bite1;") == nil)
     check("unknown zone dropped, record kept", select(2, ns.DecodeRecord("R1;5;X;Cat;1;2;t;;Bite1;Mars,1,2")).spot == nil)
+
+    -- Faster Attack ranks: versions before 0.13.15 read II and III a rank low
+    -- and IV as V, and send ten fields; ours add an eleventh, "2".
+    check("sent with the rank field", msg:sub(-2) == ";2", msg)
+    local saveHandbook = ns.HANDBOOK
+    ns.HANDBOOK = { [3415] = { teaches = { { "Faster Attack", 3 } } }, [3425] = { teaches = { { "Faster Attack", 4 } } },
+        [2960] = { teaches = { { "Faster Attack", 5 } } } }
+    local function heard(m) local _, rep = ns.DecodeRecord(m) return rep.teaches[1][2], rep.speed end
+    local r2, s2 = heard("R1;3415;Savannah Huntress;Cat;11;12;t;;Faster Attack2;")
+    check("old sender: a 2 was III", r2 == 3 and s2 == 1.5, tostring(r2) .. " " .. tostring(s2))
+    check("old sender: a 5 the Handbook calls IV", heard("R1;3425;Savannah Prowler;Cat;14;15;t;;Faster Attack5;") == 4)
+    check("old sender: a 5 the Handbook calls V stays", heard("R1;2960;Prairie Wolf Alpha;Wolf;9;10;t;;Faster Attack5;") == 5)
+    check("new sender: taken as is", heard("R1;3415;Savannah Huntress;Cat;11;12;t;;Faster Attack2;;2") == 2)
+
+    -- Saved data from before: translated once.
+    local saveNpcs, saveReports, saveScale = BeastScoutDB.npcs, BeastScoutDB.guildReports, BeastScoutDB.rankScale
+    BeastScoutDB.npcs = { [3415] = { name = "Savannah Huntress", family = "Cat", teachesSource = "tame", speedSource = "tame",
+        speed = 1.6, teaches = { { "Faster Attack", 2 } } } }
+    BeastScoutDB.guildReports = { [3425] = { Hobbit = { name = "Savannah Prowler", family = "Cat", source = "tame",
+        speed = 1.3, teaches = { { "Faster Attack", 5 } } } } }
+    BeastScoutDB.rankScale = nil
+    ns.FixOldRankData()
+    ns.FixOldRankData()
+    check("saved tame translated once", BeastScoutDB.npcs[3415].teaches[1][2] == 3 and BeastScoutDB.npcs[3415].speed == 1.5,
+        tostring(BeastScoutDB.npcs[3415].teaches[1][2]))
+    check("saved report translated", BeastScoutDB.guildReports[3425].Hobbit.teaches[1][2] == 4)
+    BeastScoutDB.npcs, BeastScoutDB.guildReports, BeastScoutDB.rankScale = saveNpcs, saveReports, saveScale
+    ns.HANDBOOK = saveHandbook
 
     -- Receiving: two guildmates agree, one lore report disagrees.
     BeastScoutDB.guild, BeastScoutDB.guildReports = {}, {}
@@ -1915,6 +1971,23 @@ do
     BeastScoutDB.tamedPets[2163].at = -1e9
     ns.RememberPet()
     check("tame link: expires after two weeks", BeastScoutDB.tamedPets[2163] == nil)
+
+    -- The real rank showing up with no fight or summon: a spellbook update,
+    -- a reload or /beastscout pet still corrects it (Juvenile Snow Leopard).
+    BeastScoutDB.npcs[1199] = { name = "Juvenile Snow Leopard", family = "Cat", teachesSource = "tame",
+        speedSource = "tame", speed = 1.6, teaches = { { "Cower", 1 }, { "Faster Attack", 2 } } }
+    ns.LinkTame(1199, "Pet-0-1-2-3-165189-EEEE", "Cat", "Cat")
+    units.pet = { name = "Cat", family = "Cat", level = 5, guid = "Pet-0-1-2-3-165189-EEEE" }
+    petSpells = { { "Cower", "Rank 1" }, { "Faster Attack III", "" } }
+    runTimers()
+    ns.OnCollectEvent("PET_BAR_UPDATE")
+    ns.OnCollectEvent("SPELLS_CHANGED")
+    check("spellbook update: one read queued for a burst of events", #timers == 1, #timers)
+    runTimers()
+    check("spellbook update: fresh tame corrected", BeastScoutDB.npcs[1199].speed == 1.5)
+    BeastScoutDB.npcs[1199].teaches, BeastScoutDB.npcs[1199].speed = { { "Cower", 1 }, { "Faster Attack", 2 } }, 1.6
+    SlashCmdList.BEASTSCOUT("pet")
+    check("/beastscout pet: fresh tame corrected", BeastScoutDB.npcs[1199].speed == 1.5)
 
     ns.QueueShare, units.pet, petSpells = realQueue, nil, {}
     BeastScoutDB.npcs, BeastScoutDB.tamedPets, BeastScoutDB.pets = saveNpcs, saveLinks, savePets

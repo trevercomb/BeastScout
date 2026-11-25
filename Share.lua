@@ -22,6 +22,10 @@ local unpack = unpack or table.unpack
 local PREFIX = "BeastScout"
 local VERSION = "R1"
 local SEP = ";"
+-- Field 11 says the sender reads Faster Attack ranks right (0.13.15 on). Older
+-- versions send ten fields and read II and III a rank low (ns.FixOldRanks),
+-- and ignore an eleventh field, so they still understand ours.
+local RANK_SCALE = "2"
 local TRUST = { lore = 2, tame = 3 }
 local SEND_GAP = 1.2           -- seconds between messages, under the client's throttle
 local FULL_SHARE_EVERY = 1200  -- seconds between sending everything you know
@@ -67,7 +71,7 @@ function ns.EncodeRecord(npcId, r, passed)
     local where = spot and (Clean(spot[1]) .. "," .. spot[2] .. "," .. spot[3]) or Clean(r.zones and r.zones[1])
     return table.concat({ passed and PASSED or VERSION, npcId, Clean(r.name), Clean(r.family), r.levelMin or "", r.levelMax or "",
         r.teaches and (r.teachesSource == "tame" and "t" or "l") or "", speed or "",
-        table.concat(teaches, ","), where }, SEP)
+        table.concat(teaches, ","), where, RANK_SCALE }, SEP)
 end
 
 local KNOWN_ABILITY
@@ -140,6 +144,7 @@ function ns.DecodeRecord(msg)
             report.teaches[#report.teaches + 1] = { name, rank }
         end
         table.sort(report.teaches, function(a, b) return a[1] < b[1] end)
+        if f[11] ~= RANK_SCALE and source == "tame" then report.teaches = ns.FixOldRanks(npcId, report.teaches) end
     end
     -- Speed comes from a tame's passive, whatever swing timer the sender
     -- read (older versions sent it, haste buffs included).
@@ -693,9 +698,29 @@ function ns.JoinShareChannel()
     end)
 end
 
+-- Once: tames you recorded and reports you heard before 0.13.15 carry the
+-- misread Faster Attack ranks; translate them (speeds follow in
+-- CleanSavedReports and FixTameSpeeds).
+function ns.FixOldRankData()
+    if BeastScoutDB.rankScale == RANK_SCALE then return end
+    for npcId, r in pairs(BeastScoutDB.npcs or {}) do
+        if r.teachesSource == "tame" and r.teaches then
+            r.teaches = ns.FixOldRanks(npcId, r.teaches)
+            if r.speedSource == "tame" then r.speed = ns.TameSpeed(r.teaches) end
+        end
+    end
+    for npcId, by in pairs(BeastScoutDB.guildReports or {}) do
+        for _, rep in pairs(by) do
+            if rep.source == "tame" and rep.teaches then rep.teaches = ns.FixOldRanks(npcId, rep.teaches) end
+        end
+    end
+    BeastScoutDB.rankScale = RANK_SCALE
+end
+
 function ns.StartSharing(frame)
     BeastScoutDB.guild = BeastScoutDB.guild or {}
     BeastScoutDB.guildReports = BeastScoutDB.guildReports or {}
+    ns.FixOldRankData()
     CleanSavedReports()
     local register = (C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix) or RegisterAddonMessagePrefix
     if register then pcall(register, PREFIX) end

@@ -107,6 +107,32 @@ function ns.TameSpeed(teaches)
     return 2.0
 end
 
+-- Faster Attack ranks read by 0.11.0 to 0.13.14 (see WithoutRank in
+-- Locale.lua): I and II read as 1, III as 2, IV and V as 5; VI and VII were
+-- right. So a 2 was III. A 1 or a 5 could be either rank: the Hunter's
+-- Handbook decides when it names one of them, otherwise the reading stays.
+-- Returns a new list and whether anything changed.
+function ns.FixOldRanks(npcId, teaches)
+    if type(teaches) ~= "table" then return teaches, false end
+    local handbook = ns.HANDBOOK and ns.HANDBOOK[npcId]
+    local hbRank
+    for _, t in ipairs(handbook and handbook.teaches or {}) do
+        if t[1] == "Faster Attack" then hbRank = t[2] end
+    end
+    local out, changed = {}, false
+    for _, t in ipairs(teaches) do
+        local name, rank = t[1], t[2]
+        if name == "Faster Attack" then
+            local fixed = (rank == 2 and 3) or (rank == 1 and hbRank == 2 and 2)
+                or (rank == 5 and hbRank == 4 and 4) or rank
+            changed = changed or fixed ~= rank
+            rank = fixed
+        end
+        out[#out + 1] = { name, rank }
+    end
+    return out, changed
+end
+
 -- Saved tame speeds from older versions came from the swing timer, buffs
 -- and all: recompute them from the tamed ability list, or drop them.
 function ns.FixTameSpeeds()
@@ -394,9 +420,8 @@ function ns.PetKey(name, family)
     return tostring(name) .. "|" .. tostring(family)
 end
 
--- Fresh tames: right after a tame the game can show the passive a rank low.
--- Mystmane read Faster Attack I at the tame and in the hour after, then II
--- (and a 1.6 swing) with loyalty unchanged (2026-11-24). So each tame
+-- Fresh tames: in case a tame's passive was read wrong (until 0.13.15 every
+-- Faster Attack II and III was, see WithoutRank in Locale.lua), each tame
 -- remembers its pet: BeastScoutDB.tamedPets[npcId] = { guid, key, at }, and
 -- later readings of that pet correct the tame's Faster/Slower Attack. The
 -- link follows the pet by GUID (a rename while it's out) or by name and
@@ -464,6 +489,22 @@ local function CheckTamedPet(guid, key, known)
     end
 end
 ns.CheckTamedPet = CheckTamedPet
+
+-- Read the pet again a moment after something may have changed it. The
+-- spellbook can show a fresh tame's real passive rank minutes later with no
+-- summon, fight or level in between (a Juvenile Snow Leopard, 2026-11-24), so
+-- this also runs when the pet's spellbook or bar updates and after a reload.
+-- Bursts of events share one read.
+local recheckQueued
+function ns.RecheckPet(delay)
+    if recheckQueued or not C_Timer then return end
+    recheckQueued = true
+    C_Timer.After(delay or 1, function()
+        recheckQueued = false
+        pcall(ns.MeasurePet)
+        pcall(ns.RememberPet)
+    end)
+end
 
 function ns.RememberPet()
     if not UnitExists("pet") then return end
@@ -595,6 +636,12 @@ function ns.StartCollecting(frame)
         frame:RegisterUnitEvent(event, "player")
     end
     frame:RegisterUnitEvent("UNIT_LEVEL", "pet")
+    -- The pet's spellbook filling in or changing (unknown names are skipped).
+    for _, event in ipairs({ "PET_BAR_UPDATE", "SPELLS_CHANGED" }) do
+        pcall(frame.RegisterEvent, frame, event)
+    end
+    -- A pet that's already out after a login or /reload.
+    ns.RecheckPet(5)
     -- Beast Training window events (Classic names); unknown ones are skipped.
     for _, event in ipairs({ "CRAFT_SHOW", "CRAFT_UPDATE", "TRAINER_SHOW", "TRAINER_UPDATE" }) do
         pcall(frame.RegisterEvent, frame, event)
@@ -795,6 +842,8 @@ function ns.OnCollectEvent(event, ...)
             pcall(ns.MeasurePet)
             pcall(ns.RememberPet)
         end)
+    elseif event == "PET_BAR_UPDATE" or event == "SPELLS_CHANGED" then
+        ns.RecheckPet(1)
     elseif event == "PLAYER_REGEN_ENABLED" or event == "UNIT_LEVEL" then
         pcall(ns.MeasurePet)
         pcall(ns.RememberPet)

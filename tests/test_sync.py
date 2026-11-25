@@ -290,6 +290,27 @@ def main():
         "two relays of one report (same spot): not bundled": "[1199]" not in shared_text,
         "your own tame passed back to you isn't a second source": "[1185]" not in shared_text,
     }
+    # Faster Attack ranks from before 0.13.15 are translated (II and III were
+    # read a rank low, IV as V); a saved file from 0.13.15 on is left alone.
+    # Savannah Huntress (3415): the Handbook says Faster Attack III.
+    def huntress(saved_extra):
+        rep = {"name": "Savannah Huntress", "family": "Cat", "source": "tame", "speed": 1.6,
+               "teaches": [["Faster Attack", 2]], "zone": "The Barrens"}
+        db = {"guildReports": {3415: {"A": dict(rep), "B": dict(rep)}}, **saved_extra}
+        out = sync_local.shared_files([{"BeastScoutDB": db}], "salt", families, abilities, {}, [])
+        return next(iter(out.values()))[3415]
+    old = huntress({})
+    new = huntress({"rankScale": "2"})
+    checks["old ranks: a 2 was Faster Attack III"] = old["teaches"] == [("Faster Attack", 3)] and old["speed"] == 1.5
+    checks["old ranks: a fixed saved file is left alone"] = new["teaches"] == [("Faster Attack", 2)]
+    fix = build_bestiary.fix_old_ranks
+    checks["old ranks: 1 and 5 follow the Handbook, else stay"] = (
+        fix([("Faster Attack", 1)], [("Faster Attack", 2)])[0] == [("Faster Attack", 2)]
+        and fix([("Faster Attack", 1)], [])[0] == [("Faster Attack", 1)]
+        and fix([("Faster Attack", 5)], [("Faster Attack", 4)])[0] == [("Faster Attack", 4)]
+        and fix([("Faster Attack", 5)], [("Faster Attack", 5)])[0] == [("Faster Attack", 5)]
+        and fix([("Faster Attack", 6)], [])[0] == [("Faster Attack", 6)])
+
     for name, ok in checks.items():
         print(("ok   " if ok else "FAIL ") + name)
     if not all(checks.values()):

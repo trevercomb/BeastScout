@@ -369,6 +369,8 @@ SlashCmdList.BEASTSCOUT = function(msg)
             print(HEADER .. ": no pet out.")
             return
         end
+        -- Reading it also corrects a fresh tame whose rank has since changed.
+        pcall(ns.RememberPet)
         local spells = ns.PetSpellbook()
         print(HEADER .. ": pet " .. tostring(UnitName("pet")) .. ", " .. tostring(UnitCreatureFamily("pet"))
             .. ", level " .. tostring(UnitLevel("pet")) .. ", swing " .. tostring(UnitAttackSpeed("pet")))
