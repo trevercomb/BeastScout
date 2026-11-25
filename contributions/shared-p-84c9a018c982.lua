@@ -8,4 +8,5 @@
     [1127] = { name="Elder Crag Boar", family="Boar", levelMin=7, levelMax=8, speed=2, speedSource="tame", teaches={ {"Charge", 1} }, teachesSource="tame", spots={ {"Dun Morogh", 55.95, 54.58} }, zones={ "Dun Morogh" } },
     [2237] = { name="Moonstalker Sire", family="Cat", levelMin=17, levelMax=18, speed=1.3, speedSource="tame", teaches={ {"Cower", 2}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Darkshore", 39.28, 80.21} }, zones={ "Darkshore" } },
     [3809] = { name="Ashenvale Bear", family="Bear", levelMin=21, levelMax=22, speed=2, speedSource="tame", teaches={ {"Claw", 3} }, teachesSource="tame", spots={ {"Ashenvale", 42.78, 47.55} }, zones={ "Ashenvale" } },
+    [3812] = { name="Clattering Crawler", family="Crab", levelMin=19, levelMax=20, speed=2, speedSource="tame", teaches={ {"Claw", 3} }, teachesSource="tame", spots={ {"Ashenvale", 12.37, 27.57} }, zones={ "Ashenvale" } },
     [3823] = { name="Ghostpaw Runner", family="Wolf", levelMin=19, levelMax=20, speed=2, speedSource="tame", teaches={ {"Bite", 3} }, teachesSource="tame", spots={ {"Ashenvale", 29.56, 18.06} }, zones={ "Ashenvale" } },

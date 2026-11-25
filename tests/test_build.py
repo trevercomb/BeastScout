@@ -57,6 +57,24 @@ def main():
     ]
     m2 = merge_contributions(same)
     checks["same player twice counts once"] = m2[5]["speedReports"] == 1
+
+    # A rank checked in the spellbook after the tame beats tames recorded at
+    # the moment of taming, however many, and is written out as a tame.
+    low = '{ name="Bear M", family="Bear", speed=1.7, speedSource="tame", '           'teaches={ {"Faster Attack", 1}, {"Swipe", 1} }, teachesSource="tame" },'
+    fixed = merge_contributions([
+        contrib(tmp, "shared-a.lua", "-- author: p-a", "    [7] = " + low),
+        contrib(tmp, "shared-b.lua", "-- author: p-b", "    [7] = " + low),
+        contrib(tmp, "corrections.lua", "-- author: maintainer-checked",
+                '    [7] = { name="Bear M", family="Bear", speed=1.6, speedSource="checked", '
+                'teaches={ {"Faster Attack", 2}, {"Swipe", 1} }, teachesSource="checked" },'),
+    ])[7]
+    checks["checked beats tames"] = fixed["speed"] == 1.6         and fixed["teaches"] == [("Faster Attack", 2), ("Swipe", 1)]
+    checks["checked written as tame"] = fixed["speedSource"] == "tame" and fixed["teachesSource"] == "tame"
+    real = Path(__file__).resolve().parent.parent / "contributions" / "corrections.lua"
+    checks["corrections file reads"] = all(
+        b["speedSource"] == "checked" and b["teachesSource"] == "checked"
+        for b in parse_ours_text(real.read_text(encoding="utf-8")).values()) and bool(
+        parse_ours_text(real.read_text(encoding="utf-8")))
     two = same + [contrib(tmp, "issue-12.lua", "-- author: bob",
                           '    [5] = { name="Cat E", family="Cat", speed=1.3, speedSource="tame" },')]
     checks["two players count twice"] = merge_contributions(two)[5]["speedReports"] == 2

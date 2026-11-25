@@ -6,7 +6,10 @@
                  BestiaryData.lua (GPLv3, by Wood), vendored in vendor/HuntersHandbook/.
 
 Merging contributions, per beast and per field (speed, teaches):
-  - the most trusted source wins: tame > lore > seen
+  - the most trusted source wins: checked > tame > lore > seen. 'checked' is a
+    pet's spellbook read after the tame (contributions/corrections.lua): the
+    game can show a low passive rank right at the tame. It's written out as
+    'tame', which the addon knows.
   - among reports from that source, the most common value wins (ties: newest file)
   - <field>Reports counts the reports that agree with the winner
   - level ranges only widen
@@ -22,7 +25,7 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TRUST = {"seen": 1, "lore": 2, "tame": 3}
+TRUST = {"seen": 1, "lore": 2, "tame": 3, "checked": 4}
 
 FAMILY_HELPER = re.compile(r'local function (Add\w+)\(id, data\)\s*data\.family = "([^"]+)"')
 RECORD = re.compile(r'^(Add\w+)\((\d+), \{(.*?)^\}\)', re.M | re.S)
@@ -118,7 +121,7 @@ def parse_ours_text(text):
         # 'seen' speeds (and old exports without a source) are dropped.
         b["rare"] = re.search(r"\brare=true\b", body) is not None
         b["speedSource"] = field(body, "speedSource")
-        if b["speedSource"] != "tame":
+        if b["speedSource"] not in ("tame", "checked"):
             b["speed"], b["speedSource"] = None, None
         else:
             b["speed"] = snap_speed(b["speed"])
@@ -154,7 +157,7 @@ def pick(reports):
     counts = Counter(v for _, _, v in top)
     newest = {v: o for o, _, v in sorted(top)}
     value = max(counts, key=lambda v: (counts[v], newest[v]))
-    return value, top[0][1], counts[value]
+    return value, "tame" if top[0][1] == "checked" else top[0][1], counts[value]
 
 
 def author_of(path):
