@@ -118,27 +118,37 @@ function ns.UpgradesFor(teaches, pet)
     return out, p and p.name
 end
 
--- Tooltip lines for your summoned pet and every pet you've had out
--- (BeastScoutDB.pets), e.g. "Upgrade for River: Claw 2 (has 1, 3 TP)".
-function ns.UpgradeLines(teaches)
-    local lines, activeKey = {}, nil
-    local function Add(pet)
-        local ups = ns.UpgradesFor(teaches, pet)
-        if #ups > 0 then lines[#lines + 1] = "Upgrade for " .. pet.name .. ": " .. table.concat(ups, ", ") end
-    end
+-- Your summoned pet first, then every other pet you've had out in the last
+-- PET_SEEN_DAYS (BeastScoutDB.pets), as { known, name, family, level }. A pet
+-- you abandoned or never call stays in My pets, but stops getting upgrade
+-- hints; one remembered before 0.14.0 counts once it's been out again.
+local PET_SEEN_DAYS = 30
+
+local function YourPets()
+    local pets, activeKey = {}, nil
     local ok, active = ReadPet()
     if ok then
         activeKey = ns.PetKey(active.name, active.family)
-        Add(active)
+        pets[1] = active
     end
-    local keys = {}
-    for key in pairs(BeastScoutDB.pets or {}) do
-        if key ~= activeKey then keys[#keys + 1] = key end
+    local keys, now = {}, time and time() or 0
+    for key, p in pairs(BeastScoutDB.pets or {}) do
+        if key ~= activeKey and p.seen and now - p.seen <= PET_SEEN_DAYS * 86400 then keys[#keys + 1] = key end
     end
     table.sort(keys)
     for _, key in ipairs(keys) do
         local p = BeastScoutDB.pets[key]
-        Add({ known = p.known or {}, name = p.name, family = p.family, level = p.level })
+        pets[#pets + 1] = { known = p.known or {}, name = p.name, family = p.family, level = p.level }
+    end
+    return pets
+end
+
+-- Tooltip lines for each of your pets, e.g. "Upgrade for River: Claw 2 (has 1, 3 TP)".
+function ns.UpgradeLines(teaches)
+    local lines = {}
+    for _, pet in ipairs(YourPets()) do
+        local ups = ns.UpgradesFor(teaches, pet)
+        if #ups > 0 then lines[#lines + 1] = "Upgrade for " .. pet.name .. ": " .. table.concat(ups, ", ") end
     end
     return lines
 end
@@ -1071,6 +1081,231 @@ local function SearchUpgrades(limit)
     }
 end
 
+-- Is a beast found in this zone (a spawn point there, or the zone listed)?
+local function InZone(npcId, zone)
+    for _, spot in ipairs(Spots(npcId)) do
+        if spot[1] == zone then return true end
+    end
+    for _, z in ipairs(Field(npcId, "zones") or {}) do
+        if z == zone then return true end
+    end
+    return false
+end
+
+-- Beasts in your zone, up to your level, that would teach any of your pets
+-- (the one out and every one you've had out) something it can't get at Beast
+-- Training. Shown when you arrive in a zone (ns.AnnounceZoneUpgrades) and by
+-- find zone. A beast whose upgrades all need an older pet is greyed.
+local function SearchZone(limit)
+    local zone = ns.CurrentZoneName()
+    if not zone then return { error = "can't tell which zone you're in." } end
+    local pets = YourPets()
+    if #pets == 0 then
+        return { error = "summon your pet first; upgrades are worked out from its spellbook.", noPet = true }
+    end
+    local level, here = UnitLevel("player") or 0, Here()
+    -- What each beast here offers each pet, and the best rank of each skill a
+    -- pet can learn now from any of them: a weaker rank isn't worth listing.
+    local offers, best = {}, {}
+    for npcId in pairs(AllIds()) do
+        local low = LevelRange(npcId)
+        if low > 0 and low <= level and InZone(npcId, zone) then
+            local teaches, byPet = ns.Lookup(npcId, ns.TeachesOf), {}
+            for i, pet in ipairs(pets) do
+                best[i] = best[i] or {}
+                for _, o in ipairs(ns.UpgradeOptions(teaches, pet)) do
+                    if not o.trainable then
+                        byPet[i] = byPet[i] or {}
+                        table.insert(byPet[i], o)
+                        if o.learnable then best[i][o.ability] = math.max(best[i][o.ability] or 0, o.rank) end
+                    end
+                end
+            end
+            if next(byPet) then offers[npcId] = byPet end
+        end
+    end
+    local found = {}
+    for npcId, byPet in pairs(offers) do
+        -- The same upgrade for several pets is listed once: "Claw 1 (new, 1 TP) for Bear, Cat".
+        local order, forPets, now = {}, {}, false
+        for i, pet in ipairs(pets) do
+            for _, o in ipairs(byPet[i] or {}) do
+                if o.rank >= (best[i][o.ability] or 0) then
+                    local text = ns.DescribeUpgrade(o)
+                    if not forPets[text] then
+                        forPets[text], order[#order + 1] = {}, text
+                    end
+                    table.insert(forPets[text], pet.name)
+                    now = now or o.learnable
+                end
+            end
+        end
+        local parts = {}
+        for _, text in ipairs(order) do
+            parts[#parts + 1] = text .. " for " .. table.concat(forPets[text], ", ")
+        end
+        if #parts > 0 then
+            local m = Describe(npcId, here)
+            found[#found + 1] = {
+                text = m.name .. " (" .. m.family .. " " .. Levels(m) .. ")"
+                    .. (m.dist and (" " .. Yards(m.dist)) or "") .. ": " .. table.concat(parts, "; "),
+                spot = m.spot, name = m.name, where = m.where, grey = not now,
+                sortDist = m.sortDist or math.huge,
+            }
+        end
+    end
+    if #found == 0 then
+        -- A normal answer, not an error: shown plainly, and the arrival list stays quiet.
+        return { title = "nothing in " .. zone .. " at your level would teach your pets anything new", rows = {}, none = true }
+    end
+    table.sort(found, function(a, b)
+        if a.grey ~= b.grey then return not a.grey end
+        if a.sortDist ~= b.sortDist then return a.sortDist < b.sortDist end
+        return a.name < b.name
+    end)
+    local total = #found
+    for i = total, limit + 1, -1 do found[i] = nil end
+    return {
+        -- Short enough not to wrap in the window (the long form ran into row 1).
+        title = "upgrades for your pets in " .. zone .. ", closest first"
+            .. (total > limit and (" (" .. limit .. " of " .. total .. ")") or ""),
+        rows = found,
+        note = "Greyed: your pets are too young for it yet.",
+    }
+end
+
+-- Wishlist ---------------------------------------------------------------------
+-- Beasts you want to tame: BeastScoutDB.wishlist[npcId] = name. Their
+-- nameplate gets the rare alert (Collect.lua), and find wishlist lists them.
+
+function ns.OnWishlist(npcId)
+    return npcId and BeastScoutDB.wishlist and BeastScoutDB.wishlist[npcId] ~= nil
+end
+
+-- /beastscout wish: your target, or a beast by (part of) its name. Wishing
+-- for one already on the list takes it off.
+function ns.WishCommand(rest)
+    rest = (rest or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    local npcId
+    if rest == "" then
+        local ok = UnitExists("target") and ns.IsWildBeast("target")
+        npcId = ok and ns.NpcIdFromGUID(UnitGUID("target"))
+        if not npcId then
+            print(HEADER .. ": target a wild beast, or name one: /beastscout wish mystmane.")
+            return
+        end
+    else
+        local key, exact, matches = NameKey(rest), nil, {}
+        for id in pairs(AllIds()) do
+            if NameMatches(id, key) then
+                matches[#matches + 1] = id
+                for _, layer in ipairs(NAME_LAYERS()) do
+                    local r = layer[id]
+                    if r and r.name and NameKey(r.name) == key then exact = id end
+                end
+            end
+        end
+        npcId = exact or (#matches == 1 and matches[1])
+        if not npcId then
+            if #matches == 0 then
+                print(HEADER .. ": no beast's name has \"" .. rest .. "\" in it.")
+                return
+            end
+            local names = {}
+            for _, id in ipairs(matches) do names[#names + 1] = Field(id, "name") or "?" end
+            table.sort(names)
+            for i = #names, 6, -1 do names[i] = nil end
+            print(HEADER .. ": " .. #matches .. " beasts match \"" .. rest .. "\" (" .. table.concat(names, ", ")
+                .. (#matches > 5 and ", ..." or "") .. "); type more of the name.")
+            return
+        end
+    end
+    BeastScoutDB.wishlist = BeastScoutDB.wishlist or {}
+    local name = Field(npcId, "name") or (rest ~= "" and rest) or UnitName("target") or "?"
+    if BeastScoutDB.wishlist[npcId] then
+        BeastScoutDB.wishlist[npcId] = nil
+        print(HEADER .. ": took " .. name .. " off your wishlist.")
+    else
+        BeastScoutDB.wishlist[npcId] = name
+        print(HEADER .. ": added " .. name .. " to your wishlist. Its nameplate will ring the rare alert"
+            .. (ns.RareAlertOn() and "" or " (turned off: /beastscout alert)") .. ".")
+    end
+end
+
+local function SearchWishlist()
+    local list, ids = BeastScoutDB.wishlist or {}, {}
+    for id in pairs(list) do ids[#ids + 1] = id end
+    if #ids == 0 then
+        return { error = "your wishlist is empty. Target a beast and type /beastscout wish, or /beastscout wish <name>." }
+    end
+    local here, rows = Here(), {}
+    for _, id in ipairs(ids) do
+        local m = Describe(id, here)
+        if m.name == "?" then m.name = list[id] end
+        rows[#rows + 1] = {
+            text = m.name .. " (" .. m.family .. " " .. Levels(m) .. ")" .. Place(m),
+            spot = m.spot, name = m.name, where = m.where, sortDist = m.sortDist or math.huge,
+            forget = function() BeastScoutDB.wishlist[id] = nil end, forgetTip = "Take it off your wishlist",
+        }
+    end
+    table.sort(rows, function(a, b)
+        if a.sortDist ~= b.sortDist then return a.sortDist < b.sortDist end
+        return a.name < b.name
+    end)
+    return { title = "your wishlist, closest first", rows = rows,
+        note = "Their nameplates ring the rare alert. /beastscout wish <name> adds or removes one." }
+end
+
+-- Vendors you've visited that sell food your summoned pet eats, closest
+-- first (Food.lua remembers them when you open their window).
+local function SearchFood(limit)
+    if not UnitExists("pet") then
+        return { error = "summon your pet first; BeastScout asks the game what it eats." }
+    end
+    local vendors, here, rows = BeastScoutDB.vendors or {}, Here(), {}
+    local who = UnitName("pet")
+    if ns.IsSecret(who) or type(who) ~= "string" then who = "your pet" end
+    if not next(vendors) then
+        return { error = "no food vendors yet. BeastScout remembers each vendor's food when you open their window." }
+    end
+    for _, v in pairs(vendors) do
+        local foods = ns.VendorFoodForPet(v)
+        if foods == nil then
+            return { error = "the game won't say what " .. who .. " eats right now; try again in a moment." }
+        end
+        if #foods > 0 and v.spot then
+            table.sort(foods)
+            -- An innkeeper can sell a dozen: the first few, and how many more.
+            local more = #foods - 5
+            if more > 0 then
+                for i = #foods, 6, -1 do foods[i] = nil end
+                foods[#foods] = foods[#foods] .. " and " .. more .. " more"
+            end
+            local _, dist = Nearest({ v.spot }, here)
+            local far = dist or (here and here.zone == v.spot[1] and SAME_ZONE_GUESS) or math.huge
+            rows[#rows + 1] = {
+                text = v.name .. ", " .. v.spot[1] .. (dist and (" " .. Yards(dist)) or "") .. ": " .. table.concat(foods, ", "),
+                spot = v.spot, name = v.name, where = v.spot[1], sortDist = far,
+            }
+        end
+    end
+    if #rows == 0 then
+        return { error = "none of the vendors you've visited sells food " .. who .. " eats." }
+    end
+    table.sort(rows, function(a, b)
+        if a.sortDist ~= b.sortDist then return a.sortDist < b.sortDist end
+        return a.name < b.name
+    end)
+    local total = #rows
+    for i = total, limit + 1, -1 do rows[i] = nil end
+    return {
+        title = "food for " .. who .. ", from vendors you've visited, closest first"
+            .. (total > limit and (" (" .. limit .. " of " .. total .. ")") or ""),
+        rows = rows,
+        note = "Vendors are added when you open their window.",
+    }
+end
+
 -- What BeastScout has measured from your pets.
 local function SearchStats()
     local stats = BeastScoutDB.petStats or {}
@@ -1135,6 +1370,12 @@ function ns.Search(query, limit)
         result = SearchTank()
     elseif q == "upgrade" or q == "upgrades" then
         result = SearchUpgrades(limit)
+    elseif q == "zone" or q == "here" then
+        result = SearchZone(limit)
+    elseif q == "wishlist" or q == "wishes" or q == "wish" then
+        result = SearchWishlist()
+    elseif q == "food" or q == "vendors" or q == "food vendors" then
+        result = SearchFood(limit)
     elseif q == "stats" then
         result = SearchStats()
     elseif q == "pets" or q == "my pets" then
@@ -1168,9 +1409,15 @@ function ns.ForgetRow(index)
 end
 
 -- Chat output: /beastscout find ...
-function ns.PrintResult(result)
+-- footer: one grey line in place of the note and the waypoint hint (the
+-- zone list on arrival, which shouldn't take half the chat window).
+function ns.PrintResult(result, footer)
     if result.error then
         print(HEADER .. ": " .. result.error)
+        return
+    end
+    if #result.rows == 0 then
+        print(HEADER .. ": " .. result.title .. ".")
         return
     end
     print(HEADER .. ": " .. result.title .. ":")
@@ -1180,12 +1427,43 @@ function ns.PrintResult(result)
         anySpot = anySpot or row.spot ~= nil
         print("  " .. i .. ". " .. (row.grey and GREY or "") .. row.text .. (row.grey and "|r" or "") .. link)
     end
+    if footer then
+        print(GREY .. "  " .. footer .. "|r")
+        return
+    end
     if result.note then print(GREY .. "  " .. result.note .. "|r") end
     if anySpot then print(GREY .. "  Click [Waypoint] or type /beastscout way <number>.|r") end
 end
 
 function ns.Find(query)
     ns.PrintResult(ns.Search(query, 8))
+end
+
+-- Arriving in a zone: list its beasts that would upgrade your pets, once per
+-- zone each session (and not again after a /reload in the same zone). Quiet
+-- when there's nothing, in combat, or with /beastscout zone auto off.
+local zonesAnnounced = {}
+
+function ns.ZoneAlertOn() return BeastScoutDB.zoneAlert ~= false end
+
+function ns.ToggleZoneAlert()
+    BeastScoutDB.zoneAlert = not ns.ZoneAlertOn()
+    return ns.ZoneAlertOn()
+end
+
+function ns.AnnounceZoneUpgrades()
+    if not ns.ZoneAlertOn() or UnitAffectingCombat("player") then return end
+    local zone = ns.CurrentZoneName()
+    if not zone or zonesAnnounced[zone] then return end
+    if not next(zonesAnnounced) and BeastScoutDB.lastZoneAlert == zone then
+        zonesAnnounced[zone] = true -- a /reload where you already heard it
+        return
+    end
+    local result = ns.Search("zone", 5)
+    if result.noPet then return end -- try again once a pet has been out
+    zonesAnnounced[zone], BeastScoutDB.lastZoneAlert = true, zone
+    if result.error or result.none then return end
+    ns.PrintResult(result, "Greyed: too young yet. /beastscout zone auto turns this off.")
 end
 
 function ns.FindTank() ns.Find("tank") end

@@ -80,6 +80,64 @@ function ns.HookFoodTooltip()
     end
 end
 
+-- Food vendors ----------------------------------------------------------------
+-- Opening a vendor's window remembers the food and drink it sells, and where
+-- you stood: BeastScoutDB.vendors[npcId] = { name, spot = { zone, x, y },
+-- items = { { itemID, name } } }. find food then asks the client which of
+-- those your summoned pet eats (CanPetEatItem works on any item ID, not just
+-- ones in your bags), so one visit covers every pet you'll ever have.
+
+local function MerchantItem(i)
+    local id = GetMerchantItemID and GetMerchantItemID(i)
+    local name
+    if C_MerchantFrame and C_MerchantFrame.GetItemInfo then
+        local ok, info = pcall(C_MerchantFrame.GetItemInfo, i)
+        if ok and type(info) == "table" then name = info.name end
+    end
+    if not name and GetMerchantItemInfo then name = GetMerchantItemInfo(i) end
+    if not id and GetMerchantItemLink then
+        local link = GetMerchantItemLink(i)
+        id = type(link) == "string" and tonumber(link:match("item:(%d+)")) or nil
+    end
+    if ns.IsSecret(id) or ns.IsSecret(name) then return nil end
+    return id, name
+end
+
+function ns.ReadMerchant()
+    local npcId = ns.NpcIdFromGUID(UnitGUID("npc"))
+    local count = GetMerchantNumItems and GetMerchantNumItems() or 0
+    if not npcId or ns.IsSecret(count) or count == 0 then return end
+    local items = {}
+    for i = 1, count do
+        local id, name = MerchantItem(i)
+        if id and IsConsumable(id) then items[#items + 1] = { id, name } end
+    end
+    BeastScoutDB.vendors = BeastScoutDB.vendors or {}
+    if #items == 0 then
+        BeastScoutDB.vendors[npcId] = nil -- sells no food (any more)
+        return
+    end
+    local old = BeastScoutDB.vendors[npcId]
+    local vendorName = UnitName("npc")
+    BeastScoutDB.vendors[npcId] = {
+        name = (not ns.IsSecret(vendorName) and vendorName) or (old and old.name) or "?",
+        spot = ns.CurrentSpot and ns.CurrentSpot() or (old and old.spot),
+        items = items,
+    }
+end
+
+-- Your pet's food from one vendor: { "Tough Jerky", ... }, or {} (nil when
+-- the client can't tell).
+function ns.VendorFoodForPet(vendor)
+    local out = {}
+    for _, item in ipairs(vendor.items or {}) do
+        local eats = ns.PetCanEat(item[1])
+        if eats == nil then return nil end
+        if eats then out[#out + 1] = item[2] or ("item " .. item[1]) end
+    end
+    return out
+end
+
 -- /beastscout food [itemID]: raw answers from the client, for troubleshooting. Without an ID it uses the item under the mouse.
 function ns.ProbeFood(arg)
     local say = function(text) print("|cffabd473BeastScout|r food probe: " .. text) end

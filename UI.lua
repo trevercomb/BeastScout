@@ -274,9 +274,9 @@ local function Make()
     local hint = Text(f, "tiny", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", search, "BOTTOMLEFT", daylight and 2 or -4, -3)
     if daylight then Color(hint, "LABEL") end
-    hint:SetText("A skill (bite 2), a family (cat), a beast's name, fast, tank, upgrades or pets")
+    hint:SetText("A skill (bite 2), family (cat), name, fast, tank, upgrades, zone, wishlist, food, pets")
 
-    local quick = { { "Fastest", "fast", 90 }, { "Tank", "tank", 70 }, { "Upgrades for my pet", "upgrades", 150 } }
+    local quick = { { "Fastest", "fast", 90 }, { "Tank", "tank", 70 }, { "Upgrades for my pet", "upgrades", 150 }, { "This zone", "zone", 90 } }
     local last
     for _, q in ipairs(quick) do
         local b = Button(f, q[1], q[3])

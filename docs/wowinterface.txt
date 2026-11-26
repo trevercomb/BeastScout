@@ -35,15 +35,20 @@ Type [b]/beastscout[/b] or click the minimap button:
 [*][b]Upgrades for my pet:[/b] grouped by skill, the closest beasts that teach something your pet can use, with training point costs. Skills you've already learned say to train them at Beast Training instead.
 [*][b]Fastest:[/b] the fastest beasts you can tame, any family (or [i]fast cat[/i], [i]fast wolf[/i]...).
 [*][b]Tank:[/b] tank families ranked by health and armor, with the closest one you can tame. Forever's bonuses aren't published, so every BeastScout player's pets are measured and shared to work them out.
+[*][b]This zone:[/b] beasts in your zone that would teach any of your pets something new. BeastScout also lists them by itself when you arrive in a zone ([b]/beastscout zone auto[/b] turns that off). Pets you haven't had out for 30 days are left out.
 [*][b]Search[/b] a skill ([i]bite 2[/i]), a family ([i]cat[/i]), a beast's name ([i]mystmane[/i], or just [i]shal[/i]), and more.
 [*][b]Go[/b] puts a waypoint on your map; it clears when you get there. Beasts above your level are hidden.
 [*][b]Daylight UI[/b] users get the window in Daylight UI's look.
 [*][b]EllesmereUI[/b] and [b]ElvUI[/b] users get the window in their UI's skin (new: tell us how it looks).
 [/list]
 
-[size=4][b]Rare beast alert[/b][/size]
+[size=4][b]Rare beast alert and wishlist[/b][/size]
 
-When a rare tameable beast's nameplate shows up near you, BeastScout plays a sound and puts up an on-screen warning, so you don't walk past it. Rares that may not be tameable (not in the Hunter's Handbook) only get a quiet chat line. Needs enemy nameplates on (V). [b]/beastscout find rares[/b] lists the rares you've seen, [b]/beastscout alert[/b] turns the alert off, and [b]/beastscout alert test[/b] tries it on your target.
+When a rare tameable beast's nameplate (or one on your wishlist) shows up near you, BeastScout plays a sound and puts up an on-screen warning, so you don't walk past it. Rares that may not be tameable (not in the Hunter's Handbook) only get a quiet chat line. Needs enemy nameplates on (V). [b]/beastscout find rares[/b] lists the rares you've seen, [b]/beastscout alert[/b] turns the alert off, and [b]/beastscout alert test[/b] tries it on your target. Put any beast on your wishlist with [b]/beastscout wish[/b] (your target) or [b]/beastscout wish mystmane[/b], and [b]/beastscout wishlist[/b] lists them.
+
+[size=4][b]Food vendors[/b][/size]
+
+BeastScout remembers the food and drink of every vendor you open, and [b]/beastscout vendors[/b] lists the closest ones selling food your summoned pet eats, with waypoints. It asks the game what your pet eats, so one visit covers all your pets.
 
 [size=4][b]Data that gets better as you play[/b][/size]
 
@@ -53,7 +58,7 @@ Built-in data: beast data from [b]Hunter's Handbook[/b] by Wood (GPLv3), family 
 
 [size=4][b]Commands[/b][/size]
 
-/beastscout (window) · /beastscout find <skill, family, name, fast, tank, upgrades, rares> · /beastscout alert · /beastscout way <number, or zone x y, or x y> · /beastscout way clear · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
+/beastscout (window) · /beastscout find <skill, family, name, fast, tank, upgrades, rares> · /beastscout zone · /beastscout wish · /beastscout wishlist · /beastscout vendors · /beastscout alert · /beastscout way <number, or zone x y, or x y> · /beastscout way clear · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
 
 Short form: [b]/bs[/b] works for every command (/bs find tank).
 

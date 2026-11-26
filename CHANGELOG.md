@@ -1,5 +1,11 @@
 # BeastScout changelog
 
+## 0.14.0
+
+- New: arriving in a zone lists the beasts there that would teach any of your pets a rank it can't already get at Beast Training, closest first, with waypoints. Only the best rank of each skill in the zone is shown, and ranks your pets are too young for are greyed. It's shown once per zone each session; `/beastscout zone` (or **This zone** in the window) shows it any time, and `/beastscout zone auto` turns the arrival list off.
+- Upgrade hints (in the zone list and beast tooltips) now skip pets you haven't had out for 30 days, so a pet you've let go stops cluttering them. Pets stay in My pets, and each one counts again once you summon it.
+- New: a wishlist. `/beastscout wish` adds your target, or a beast by name (`/beastscout wish mystmane`); wishing again takes it off. A beast on your wishlist rings the rare alert when its nameplate shows up, even if it isn't rare, and its tooltip says it's on your wishlist. `/beastscout wishlist` lists them, closest first.
+- New: `/beastscout vendors` (or `find food`) lists vendors you've visited that sell food your summoned pet eats, closest first, with waypoints. BeastScout remembers each vendor's food when you open their window and asks the game what your pet eats, so one visit covers all your pets.
 ## 0.13.16
 
 - Fixed: on some translated clients (seen in Spanish and Russian), a tame could miss the beast's Faster Attack passive, so it was recorded with no attack speed skill and a speed of 2.0. BeastScout now also recognises the passive by its icon, so those tames get the right rank, and pets tamed in the last two weeks are corrected the next time they're out.
