@@ -6,6 +6,10 @@
 - Upgrade hints (in the zone list and beast tooltips) now skip pets you haven't had out for 30 days, so a pet you've let go stops cluttering them. Pets stay in My pets, and each one counts again once you summon it.
 - New: a wishlist. `/beastscout wish` adds your target, or a beast by name (`/beastscout wish mystmane`); wishing again takes it off. A beast on your wishlist rings the rare alert when its nameplate shows up, even if it isn't rare, and its tooltip says it's on your wishlist. `/beastscout wishlist` lists them, closest first.
 - New: `/beastscout vendors` (or `find food`) lists vendors you've visited that sell food your summoned pet eats, closest first, with waypoints. BeastScout remembers each vendor's food when you open their window and asks the game what your pet eats, so one visit covers all your pets.
+- New from players' tames, many from Horde zones: The Rake (Faster Attack VI, 1.2), Thunderhawk Cloudscraper (Lightning Breath 2), Taloned Swoop (Demoralizing Screech 1), Greater Duskbat (Cower 1), Forest Moss Creeper (Bite 3) and Wildthorn Venomspitter (Web 2).
+- Starving Mountain Lion stays Faster Attack VI: one tame that read a different rank no longer stops the others from filling in the passive a translated client missed.
+- Hunters like you have now shared skills and speeds for 124 beasts (9 the Handbook never had), plus spawn points for 47 more.
+
 ## 0.13.16
 
 - Fixed: on some translated clients (seen in Spanish and Russian), a tame could miss the beast's Faster Attack passive, so it was recorded with no attack speed skill and a speed of 2.0. BeastScout now also recognises the passive by its icon, so those tames get the right rank, and pets tamed in the last two weeks are corrected the next time they're out.
