@@ -212,6 +212,10 @@ def main():
         {"BeastScoutDB": {"petStats": {"Bear": {24: {"health": 1100, "armor": 1400, "hunterArmor": 1300}}}}},
     ]
     readings = sync_local.pet_stats(stats_saved, "salt", families)
+    # Levels 1..n (a fresh level 1 pet) read from Lua as a list, not a dict.
+    list_readings = sync_local.pet_stats([{"BeastScoutDB": {
+        "petStats": {"Cat": [{"health": 60, "armor": 40}, {"health": 75, "armor": 52}]},
+        "guildStats": {"Wolf": [{"Arwen": {"health": 58}}]}}}], "salt", families)
     sync_local.write_pet_stats(readings)
     sync_local.write_pet_stats({})  # the game forgot them: kept anyway
     kept_stats = build_bestiary.parse_pet_stats(sync_local.PET_STATS)
@@ -261,6 +265,10 @@ def main():
         "pet stats: another player's, hashed": (hash_of("Arwen"), "Wolf", 24) in readings
             and "Arwen" not in sync_local.PET_STATS.read_text(encoding="utf-8"),
         "pet stats: unknown family and level 0 dropped": len(readings) == 2,
+        "pet stats: levels from 1 up read as a list still count":
+            list_readings.get(("maintainer", "Cat", 1), {}).get("health") == 60
+            and list_readings.get(("maintainer", "Cat", 2), {}).get("health") == 75
+            and (hash_of("Arwen"), "Wolf", 1) in list_readings,
         "pet stats: kept when the game forgets them": len(kept_stats) == 2,
         "pet stats: bundled without who measured them":
             '{ "Bear", 24, 1081, 1400, 210, 1300 },' in pet_table and "maintainer" not in pet_table

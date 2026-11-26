@@ -66,7 +66,7 @@
     [2385] = { name="Feral Mountain Lion", family="Cat", levelMin=27, levelMax=28, spots={ {"Hillsbrad Foothills", 55.33, 56.54} }, zones={ "Hillsbrad Foothills" } },
     [2408] = { name="Snapjaw", family="Turtle", levelMin=30, levelMax=31, spots={ {"Hillsbrad Foothills", 54.45, 55.11}, {"Hillsbrad Foothills", 55.33, 56.54}, {"Hillsbrad Foothills", 55.72, 50.19}, {"Hillsbrad Foothills", 56.99, 47.34} }, zones={ "Hillsbrad Foothills" } },
     [2559] = { name="Highland Strider", family="Raptor", levelMin=30, levelMax=31, spots={ {"Arathi Highlands", 44.04, 82.05}, {"Arathi Highlands", 44.51, 79.51}, {"Arathi Highlands", 25.02, 45.54}, {"Arathi Highlands", 43.04, 54.35} }, zones={ "Arathi Highlands" } },
-    [2563] = { name="Plains Creeper", family="Spider", levelMin=32, levelMax=33, spots={ {"Arathi Highlands", 43.94, 75.07}, {"Arathi Highlands", 22.69, 36.94}, {"Arathi Highlands", 22.5, 34.58} }, zones={ "Arathi Highlands" } },
+    [2563] = { name="Plains Creeper", family="Spider", levelMin=32, levelMax=33, spots={ {"Arathi Highlands", 43.94, 75.07}, {"Arathi Highlands", 22.69, 36.94}, {"Arathi Highlands", 22.5, 34.58}, {"Arathi Highlands", 27.58, 35.84} }, zones={ "Arathi Highlands" } },
     [2578] = { name="Young Mesa Buzzard", family="Carrion Bird", levelMin=31, levelMax=32, spots={ {"Arathi Highlands", 43.09, 68.17} }, zones={ "Arathi Highlands" } },
     [2580] = { name="Elder Mesa Buzzard", family="Carrion Bird", levelMin=38, levelMax=38, spots={ {"Arathi Highlands", 27.22, 68.41} }, zones={ "Arathi Highlands" } },
     [3244] = { name="Greater Plainstrider", family="Tallstrider", levelMin=11, levelMax=12, spots={ {"The Barrens", 48.02, 28.03} }, zones={ "The Barrens" } },
