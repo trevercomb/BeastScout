@@ -273,7 +273,8 @@ check("debug prints", printed[#printed]:find("BeastScout debug", 1, true), print
 SlashCmdList.BEASTSCOUT("debug")
 petSpells = { { "Bite", "Rank 1" }, { "Growl", "Rank 1" } }
 SlashCmdList.BEASTSCOUT("pet")
-check("/beastscout pet lists spellbook", printed[#printed]:find("Bite Rank 1, Growl Rank 1", 1, true), printed[#printed])
+check("/beastscout pet lists spellbook", printed[#printed - 1]:find("Bite Rank 1, Growl Rank 1", 1, true), printed[#printed - 1])
+check("/beastscout pet says what it read", printed[#printed]:find("read as: Bite 1", 1, true), printed[#printed])
 units.pet = nil
 SlashCmdList.BEASTSCOUT("pet")
 check("/beastscout pet with no pet", printed[#printed]:find("no pet out", 1, true), printed[#printed])
@@ -1055,6 +1056,40 @@ petSpells = { { "Biss", "Rang 2" }, { "Klaue", "Rang 1" }, { "Schnellerer Angrif
 local known = ns.PetKnown()
 check("German spellbook read", known.Bite == 2 and known.Claw == 1 and known["Faster Attack"] == 5,
     tostring(known.Bite) .. " " .. tostring(known.Claw) .. " " .. tostring(known["Faster Attack"]))
+
+-- A client whose name for a higher passive rank doesn't match its name for
+-- rank I (Spanish and Russian tames of Starving Mountain Lion came out with
+-- no passive): the passive is found by its icon, the rank from the name's end.
+local petIcons = { [1] = 501, [2] = 111 }
+local realTexture = GetSpellTexture
+GetSpellTexture = function(a, book)
+    if book then return petIcons[a] end
+    return ({ [1263099] = 111, [1263113] = 222 })[a]
+end
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz VI", "" } }
+known = ns.PetKnown()
+check("passive by icon: rank from the name's end", known["Faster Attack"] == 6 and known.Cower == 2,
+    tostring(known["Faster Attack"]))
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz", "Rango 6" } }
+check("passive by icon: rank in the subtext", ns.PetKnown()["Faster Attack"] == 6)
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz IX", "" } }
+check("passive by icon: a rank Faster Attack doesn't have is skipped", ns.PetKnown()["Faster Attack"] == nil)
+petIcons[2] = 222
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque lento II", "" } }
+check("passive by icon: Slower Attack by its own icon", ns.PetKnown()["Slower Attack"] == 2)
+petIcons[2] = 777
+check("passive by icon: another icon isn't a passive", ns.PetKnown()["Slower Attack"] == nil)
+GetSpellTexture = function(a, book)
+    if book then return petIcons[a] end
+    return 111
+end
+petIcons[2] = 111
+check("passive by icon: skipped when both passives share an icon",
+    ns.PetKnown()["Faster Attack"] == nil and ns.PetKnown()["Slower Attack"] == nil)
+petSpells = { { "Biss", "Rang 2" }, { "Schnellerer Angriff V", "" } }
+petIcons = { [1] = 501, [2] = 999 }
+check("names still win when they match", ns.PetKnown()["Faster Attack"] == 5)
+GetSpellTexture = realTexture
 
 -- Family learned from a beast our data knows (Juvenile Snow Leopard is a Cat).
 BeastScoutDB.familyNames = nil

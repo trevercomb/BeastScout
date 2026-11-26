@@ -170,6 +170,39 @@ def fix_old_beast(b, handbook_teaches):
     return b
 
 
+PASSIVES = ("Faster Attack", "Slower Attack")
+
+
+def fill_missing_passive(beasts, counted=None):
+    """Tames that list skills but no passive, where at least two other tames
+    of the beast agree on one: the passive was missed (some translated
+    clients' names for a rank didn't match, see FindPassiveByIcon in
+    Collect.lua), and a passive can't be read by mistake, so those tames get
+    it, with its speed. counted says which reports may vouch for a passive
+    (first-hand ones); by default all. Returns a new list."""
+    counted = list(counted) if counted is not None else [True] * len(beasts)
+    votes = Counter()
+    for b, ok in zip(beasts, counted):
+        if ok and b.get("teachesSource") == "tame":
+            for name, rank in b.get("teaches") or []:
+                if name in PASSIVES:
+                    votes[(name, rank)] += 1
+    if len(votes) != 1:
+        return list(beasts)
+    (name, rank), n = votes.most_common(1)[0]
+    if n < 2:
+        return list(beasts)
+    speed = faster_attack_speeds().get(rank) if name == "Faster Attack" else None
+    out = []
+    for b in beasts:
+        teaches = b.get("teaches") or []
+        if b.get("teachesSource") == "tame" and teaches and not any(t[0] in PASSIVES for t in teaches):
+            b = dict(b, teaches=sorted(list(teaches) + [(name, rank)]),
+                     speed=speed, speedSource="tame" if speed else None)
+        out.append(b)
+    return out
+
+
 def snap_speed(speed):
     """Same as Collect.lua's Snap: a live pet reads slightly off (2.0 showed
     as 1.961 in game), so snap readings within 0.06 of a known speed."""
@@ -214,6 +247,7 @@ def merge_contributions(paths):
 
     merged = {}
     for npc_id, rows in reports.items():
+        rows = list(zip([o for o, _ in rows], fill_missing_passive([b for _, b in rows])))
         latest = rows[-1][1]
         # The name most reports use (a lone report in another language loses).
         names = [b["name"] for _, b in rows if b["name"]]

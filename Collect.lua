@@ -341,22 +341,87 @@ local function OnTameSpell(event, spellId)
     Debug("taming", beast.name, beast.npcId, beast.family)
 end
 
+-- The pet's spells as "name subtext", and each one's icon (same order).
 local function PetSpellbook()
-    local spells = {}
+    local spells, icons = {}, {}
     local count = C_SpellBook and C_SpellBook.HasPetSpells and C_SpellBook.HasPetSpells()
         or HasPetSpells and HasPetSpells()
     for i = 1, tonumber(count) or 0 do
-        local name, sub
+        local name, sub, icon
         if C_SpellBook and C_SpellBook.GetSpellBookItemName then
             name, sub = C_SpellBook.GetSpellBookItemName(i, Enum.SpellBookSpellBank.Pet)
+            icon = C_SpellBook.GetSpellBookItemTexture and C_SpellBook.GetSpellBookItemTexture(i, Enum.SpellBookSpellBank.Pet)
         else
             name, sub = GetSpellBookItemName(i, BOOKTYPE_PET or "pet")
+            icon = GetSpellTexture and GetSpellTexture(i, BOOKTYPE_PET or "pet")
         end
-        if name then table.insert(spells, name .. " " .. (sub or "")) end
+        if name then
+            table.insert(spells, name .. " " .. (sub or ""))
+            icons[#spells] = (icon and not IsSecret(icon)) and icon or false
+        end
     end
-    return spells
+    return spells, icons
 end
 ns.PetSpellbook = PetSpellbook
+
+-- The passives by icon, for clients whose own names for them we can't match.
+-- Tames on Spanish and Russian clients recorded Starving Mountain Lion
+-- (Faster Attack VI on English ones) with no passive at all, while the same
+-- Spanish player's Mountain Lion read Faster Attack IV: there the game's name
+-- for one rank doesn't always match its name for another. Every rank should
+-- share the icon of the rank we can look up (FA I, SA II), and the rank is
+-- the numeral at the end of the name.
+local PASSIVE_SPELLS = { { "Faster Attack", 1263099 }, { "Slower Attack", 1263113 } }
+
+local function SpellIcon(id)
+    local icon = C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(id)
+        or GetSpellTexture and GetSpellTexture(id)
+    if icon and not IsSecret(icon) then return icon end
+end
+
+-- "Ataque veloz VI", "Ataque veloz (Rango 6)" -> 6.
+local function TrailingRank(text)
+    text = text:gsub("%s+$", ""):gsub("%)$", "")
+    local roman = text:match("[%s%(]([IVX]+)$")
+    if roman then return ROMAN[roman] end
+    return tonumber(text:match("[%s%(](%d+)$") or "")
+end
+
+local function FindPassiveByIcon(spells, icons, found)
+    for _, p in ipairs(PASSIVE_SPELLS) do
+        if found[p[1]] then return end
+    end
+    local wanted = {}
+    for _, p in ipairs(PASSIVE_SPELLS) do
+        local icon = SpellIcon(p[2])
+        if not icon then return end
+        for _, other in ipairs(wanted) do
+            if other[2] == icon then return end -- one icon for both: can't tell them apart
+        end
+        wanted[#wanted + 1] = { p[1], icon }
+    end
+    for i, text in ipairs(spells) do
+        for _, w in ipairs(wanted) do
+            if icons[i] and icons[i] == w[2] then
+                local rank = TrailingRank(text)
+                if rank and RealRank(w[1], rank) then
+                    found[w[1]] = rank
+                    return
+                end
+            end
+        end
+    end
+end
+
+-- What the pet out knows, keyed in English ({ [ability] = rank }), and its
+-- spellbook as read.
+function ns.ReadPetAbilities()
+    local spells, icons = PetSpellbook()
+    local found = {}
+    for _, spell in ipairs(spells) do FindAbilities(spell, found) end
+    FindPassiveByIcon(spells, icons, found)
+    return found, spells
+end
 
 -- The pet and its spellbook show up a moment after the tame lands. On the
 -- last try, record the tame even if no ability was readable.
@@ -373,10 +438,8 @@ local function TryCaptureTame(final)
         return false
     end
 
-    local spells = PetSpellbook()
+    local found, spells = ns.ReadPetAbilities()
     Debug("pet spellbook:", #spells > 0 and table.concat(spells, ", ") or "(empty)")
-    local found = {}
-    for _, spell in ipairs(spells) do FindAbilities(spell, found) end
     if not next(found) and not final then return false end
 
     local r = Record(pending.npcId, pending.name, pending.family, pending.level, pending.zone, pending.spot)
@@ -510,8 +573,7 @@ function ns.RememberPet()
     if not UnitExists("pet") then return end
     local name, family, level = UnitName("pet"), ns.FamilyOf("pet"), UnitLevel("pet")
     if not name or IsSecret(name) or not family or IsSecret(level) then return end
-    local known = {}
-    for _, spell in ipairs(PetSpellbook()) do FindAbilities(spell, known) end
+    local known = ns.ReadPetAbilities()
     BeastScoutDB.pets = BeastScoutDB.pets or {}
     local key = ns.PetKey(name, family)
     BeastScoutDB.pets[key] = { name = name, family = family, level = level, known = known }
