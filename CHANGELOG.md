@@ -1,5 +1,13 @@
 # BeastScout changelog
 
+## 0.13.16
+
+- Fixed: on some translated clients (seen in Spanish and Russian), a tame could miss the beast's Faster Attack passive, so it was recorded with no attack speed skill and a speed of 2.0. BeastScout now also recognises the passive by its icon, so those tames get the right rank, and pets tamed in the last two weeks are corrected the next time they're out.
+- `/beastscout pet` now also shows what BeastScout read from your pet's spellbook, so a passive it couldn't read is easy to spot.
+- Starving Mountain Lion is settled again: Faster Attack VI (1.2) and Cower 2. Tames that missed the passive no longer count against the ones that saw it.
+- New from players' tames: Elder Shadowmaw Panther (Faster Attack III, Dash 2, Prowl 2), Silt Crawler (Claw 6, Pinch 3), Bellygrub (Charge 3), Venom Web Spider (Web 1), Deepmoss Webspinner (Bite 3), Raging Reef Crawler (Pinch 1), and Foothills Duskbat (Sonic Blast 1), which the Hunter's Handbook never had.
+- Hunters like you have now shared skills and speeds for 118 beasts (9 the Handbook never had), plus spawn points for 49 more.
+
 ## 0.13.15
 
 - Fixed: since 0.11.0, BeastScout misread Faster Attack ranks on your pet. Faster Attack II and III were recorded a rank low and IV as V, so tames and shared data showed the wrong rank and attack speed. VI and VII, and Slower Attack, were always right.
