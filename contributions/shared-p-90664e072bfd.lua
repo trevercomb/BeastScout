@@ -3,6 +3,7 @@
 -- author: p-90664e072bfd
     [1019] = { name="Elder Razormaw", family="Raptor", levelMin=29, levelMax=29, speed=2, speedSource="tame", teaches={ {"Savage Rend", 2} }, teachesSource="tame", spots={ {"Wetlands", 31.61, 16.87} }, zones={ "Wetlands" } },
     [1085] = { name="Elder Stranglethorn Tiger", family="Cat", levelMin=34, levelMax=35, speed=1.3, speedSource="tame", teaches={ {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 32.16, 17.03} }, zones={ "Stranglethorn Vale" } },
+    [2408] = { name="Snapjaw", family="Turtle", levelMin=30, levelMax=31, speed=2, speedSource="tame", teaches={ {"Bite", 4}, {"Shell Shield", 1} }, teachesSource="tame", spots={ {"Alterac Mountains", 81.64, 58} }, zones={ "Alterac Mountains" } },
     [5268] = { name="Ironfur Bear", family="Bear", levelMin=41, levelMax=42, speed=2, speedSource="tame", teaches={ {"Claw", 6}, {"Swipe", 3} }, teachesSource="tame", spots={ {"Feralas", 85.7, 45.37} }, zones={ "Feralas" } },
     [5286] = { name="Longtooth Runner", family="Wolf", levelMin=40, levelMax=41, speed=2, speedSource="tame", teaches={ {"Bite", 6}, {"Dash", 2}, {"Furious Howl", 3} }, teachesSource="tame", spots={ {"Feralas", 87.16, 44.17} }, zones={ "Feralas" } },
     [5422] = { name="Scorpid Hunter", family="Scorpid", levelMin=40, levelMax=41, speed=2, speedSource="tame", teaches={ {"Claw", 6}, {"Scorpid Poison", 3} }, teachesSource="tame", spots={ {"Tanaris", 61.47, 27.42} }, zones={ "Tanaris" } },

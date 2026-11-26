@@ -1,4 +1,13 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
 -- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-2a2c61bb7000
+    [1797] = { name="Giant Grizzled Bear", family="Bear", levelMin=12, levelMax=13, speed=2, speedSource="tame", teaches={ {"Swipe", 1} }, teachesSource="tame", spots={ {"Silverpine Forest", 53.8, 65.03} }, zones={ "Silverpine Forest" } }, -- passed on
+    [3100] = { name="Elder Mottled Boar", family="Boar", levelMin=8, levelMax=9, speed=2, speedSource="tame", teaches={ {"Charge", 1} }, teachesSource="tame", spots={ {"Durotar", 50.79, 13.27} }, zones={ "Durotar" } }, -- passed on
+    [3121] = { name="Durotar Tiger", family="Cat", levelMin=7, levelMax=8, speed=1.3, speedSource="tame", teaches={ {"Cower", 1}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"Durotar", 62.9, 95.96} }, zones={ "Durotar" } }, -- passed on
     [3245] = { name="Ornery Plainstrider", family="Tallstrider", levelMin=16, levelMax=17, speed=1.3, speedSource="tame", teaches={ {"Cower", 2}, {"Faster Attack", 5} }, teachesSource="tame", spots={ {"The Barrens", 59.35, 7.25} }, zones={ "The Barrens" } },
+    [3246] = { name="Fleeting Plainstrider", family="Tallstrider", levelMin=12, levelMax=13, speed=2, speedSource="tame", teaches={ {"Cower", 1}, {"Dust Cloud", 1} }, teachesSource="tame", spots={ {"The Barrens", 55.31, 33.79} }, zones={ "The Barrens" } }, -- passed on
+    [3415] = { name="Savannah Huntress", family="Cat", levelMin=11, levelMax=12, speed=1.5, speedSource="tame", teaches={ {"Faster Attack", 3} }, teachesSource="tame", spots={ {"The Barrens", 50.96, 19.96} }, zones={ "The Barrens" } }, -- passed on
+    [3424] = { name="Thunderhawk Cloudscraper", family="Wind Serpent", levelMin=20, levelMax=22, speed=2, speedSource="tame", teaches={ {"Lightning Breath", 2} }, teachesSource="tame", spots={ {"The Barrens", 45.69, 66.6} }, zones={ "The Barrens" } }, -- passed on
+    [4127] = { name="Hecklefang Hyena", family="Hyena", levelMin=15, levelMax=16, speed=2, speedSource="tame", teaches={ {"Tendon Rip", 1} }, teachesSource="tame", spots={ {"The Barrens", 45.18, 17.58} }, zones={ "The Barrens" } }, -- passed on
+    [5807] = { name="The Rake", family="Cat", levelMin=9, levelMax=10, speed=1.2, speedSource="tame", teaches={ {"Faster Attack", 6} }, teachesSource="tame", spots={ {"Mulgore", 50.53, 27.84} }, zones={ "Mulgore" } }, -- passed on
+    [277882] = { name="Foothills Duskbat", family="Bat", levelMin=12, levelMax=13, speed=2, speedSource="tame", teaches={ {"Sonic Blast", 1} }, teachesSource="tame", spots={ {"Silverpine Forest", 53.88, 13.46} }, zones={ "Silverpine Forest" } }, -- passed on

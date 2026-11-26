@@ -175,7 +175,8 @@ PASSIVES = ("Faster Attack", "Slower Attack")
 
 def fill_missing_passive(beasts, counted=None):
     """Tames that list skills but no passive, where at least two other tames
-    of the beast agree on one: the passive was missed (some translated
+    agree on one passive and outnumber every other passive reported (one
+    stray Faster Attack V among four VIs mustn't stop it): the passive was missed (some translated
     clients' names for a rank didn't match, see FindPassiveByIcon in
     Collect.lua), and a passive can't be read by mistake, so those tames get
     it, with its speed. counted says which reports may vouch for a passive
@@ -187,10 +188,10 @@ def fill_missing_passive(beasts, counted=None):
             for name, rank in b.get("teaches") or []:
                 if name in PASSIVES:
                     votes[(name, rank)] += 1
-    if len(votes) != 1:
+    if not votes:
         return list(beasts)
     (name, rank), n = votes.most_common(1)[0]
-    if n < 2:
+    if n < 2 or n <= sum(votes.values()) - n:
         return list(beasts)
     speed = faster_attack_speeds().get(rank) if name == "Faster Attack" else None
     out = []

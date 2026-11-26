@@ -110,8 +110,11 @@ def main():
     checks["missed passive filled in, with its speed"] = filled[2]["teaches"] == [("Cower", 2), ("Faster Attack", 6)]         and filled[2]["speed"] == 1.2 and bare["teaches"] == [("Cower", 2)]
     checks["missed passive: Beast Lore left alone"] = filled[4]["teaches"] == [("Cower", 2)]
     checks["missed passive: one tame isn't enough"] =         build_bestiary.fill_missing_passive([fa6, bare, bare])[1]["teaches"] == [("Cower", 2)]
-    checks["missed passive: tames disagreeing on it fill nothing"] = build_bestiary.fill_missing_passive(
-        [fa6, fa6, lion([("Faster Attack", 5)]), lion([("Faster Attack", 5)]), bare])[4]["teaches"] == [("Cower", 2)]
+    fa5 = lion([("Cower", 2), ("Faster Attack", 5)], speed=1.3)
+    checks["missed passive: tames split on it fill nothing"] = build_bestiary.fill_missing_passive(
+        [fa6, fa6, fa5, fa5, bare])[4]["teaches"] == [("Cower", 2)]
+    stray = build_bestiary.fill_missing_passive([fa6, fa6, fa6, fa6, fa5, bare])
+    checks["missed passive: one stray rank doesn't stop it"] = stray[5]["teaches"] == [("Cower", 2), ("Faster Attack", 6)]         and stray[4]["teaches"] == [("Cower", 2), ("Faster Attack", 5)]
     checks["missed passive: relays don't vouch"] =         build_bestiary.fill_missing_passive([fa6, fa6, bare], [True, False, True])[2]["teaches"] == [("Cower", 2)]
 
     failed = [name for name, ok in checks.items() if not ok]

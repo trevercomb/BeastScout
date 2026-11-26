@@ -1,0 +1,13 @@
+-- Shared in game by another BeastScout player, synced by tools/sync_local.py.
+-- Only beasts at least two players agreed on. Kept until that player reports again.
+-- author: p-b60fa10b251b
+    [1765] = { name="Worg", family="Wolf", levelMin=10, levelMax=11, speed=2, speedSource="tame", teaches={ {"Bite", 2}, {"Furious Howl", 1} }, teachesSource="tame", spots={ {"Silverpine Forest", 65.64, 9.74} }, zones={ "Silverpine Forest" } }, -- passed on
+    [1797] = { name="Giant Grizzled Bear", family="Bear", levelMin=12, levelMax=13, speed=2, speedSource="tame", teaches={ {"Swipe", 1} }, teachesSource="tame", spots={ {"Silverpine Forest", 43.23, 22.33} }, zones={ "Silverpine Forest" } }, -- passed on
+    [2351] = { name="Gray Bear", family="Bear", levelMin=21, levelMax=22, speed=2, speedSource="tame", teaches={ {"Claw", 3} }, teachesSource="tame", spots={ {"Hillsbrad Foothills", 63.15, 12.83} }, zones={ "Hillsbrad Foothills" } }, -- passed on
+    [2505] = { name="Saltwater Snapjaw", family="Turtle", levelMin=49, levelMax=50, speed=2, speedSource="tame", teaches={ {"Bite", 7} }, teachesSource="tame", spots={ {"The Hinterlands", 75.19, 68.85} }, zones={ "The Hinterlands" } }, -- passed on
+    [2734] = { name="Ridge Stalker Patriarch", family="Cat", levelMin=40, levelMax=41, speed=1.3, speedSource="tame", teaches={ {"Dash", 2}, {"Faster Attack", 5}, {"Prowl", 2} }, teachesSource="tame", spots={ {"Badlands", 20.24, 54.11} }, zones={ "Badlands" } }, -- passed on
+    [3127] = { name="Venomtail Scorpid", family="Scorpid", levelMin=9, levelMax=10, speed=2, speedSource="tame", teaches={ {"Claw", 2}, {"Scorpid Poison", 1} }, teachesSource="tame", spots={ {"Durotar", 39.33, 16.53} }, zones={ "Durotar" } },
+    [3255] = { name="Sunscale Screecher", family="Raptor", levelMin=13, levelMax=15, speed=2, speedSource="tame", teaches={ {"Savage Rend", 1} }, teachesSource="tame", spots={ {"The Barrens", 50.65, 35.83} }, zones={ "The Barrens" } }, -- passed on
+    [3461] = { name="Oasis Snapjaw", family="Turtle", levelMin=15, levelMax=16, speed=2, speedSource="tame", teaches={ {"Bite", 2} }, teachesSource="tame", spots={ {"The Barrens", 56.42, 41.47} }, zones={ "The Barrens" } }, -- passed on
+    [3820] = { name="Wildthorn Venomspitter", family="Spider", levelMin=24, levelMax=25, speed=2, speedSource="tame", teaches={ {"Web", 2} }, teachesSource="tame", spots={ {"Ashenvale", 64.16, 54.79} }, zones={ "Ashenvale" } }, -- passed on
+    [4127] = { name="Hecklefang Hyena", family="Hyena", levelMin=15, levelMax=16, speed=2, speedSource="tame", teaches={ {"Tendon Rip", 1} }, teachesSource="tame", spots={ {"The Barrens", 43.53, 20.98} }, zones={ "The Barrens" } }, -- passed on
