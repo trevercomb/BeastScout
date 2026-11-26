@@ -1275,6 +1275,12 @@ local function SearchFood(limit)
         end
         if #foods > 0 and v.spot then
             table.sort(foods)
+            -- An innkeeper can sell a dozen: the first few, and how many more.
+            local more = #foods - 5
+            if more > 0 then
+                for i = #foods, 6, -1 do foods[i] = nil end
+                foods[#foods] = foods[#foods] .. " and " .. more .. " more"
+            end
             local _, dist = Nearest({ v.spot }, here)
             local far = dist or (here and here.zone == v.spot[1] and SAME_ZONE_GUESS) or math.huge
             rows[#rows + 1] = {

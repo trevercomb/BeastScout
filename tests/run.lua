@@ -1339,6 +1339,19 @@ local fr = ns.Search("food")
 check("find food: vendor with what the pet eats", fr.rows and fr.rows[1].text:find("Innkeeper Belm, Dun Morogh", 1, true)
     and fr.rows[1].text:find(": Tough Jerky", 1, true) and not fr.rows[1].text:find("Water", 1, true), fr.rows and fr.rows[1].text or fr.error)
 check("find food: waypoint", fr.rows and fr.rows[1].spot ~= nil)
+-- An innkeeper with a dozen foods: the first five, then how many more.
+local saveStock, saveEdible = stock, edible
+stock, edible = {}, {}
+for i = 1, 8 do
+    stock[i] = { 5000 + i, "Food " .. i }
+    edible[5000 + i] = true
+end
+ns.ReadMerchant()
+local many = ns.Search("food").rows[1].text
+check("find food: a long list is cut to five and a count", many:find(": Food 1, Food 2, Food 3, Food 4, Food 5 and 3 more", 1, true)
+    and not many:find("Food 6", 1, true), many)
+stock, edible = saveStock, saveEdible
+ns.ReadMerchant()
 edible = {}
 check("find food: nothing the pet eats explained", ns.Search("food").error:find("sells food Shal'ma eats", 1, true))
 edible = { [117] = true }
