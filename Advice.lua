@@ -1155,7 +1155,8 @@ local function SearchZone(limit)
         end
     end
     if #found == 0 then
-        return { error = "nothing in " .. zone .. " at your level would teach your pets anything new.", none = true }
+        -- A normal answer, not an error: shown plainly, and the arrival list stays quiet.
+        return { title = "nothing in " .. zone .. " at your level would teach your pets anything new", rows = {}, none = true }
     end
     table.sort(found, function(a, b)
         if a.grey ~= b.grey then return not a.grey end
@@ -1406,6 +1407,10 @@ function ns.PrintResult(result)
         print(HEADER .. ": " .. result.error)
         return
     end
+    if #result.rows == 0 then
+        print(HEADER .. ": " .. result.title .. ".")
+        return
+    end
     print(HEADER .. ": " .. result.title .. ":")
     local anySpot = false
     for i, row in ipairs(result.rows) do
@@ -1444,7 +1449,7 @@ function ns.AnnounceZoneUpgrades()
     local result = ns.Search("zone", 5)
     if result.noPet then return end -- try again once a pet has been out
     zonesAnnounced[zone], BeastScoutDB.lastZoneAlert = true, zone
-    if result.error then return end
+    if result.error or result.none then return end
     ns.PrintResult(result)
     print(GREY .. "  /beastscout zone shows this again; /beastscout zone auto turns it off.|r")
 end

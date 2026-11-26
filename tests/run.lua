@@ -898,6 +898,16 @@ for _, row in ipairs(zoneRes.rows or {}) do
 end
 check("zone: greyed rows last", greyLast, zoneText)
 check("zone: limit trims and says so", #ns.Search("zone", 1).rows == 1)
+local savedLevel = units.player.level
+units.player.level = 1
+local emptyZone = ns.Search("zone", 8)
+check("zone: nothing here is a plain answer, not an error", not emptyZone.error and #emptyZone.rows == 0
+    and emptyZone.title:find("nothing in Dun Morogh", 1, true), emptyZone.error or emptyZone.title)
+local beforeEmpty = #printed
+SlashCmdList.BEASTSCOUT("zone")
+check("zone: nothing here, said in one line", #printed == beforeEmpty + 1
+    and printed[#printed]:find("anything new.", 1, true), printed[#printed])
+units.player.level = savedLevel
 local savePets = BeastScoutDB.pets
 time = function() return 1800000000 end
 BeastScoutDB.pets = { ["Grizzly|Bear"] = { name = "Grizzly", family = "Bear", level = 8, known = { Claw = 1 }, seen = 1800000000 } }
