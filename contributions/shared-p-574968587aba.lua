@@ -1,10 +1,12 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
 -- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-574968587aba
+    [345] = { name="Bellygrub", family="Boar", levelMin=24, levelMax=24, speed=2, speedSource="tame", teaches={ {"Charge", 3} }, teachesSource="tame", spots={ {"Redridge Mountains", 10.18, 49.05} }, zones={ "Redridge Mountains" } }, -- passed on
     [822] = { name="Young Forest Bear", family="Bear", levelMin=8, levelMax=9, speed=2.5, speedSource="tame", teaches={ {"Claw", 2}, {"Slower Attack", 2} }, teachesSource="tame", spots={ {"Elwynn Forest", 25.85, 81.76} }, zones={ "Elwynn Forest" } },
     [833] = { name="Coyote Packleader", family="Wolf", levelMin=12, levelMax=12, speed=2, speedSource="tame", teaches={ {"Bite", 2}, {"Furious Howl", 1} }, teachesSource="tame", spots={ {"Westfall", 49.43, 15.78} }, zones={ "Westfall" } },
     [1127] = { name="Elder Crag Boar", family="Boar", levelMin=7, levelMax=8, speed=2, speedSource="tame", teaches={ {"Charge", 1} }, teachesSource="tame", spots={ {"Dun Morogh", 55.95, 54.58} }, zones={ "Dun Morogh" } },
     [1199] = { name="Juvenile Snow Leopard", family="Cat", levelMin=5, levelMax=6, speed=1.5, speedSource="tame", teaches={ {"Cower", 1}, {"Faster Attack", 3} }, teachesSource="tame", spots={ {"Dun Morogh", 43.88, 56.47} }, zones={ "Dun Morogh" } }, -- passed on
+    [1713] = { name="Elder Shadowmaw Panther", family="Cat", levelMin=42, levelMax=43, speed=1.5, speedSource="tame", teaches={ {"Dash", 2}, {"Faster Attack", 3}, {"Prowl", 2} }, teachesSource="tame", spots={ {"Stranglethorn Vale", 31.13, 58.91} }, zones={ "Stranglethorn Vale" } },
     [2384] = { name="Starving Mountain Lion", family="Cat", levelMin=23, levelMax=24, speed=1.2, speedSource="tame", teaches={ {"Cower", 2}, {"Faster Attack", 6} }, teachesSource="tame", spots={ {"Hillsbrad Foothills", 43.26, 38.84} }, zones={ "Hillsbrad Foothills" } },
     [4724] = { name="Sandstrider", family="Tallstrider", levelMin=31, levelMax=31, speed=2, speedSource="tame", teaches={ {"Dash", 1}, {"Dust Cloud", 2} }, teachesSource="tame", spots={ {"Desolace", 41.52, 28.47} }, zones={ "Desolace" } },
     [5268] = { name="Ironfur Bear", family="Bear", levelMin=41, levelMax=42, speed=2, speedSource="tame", teaches={ {"Claw", 6}, {"Swipe", 3} }, teachesSource="tame", spots={ {"Feralas", 70.78, 48.18} }, zones={ "Feralas" } },

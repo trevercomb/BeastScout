@@ -100,6 +100,20 @@ def main():
     community = (out_dir / "Community.lua").read_text(encoding="utf-8")
     checks["the Hunter's Handbook's English name wins"] = 'name="Elder Ashenvale Bear"' in community         and "Oso viejo" not in community
 
+    # A tame that missed the passive other tames agree on gets it.
+    def lion(teaches, source="tame", speed=None):
+        return {"name": "Starving Mountain Lion", "teaches": teaches, "teachesSource": source,
+                "speed": speed, "speedSource": "tame" if speed else None}
+    fa6 = lion([("Cower", 2), ("Faster Attack", 6)], speed=1.2)
+    bare = lion([("Cower", 2)], speed=2.0)
+    filled = build_bestiary.fill_missing_passive([fa6, fa6, bare, bare, lion([("Cower", 2)], "lore")])
+    checks["missed passive filled in, with its speed"] = filled[2]["teaches"] == [("Cower", 2), ("Faster Attack", 6)]         and filled[2]["speed"] == 1.2 and bare["teaches"] == [("Cower", 2)]
+    checks["missed passive: Beast Lore left alone"] = filled[4]["teaches"] == [("Cower", 2)]
+    checks["missed passive: one tame isn't enough"] =         build_bestiary.fill_missing_passive([fa6, bare, bare])[1]["teaches"] == [("Cower", 2)]
+    checks["missed passive: tames disagreeing on it fill nothing"] = build_bestiary.fill_missing_passive(
+        [fa6, fa6, lion([("Faster Attack", 5)]), lion([("Faster Attack", 5)]), bare])[4]["teaches"] == [("Cower", 2)]
+    checks["missed passive: relays don't vouch"] =         build_bestiary.fill_missing_passive([fa6, fa6, bare], [True, False, True])[2]["teaches"] == [("Cower", 2)]
+
     failed = [name for name, ok in checks.items() if not ok]
     for name, ok in checks.items():
         print(("ok   " if ok else "FAIL ") + name)

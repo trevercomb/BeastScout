@@ -5,6 +5,13 @@
 - New: arriving in a zone lists the beasts there that would teach any of your pets a rank it can't already get at Beast Training, closest first, with waypoints. Only the best rank of each skill in the zone is shown, and ranks your pets are too young for are greyed. It's shown once per zone each session; `/beastscout zone` (or **This zone** in the window) shows it any time, and `/beastscout zone auto` turns the arrival list off.
 - New: a wishlist. `/beastscout wish` adds your target, or a beast by name (`/beastscout wish mystmane`); wishing again takes it off. A beast on your wishlist rings the rare alert when its nameplate shows up, even if it isn't rare, and its tooltip says it's on your wishlist. `/beastscout wishlist` lists them, closest first.
 - New: `/beastscout vendors` (or `find food`) lists vendors you've visited that sell food your summoned pet eats, closest first, with waypoints. BeastScout remembers each vendor's food when you open their window and asks the game what your pet eats, so one visit covers all your pets.
+## 0.13.16
+
+- Fixed: on some translated clients (seen in Spanish and Russian), a tame could miss the beast's Faster Attack passive, so it was recorded with no attack speed skill and a speed of 2.0. BeastScout now also recognises the passive by its icon, so those tames get the right rank, and pets tamed in the last two weeks are corrected the next time they're out.
+- `/beastscout pet` now also shows what BeastScout read from your pet's spellbook, so a passive it couldn't read is easy to spot.
+- Starving Mountain Lion is settled again: Faster Attack VI (1.2) and Cower 2. Tames that missed the passive no longer count against the ones that saw it.
+- New from players' tames: Elder Shadowmaw Panther (Faster Attack III, Dash 2, Prowl 2), Silt Crawler (Claw 6, Pinch 3), Bellygrub (Charge 3), Venom Web Spider (Web 1), Deepmoss Webspinner (Bite 3), Raging Reef Crawler (Pinch 1), and Foothills Duskbat (Sonic Blast 1), which the Hunter's Handbook never had.
+- Hunters like you have now shared skills and speeds for 118 beasts (9 the Handbook never had), plus spawn points for 49 more.
 
 ## 0.13.15
 

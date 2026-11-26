@@ -61,8 +61,7 @@ end
 -- What your current pet knows, read from its spellbook: { [ability] = rank }.
 function ns.PetKnown()
     if not UnitExists("pet") then return nil end
-    local known = {}
-    for _, spell in ipairs(ns.PetSpellbook()) do ns.FindAbilities(spell, known) end
+    local known = ns.ReadPetAbilities()
     return known, UnitName("pet"), ns.FamilyOf("pet"), UnitLevel("pet")
 end
 

@@ -273,7 +273,8 @@ check("debug prints", printed[#printed]:find("BeastScout debug", 1, true), print
 SlashCmdList.BEASTSCOUT("debug")
 petSpells = { { "Bite", "Rank 1" }, { "Growl", "Rank 1" } }
 SlashCmdList.BEASTSCOUT("pet")
-check("/beastscout pet lists spellbook", printed[#printed]:find("Bite Rank 1, Growl Rank 1", 1, true), printed[#printed])
+check("/beastscout pet lists spellbook", printed[#printed - 1]:find("Bite Rank 1, Growl Rank 1", 1, true), printed[#printed - 1])
+check("/beastscout pet says what it read", printed[#printed]:find("read as: Bite 1", 1, true), printed[#printed])
 units.pet = nil
 SlashCmdList.BEASTSCOUT("pet")
 check("/beastscout pet with no pet", printed[#printed]:find("no pet out", 1, true), printed[#printed])
@@ -1124,6 +1125,49 @@ petSpells = { { "Biss", "Rang 2" }, { "Klaue", "Rang 1" }, { "Schnellerer Angrif
 local known = ns.PetKnown()
 check("German spellbook read", known.Bite == 2 and known.Claw == 1 and known["Faster Attack"] == 5,
     tostring(known.Bite) .. " " .. tostring(known.Claw) .. " " .. tostring(known["Faster Attack"]))
+
+-- A client whose name for a higher passive rank doesn't match its name for
+-- rank I (Spanish and Russian tames of Starving Mountain Lion came out with
+-- no passive): the passive is found by its icon, the rank from the name's
+-- end. Both passives share one icon (132150 in game), so family and swing
+-- timer tell them apart.
+local petIcons = { [1] = 501, [2] = 132150 }
+local realTexture = GetSpellTexture
+GetSpellTexture = function(a, book)
+    if book then return petIcons[a] end
+    return ({ [1263099] = 132150, [1263113] = 132150 })[a], 132150
+end
+units.pet.speed = 1.2
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz VI", "" } }
+known = ns.PetKnown()
+check("passive by icon: rank from the name's end", known["Faster Attack"] == 6 and known.Cower == 2,
+    tostring(known["Faster Attack"]))
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz", "Rango 6" } }
+check("passive by icon: rank in the subtext", ns.PetKnown()["Faster Attack"] == 6)
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz IX", "" } }
+known = ns.PetKnown()
+check("passive by icon: a rank neither passive has is skipped", known.Cower == 2 and known["Faster Attack"] == nil
+    and known["Slower Attack"] == nil)
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz II", "" } }
+check("passive by icon: a cat's rank II is Faster Attack (only bears get Slower)", ns.PetKnown()["Faster Attack"] == 2)
+units.pet.family, units.pet.speed = "Bear", 2.13 -- Slower Attack II under Might of Stormwind
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque lento II", "" } }
+check("passive by icon: a bear's rank II swinging slow is Slower Attack", ns.PetKnown()["Slower Attack"] == 2)
+units.pet.speed = 1.6
+check("passive by icon: a bear's rank II swinging fast is Faster Attack", ns.PetKnown()["Faster Attack"] == 2)
+units.pet.speed = nil
+check("passive by icon: a bear's rank II with no swing timer is left out",
+    ns.PetKnown()["Faster Attack"] == nil and ns.PetKnown()["Slower Attack"] == nil)
+units.pet.speed = 2.5
+petSpells = { { "Ducken", "Rang 2" }, { "Ataque veloz V", "" } }
+check("passive by icon: rank V can only be Faster Attack", ns.PetKnown()["Faster Attack"] == 5)
+petIcons[2] = 777
+check("passive by icon: another icon isn't a passive", ns.PetKnown()["Faster Attack"] == nil)
+units.pet.family, units.pet.speed = "Katze", nil
+petSpells = { { "Biss", "Rang 2" }, { "Schnellerer Angriff V", "" } }
+petIcons = { [1] = 501, [2] = 999 }
+check("names still win when they match", ns.PetKnown()["Faster Attack"] == 5)
+GetSpellTexture = realTexture
 
 -- Family learned from a beast our data knows (Juvenile Snow Leopard is a Cat).
 BeastScoutDB.familyNames = nil

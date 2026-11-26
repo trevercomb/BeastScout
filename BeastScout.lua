@@ -396,6 +396,11 @@ SlashCmdList.BEASTSCOUT = function(msg)
             .. " stamina, " .. tostring(hArmor) .. " armor")
         print("  GUID: " .. tostring(UnitGUID("pet")))
         print("  spellbook: " .. (#spells > 0 and table.concat(spells, ", ") or "(empty)"))
+        -- What BeastScout makes of it, in English (shows a passive it can't read).
+        local read = {}
+        for ability, rank in pairs(ns.ReadPetAbilities()) do read[#read + 1] = ability .. " " .. rank end
+        table.sort(read)
+        print("  read as: " .. (#read > 0 and table.concat(read, ", ") or "(nothing)"))
         return
     elseif msg == "help" then
         -- falls through to the status and command list below

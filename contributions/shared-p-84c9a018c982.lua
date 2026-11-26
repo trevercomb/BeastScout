@@ -1,6 +1,7 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
 -- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-84c9a018c982
+    [118] = { name="Prowler", family="Wolf", levelMin=9, levelMax=10, speed=1.5, speedSource="tame", teaches={ {"Bite", 2}, {"Faster Attack", 3} }, teachesSource="tame", spots={ {"Elwynn Forest", 79.1, 80.3} }, zones={ "Elwynn Forest" } },
     [157] = { name="Goretusk", family="Boar", levelMin=14, levelMax=15, speed=2, speedSource="tame", teaches={ {"Charge", 2} }, teachesSource="tame", spots={ {"Westfall", 48.04, 51.94} }, zones={ "Westfall" } },
     [524] = { name="Rockhide Boar", family="Boar", levelMin=7, levelMax=8, speed=2, speedSource="tame", teaches={ {"Charge", 1} }, teachesSource="tame", spots={ {"Elwynn Forest", 59.53, 79.79} }, zones={ "Elwynn Forest" } },
     [822] = { name="Young Forest Bear", family="Bear", levelMin=8, levelMax=9, speed=2.5, speedSource="tame", teaches={ {"Claw", 2}, {"Slower Attack", 2} }, teachesSource="tame", spots={ {"Elwynn Forest", 35.4, 88.04} }, zones={ "Elwynn Forest" } },

@@ -33,7 +33,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from build_bestiary import (TRUST, build, fix_old_beast, parse_ours_text, parse_pet_stats,  # noqa: E402
+from build_bestiary import (TRUST, build, fill_missing_passive, fix_old_beast, parse_ours_text, parse_pet_stats,  # noqa: E402
                             pet_stat_line, to_line)
 from pull_contributions import author_hash, known_names, problems  # noqa: E402
 
@@ -239,6 +239,10 @@ def shared_files(saved_list, salt, families, abilities, own=None, held=None, kep
                 current[key] = b
     out = {}
     for npc_id, by_sender in reports.items():
+        # A tame that missed the passive other tames agree on gets it.
+        senders = sorted(by_sender)
+        by_sender = dict(zip(senders, fill_missing_passive([by_sender[s] for s in senders],
+                                                           [not s.startswith("~") for s in senders])))
         # First-hand reports, and passed-on ones (sender "~Name"), kept apart.
         groups = {False: {}, True: {}}
         # Several players can pass on the same first-hand report; it keeps its
@@ -341,15 +345,21 @@ def pet_stats(saved_list, salt, families):
             reading["loyalty"] = reading["loyalty"] or old["loyalty"]
         out[(author, family, level)] = reading
 
+    def entries(t):
+        # A Lua table keyed 1..n (pet levels from 1 up) reads as a list.
+        if isinstance(t, list):
+            return enumerate(t, 1)
+        return (t or {}).items() if isinstance(t, dict) else ()
+
     for saved in saved_list:
         db = saved.get("BeastScoutDB") or {}
-        for family, by_level in (db.get("petStats") or {}).items():
-            for level, r in (by_level or {}).items():
+        for family, by_level in entries(db.get("petStats")):
+            for level, r in entries(by_level):
                 if isinstance(r, dict):
                     add("maintainer", family, level, r)
-        for family, by_level in (db.get("guildStats") or {}).items():
-            for level, by_sender in (by_level or {}).items():
-                for sender, r in (by_sender or {}).items():
+        for family, by_level in entries(db.get("guildStats")):
+            for level, by_sender in entries(by_level):
+                for sender, r in entries(by_sender):
                     if isinstance(r, dict) and isinstance(sender, str):
                         add(author_hash("wow:" + sender, salt), family, level, r)
     return out
