@@ -1166,7 +1166,8 @@ local function SearchZone(limit)
     local total = #found
     for i = total, limit + 1, -1 do found[i] = nil end
     return {
-        title = "beasts in " .. zone .. " that would teach your pets something new, closest first"
+        -- Short enough not to wrap in the window (the long form ran into row 1).
+        title = "upgrades for your pets in " .. zone .. ", closest first"
             .. (total > limit and (" (" .. limit .. " of " .. total .. ")") or ""),
         rows = found,
         note = "Greyed: your pets are too young for it yet.",

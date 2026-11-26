@@ -883,7 +883,7 @@ local zoneRes = ns.Search("zone", 50)
 local zoneText = {}
 for _, row in ipairs(zoneRes.rows or {}) do zoneText[#zoneText + 1] = row.text end
 zoneText = table.concat(zoneText, "\n")
-check("zone: title names the zone", zoneRes.title and zoneRes.title:find("beasts in Dun Morogh", 1, true), zoneRes.title or zoneRes.error)
+check("zone: title names the zone", zoneRes.title and zoneRes.title:find("upgrades for your pets in Dun Morogh", 1, true), zoneRes.title or zoneRes.error)
 check("zone: rows name the upgrade and the pet", zoneText:find(": Claw 2 (has 1, 4 TP) for River", 1, true), zoneText)
 check("zone: a weaker rank than one nearby isn't listed", zoneText:find("Bite 2", 1, true) and not zoneText:find("Bite 1", 1, true), zoneText)
 local onlyHere = true
@@ -921,7 +921,7 @@ local savedLast, savedAlert = BeastScoutDB.lastZoneAlert, BeastScoutDB.zoneAlert
 BeastScoutDB.lastZoneAlert = nil
 local before = #printed
 ns.AnnounceZoneUpgrades()
-check("zone arrival: listed", #printed > before and printed[before + 1]:find("beasts in Dun Morogh", 1, true), printed[before + 1])
+check("zone arrival: listed", #printed > before and printed[before + 1]:find("upgrades for your pets in Dun Morogh", 1, true), printed[before + 1])
 check("zone arrival: remembered for a /reload", BeastScoutDB.lastZoneAlert == "Dun Morogh")
 before = #printed
 ns.AnnounceZoneUpgrades()
@@ -932,7 +932,7 @@ SlashCmdList.BEASTSCOUT("zone auto")
 check("and on again", ns.ZoneAlertOn())
 before = #printed
 SlashCmdList.BEASTSCOUT("zone")
-check("/beastscout zone lists it on demand", printed[before + 1] and printed[before + 1]:find("beasts in Dun Morogh", 1, true), printed[before + 1])
+check("/beastscout zone lists it on demand", printed[before + 1] and printed[before + 1]:find("upgrades for your pets in Dun Morogh", 1, true), printed[before + 1])
 BeastScoutDB.lastZoneAlert, BeastScoutDB.zoneAlert = savedLast, savedAlert
 C_Map, UiMapPoint = nil, nil
 units.pet, units.mouseover = nil, nil
