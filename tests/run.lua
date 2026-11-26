@@ -922,6 +922,8 @@ BeastScoutDB.lastZoneAlert = nil
 local before = #printed
 ns.AnnounceZoneUpgrades()
 check("zone arrival: listed", #printed > before and printed[before + 1]:find("upgrades for your pets in Dun Morogh", 1, true), printed[before + 1])
+check("zone arrival: one footer line, no waypoint hint", printed[#printed]:find("zone auto turns this off", 1, true)
+    and not table.concat(printed, " | ", before + 1):find("Click [Waypoint]", 1, true), printed[#printed])
 check("zone arrival: remembered for a /reload", BeastScoutDB.lastZoneAlert == "Dun Morogh")
 before = #printed
 ns.AnnounceZoneUpgrades()

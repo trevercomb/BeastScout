@@ -1403,7 +1403,9 @@ function ns.ForgetRow(index)
 end
 
 -- Chat output: /beastscout find ...
-function ns.PrintResult(result)
+-- footer: one grey line in place of the note and the waypoint hint (the
+-- zone list on arrival, which shouldn't take half the chat window).
+function ns.PrintResult(result, footer)
     if result.error then
         print(HEADER .. ": " .. result.error)
         return
@@ -1418,6 +1420,10 @@ function ns.PrintResult(result)
         local link = row.spot and (" |cff71d5ff|H" .. LINK .. i .. "|h[Waypoint]|h|r") or ""
         anySpot = anySpot or row.spot ~= nil
         print("  " .. i .. ". " .. (row.grey and GREY or "") .. row.text .. (row.grey and "|r" or "") .. link)
+    end
+    if footer then
+        print(GREY .. "  " .. footer .. "|r")
+        return
     end
     if result.note then print(GREY .. "  " .. result.note .. "|r") end
     if anySpot then print(GREY .. "  Click [Waypoint] or type /beastscout way <number>.|r") end
@@ -1451,8 +1457,7 @@ function ns.AnnounceZoneUpgrades()
     if result.noPet then return end -- try again once a pet has been out
     zonesAnnounced[zone], BeastScoutDB.lastZoneAlert = true, zone
     if result.error or result.none then return end
-    ns.PrintResult(result)
-    print(GREY .. "  /beastscout zone shows this again; /beastscout zone auto turns it off.|r")
+    ns.PrintResult(result, "Greyed: too young yet. /beastscout zone auto turns this off.")
 end
 
 function ns.FindTank() ns.Find("tank") end
