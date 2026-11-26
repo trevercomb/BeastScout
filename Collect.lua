@@ -368,10 +368,14 @@ ns.PetSpellbook = PetSpellbook
 -- Tames on Spanish and Russian clients recorded Starving Mountain Lion
 -- (Faster Attack VI on English ones) with no passive at all, while the same
 -- Spanish player's Mountain Lion read Faster Attack IV: there the game's name
--- for one rank doesn't always match its name for another. Every rank should
--- share the icon of the rank we can look up (FA I, SA II), and the rank is
--- the numeral at the end of the name.
-local PASSIVE_SPELLS = { { "Faster Attack", 1263099 }, { "Slower Attack", 1263113 } }
+-- for one rank doesn't always match its name for another. Every rank has the
+-- same icon, and so do both passives (Faster Attack I and II and Slower
+-- Attack II all show 132150, checked in game 2026-11-26), so the icon only
+-- says "a passive"; the rank is the numeral at the end of the name. Which
+-- passive: only bears learn Slower Attack, and it only has ranks I and II;
+-- otherwise the swing timer tells (Slower Attack swings slower than 2.0, even
+-- under a 15% haste buff: 2.13; Faster Attack faster).
+local PASSIVE_ICON_SPELL = 1263099 -- Faster Attack I
 
 local function SpellIcon(id)
     local icon = C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(id)
@@ -387,27 +391,41 @@ local function TrailingRank(text)
     return tonumber(text:match("[%s%(](%d+)$") or "")
 end
 
-local function FindPassiveByIcon(spells, icons, found)
-    for _, p in ipairs(PASSIVE_SPELLS) do
-        if found[p[1]] then return end
+local function Learns(family, ability)
+    local training = ns.TRAINING and ns.TRAINING[ability]
+    if not (training and training.families) then return true end
+    for _, f in ipairs(training.families) do
+        if f == family then return true end
     end
-    local wanted = {}
-    for _, p in ipairs(PASSIVE_SPELLS) do
-        local icon = SpellIcon(p[2])
-        if not icon then return end
-        for _, other in ipairs(wanted) do
-            if other[2] == icon then return end -- one icon for both: can't tell them apart
+    return false
+end
+
+-- Which passive a rank on this pet is, or nil when it can't tell.
+local function WhichPassive(rank, family, swing)
+    if family and not ns.FAMILIES[family] then family = nil end -- a name we couldn't translate
+    local options = {}
+    for _, ability in ipairs({ "Faster Attack", "Slower Attack" }) do
+        if RealRank(ability, rank) and (not family or Learns(family, ability)) then
+            options[#options + 1] = ability
         end
-        wanted[#wanted + 1] = { p[1], icon }
     end
+    if #options == 1 then return options[1] end
+    if #options == 0 or type(swing) ~= "number" or IsSecret(swing) or swing <= 0 then return nil end
+    if swing > 2.05 then return "Slower Attack" end
+    if swing < 1.95 then return "Faster Attack" end
+end
+
+local function FindPassiveByIcon(spells, icons, found, family, swing)
+    if found["Faster Attack"] or found["Slower Attack"] then return end
+    local icon = SpellIcon(PASSIVE_ICON_SPELL)
+    if not icon then return end
     for i, text in ipairs(spells) do
-        for _, w in ipairs(wanted) do
-            if icons[i] and icons[i] == w[2] then
-                local rank = TrailingRank(text)
-                if rank and RealRank(w[1], rank) then
-                    found[w[1]] = rank
-                    return
-                end
+        if icons[i] and icons[i] == icon then
+            local rank = TrailingRank(text)
+            local ability = rank and WhichPassive(rank, family, swing)
+            if ability then
+                found[ability] = rank
+                return
             end
         end
     end
@@ -419,7 +437,9 @@ function ns.ReadPetAbilities()
     local spells, icons = PetSpellbook()
     local found = {}
     for _, spell in ipairs(spells) do FindAbilities(spell, found) end
-    FindPassiveByIcon(spells, icons, found)
+    if next(icons) then
+        FindPassiveByIcon(spells, icons, found, ns.FamilyOf("pet"), UnitAttackSpeed and UnitAttackSpeed("pet"))
+    end
     return found, spells
 end
 
