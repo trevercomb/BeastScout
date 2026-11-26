@@ -598,7 +598,8 @@ function ns.RememberPet()
     local known = ns.ReadPetAbilities()
     BeastScoutDB.pets = BeastScoutDB.pets or {}
     local key = ns.PetKey(name, family)
-    BeastScoutDB.pets[key] = { name = name, family = family, level = level, known = known }
+    -- seen: when it was last out, so pets you've let go stop getting upgrade hints.
+    BeastScoutDB.pets[key] = { name = name, family = family, level = level, known = known, seen = time and time() or nil }
     local guid = UnitGUID("pet")
     CheckTamedPet(not IsSecret(guid) and guid or nil, key, known)
 end

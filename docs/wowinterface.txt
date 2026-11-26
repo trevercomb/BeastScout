@@ -35,7 +35,7 @@ Type [b]/beastscout[/b] or click the minimap button:
 [*][b]Upgrades for my pet:[/b] grouped by skill, the closest beasts that teach something your pet can use, with training point costs. Skills you've already learned say to train them at Beast Training instead.
 [*][b]Fastest:[/b] the fastest beasts you can tame, any family (or [i]fast cat[/i], [i]fast wolf[/i]...).
 [*][b]Tank:[/b] tank families ranked by health and armor, with the closest one you can tame. Forever's bonuses aren't published, so every BeastScout player's pets are measured and shared to work them out.
-[*][b]This zone:[/b] beasts in your zone that would teach any of your pets something new. BeastScout also lists them by itself when you arrive in a zone ([b]/beastscout zone auto[/b] turns that off).
+[*][b]This zone:[/b] beasts in your zone that would teach any of your pets something new. BeastScout also lists them by itself when you arrive in a zone ([b]/beastscout zone auto[/b] turns that off). Pets you haven't had out for 30 days are left out.
 [*][b]Search[/b] a skill ([i]bite 2[/i]), a family ([i]cat[/i]), a beast's name ([i]mystmane[/i], or just [i]shal[/i]), and more.
 [*][b]Go[/b] puts a waypoint on your map; it clears when you get there. Beasts above your level are hidden.
 [*][b]Daylight UI[/b] users get the window in Daylight UI's look.

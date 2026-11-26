@@ -884,7 +884,7 @@ local zoneText = {}
 for _, row in ipairs(zoneRes.rows or {}) do zoneText[#zoneText + 1] = row.text end
 zoneText = table.concat(zoneText, "\n")
 check("zone: title names the zone", zoneRes.title and zoneRes.title:find("beasts in Dun Morogh", 1, true), zoneRes.title or zoneRes.error)
-check("zone: rows name the pet and the upgrade", zoneText:find(" - River: Claw 2 (has 1, 4 TP)", 1, true), zoneText)
+check("zone: rows name the upgrade and the pet", zoneText:find(": Claw 2 (has 1, 4 TP) for River", 1, true), zoneText)
 check("zone: a weaker rank than one nearby isn't listed", zoneText:find("Bite 2", 1, true) and not zoneText:find("Bite 1", 1, true), zoneText)
 local onlyHere = true
 for _, row in ipairs(zoneRes.rows or {}) do
@@ -898,6 +898,14 @@ for _, row in ipairs(zoneRes.rows or {}) do
 end
 check("zone: greyed rows last", greyLast, zoneText)
 check("zone: limit trims and says so", #ns.Search("zone", 1).rows == 1)
+local savePets = BeastScoutDB.pets
+time = function() return 1800000000 end
+BeastScoutDB.pets = { ["Grizzly|Bear"] = { name = "Grizzly", family = "Bear", level = 8, known = { Claw = 1 }, seen = 1800000000 } }
+local grouped = {}
+for _, row in ipairs(ns.Search("zone", 50).rows or {}) do grouped[#grouped + 1] = row.text end
+grouped = table.concat(grouped, " | ")
+check("zone: one upgrade for two pets listed once", grouped:find("Claw 2 (has 1, 4 TP) for River, Grizzly", 1, true), grouped)
+BeastScoutDB.pets, time = savePets, nil
 
 local savedLast, savedAlert = BeastScoutDB.lastZoneAlert, BeastScoutDB.zoneAlert
 BeastScoutDB.lastZoneAlert = nil
@@ -1225,6 +1233,8 @@ GetPetFoodTypes, C_PetFood = nil, nil
 -- Remembered pets: upgrade lines for pets that aren't out, and the My pets view.
 -- No Beast Training read yet, so nothing counts as already trainable.
 BeastScoutDB.pets, BeastScoutDB.trainer = nil, nil
+local clock = 1800000000
+time = function() return clock end
 CreateFrame = function(_, name) return UIFake(name) end -- the window fake (defined above)
 units.pet = { name = "Shal'ma", family = "Cat", level = 11, guid = "Pet-0-1-2-3-165189-SHAL" }
 petSpells = { { "Bite", "Rank 1" }, { "Claw", "Rank 2" }, { "Faster Attack V", "" } }
@@ -1251,6 +1261,17 @@ hooked(tooltip)
 text = tooltipText()
 check("stabled pets get upgrade lines too", text:find("Upgrade for River: Bite 2", 1, true)
     and text:find("Upgrade for Shal'ma: Bite 2", 1, true), text)
+clock = clock + 31 * 86400
+BeastScoutDB.pets["River|Bear"].seen = clock
+resetTooltip("mouseover")
+hooked(tooltip)
+text = tooltipText()
+check("a pet not out for 30 days gets no upgrade lines", text:find("Upgrade for River: Bite 2", 1, true)
+    and not text:find("Upgrade for Shal'ma", 1, true), text)
+BeastScoutDB.pets["Shal'ma|Cat"].seen = nil
+check("nor one remembered before pets had a last-seen time", #ns.UpgradeLines({ { "Bite", 2 } }) == 1)
+BeastScoutDB.pets["Shal'ma|Cat"].seen = clock
+time = nil
 
 -- My pets view, with Remove.
 ns.ToggleUI("pets")

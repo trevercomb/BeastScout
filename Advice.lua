@@ -118,8 +118,12 @@ function ns.UpgradesFor(teaches, pet)
     return out, p and p.name
 end
 
--- Your summoned pet first, then every other pet you've had out
--- (BeastScoutDB.pets), as { known, name, family, level }.
+-- Your summoned pet first, then every other pet you've had out in the last
+-- PET_SEEN_DAYS (BeastScoutDB.pets), as { known, name, family, level }. A pet
+-- you abandoned or never call stays in My pets, but stops getting upgrade
+-- hints; one remembered before 0.14.0 counts once it's been out again.
+local PET_SEEN_DAYS = 30
+
 local function YourPets()
     local pets, activeKey = {}, nil
     local ok, active = ReadPet()
@@ -127,9 +131,9 @@ local function YourPets()
         activeKey = ns.PetKey(active.name, active.family)
         pets[1] = active
     end
-    local keys = {}
-    for key in pairs(BeastScoutDB.pets or {}) do
-        if key ~= activeKey then keys[#keys + 1] = key end
+    local keys, now = {}, time and time() or 0
+    for key, p in pairs(BeastScoutDB.pets or {}) do
+        if key ~= activeKey and p.seen and now - p.seen <= PET_SEEN_DAYS * 86400 then keys[#keys + 1] = key end
     end
     table.sort(keys)
     for _, key in ipairs(keys) do
@@ -1122,22 +1126,29 @@ local function SearchZone(limit)
     end
     local found = {}
     for npcId, byPet in pairs(offers) do
-        local parts, now = {}, false
+        -- The same upgrade for several pets is listed once: "Claw 1 (new, 1 TP) for Bear, Cat".
+        local order, forPets, now = {}, {}, false
         for i, pet in ipairs(pets) do
-            local ups = {}
             for _, o in ipairs(byPet[i] or {}) do
                 if o.rank >= (best[i][o.ability] or 0) then
-                    ups[#ups + 1] = ns.DescribeUpgrade(o)
+                    local text = ns.DescribeUpgrade(o)
+                    if not forPets[text] then
+                        forPets[text], order[#order + 1] = {}, text
+                    end
+                    table.insert(forPets[text], pet.name)
                     now = now or o.learnable
                 end
             end
-            if #ups > 0 then parts[#parts + 1] = pet.name .. ": " .. table.concat(ups, ", ") end
+        end
+        local parts = {}
+        for _, text in ipairs(order) do
+            parts[#parts + 1] = text .. " for " .. table.concat(forPets[text], ", ")
         end
         if #parts > 0 then
             local m = Describe(npcId, here)
             found[#found + 1] = {
                 text = m.name .. " (" .. m.family .. " " .. Levels(m) .. ")"
-                    .. (m.dist and (" " .. Yards(m.dist)) or "") .. " - " .. table.concat(parts, "; "),
+                    .. (m.dist and (" " .. Yards(m.dist)) or "") .. ": " .. table.concat(parts, "; "),
                 spot = m.spot, name = m.name, where = m.where, grey = not now,
                 sortDist = m.sortDist or math.huge,
             }
