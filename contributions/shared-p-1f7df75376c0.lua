@@ -1,13 +1,13 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
 -- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-1f7df75376c0
+    [1087] = { name="Sawtooth Snapper", family="Crocolisk", levelMin=41, levelMax=41, speed=2, speedSource="tame", teaches={ {"Bite", 6} }, teachesSource="tame", spots={ {"Swamp of Sorrows", 75.94, 6.09} }, zones={ "Swamp of Sorrows" } }, -- passed on
     [1111] = { name="Leech Stalker", family="Spider", levelMin=21, levelMax=22, teaches={ {"Web", 1} }, teachesSource="lore", spots={ {"Wetlands", 58.83, 63.97} }, zones={ "Wetlands" } }, -- passed on
     [1553] = { name="Greater Duskbat", family="Bat", levelMin=6, levelMax=7, speed=2, speedSource="tame", teaches={ {"Cower", 1} }, teachesSource="tame", spots={ {"Tirisfal Glades", 66.55, 60.58} }, zones={ "Tirisfal Glades" } }, -- passed on
     [1797] = { name="Giant Grizzled Bear", family="Bear", levelMin=12, levelMax=13, speed=2, speedSource="tame", teaches={ {"Swipe", 1} }, teachesSource="tame", spots={ {"Silverpine Forest", 52.35, 58.53} }, zones={ "Silverpine Forest" } }, -- passed on
     [2350] = { name="Forest Moss Creeper", family="Spider", levelMin=20, levelMax=21, speed=2, speedSource="tame", teaches={ {"Bite", 3} }, teachesSource="tame", spots={ {"Hillsbrad Foothills", 58.98, 28.8} }, zones={ "Hillsbrad Foothills" } },
     [2351] = { name="Gray Bear", family="Bear", levelMin=21, levelMax=22, speed=2, speedSource="tame", teaches={ {"Claw", 3} }, teachesSource="tame", spots={ {"Hillsbrad Foothills", 57.91, 29.1} }, zones={ "Hillsbrad Foothills" } }, -- passed on
     [2505] = { name="Saltwater Snapjaw", family="Turtle", levelMin=49, levelMax=50, speed=2, speedSource="tame", teaches={ {"Bite", 7} }, teachesSource="tame", spots={ {"The Hinterlands", 77.53, 70.86} }, zones={ "The Hinterlands" } }, -- passed on
-    [2734] = { name="Ridge Stalker Patriarch", family="Cat", levelMin=40, levelMax=41, speed=1.3, speedSource="tame", teaches={ {"Dash", 2}, {"Faster Attack", 5}, {"Prowl", 2} }, teachesSource="tame", spots={ {"Badlands", 25.42, 71.29} }, zones={ "Badlands" } }, -- passed on
     [2926] = { name="Silvermane Stalker", family="Wolf", levelMin=47, levelMax=48, speed=2, speedSource="tame", teaches={ {"Dash", 2} }, teachesSource="tame", spots={ {"The Hinterlands", 72.64, 57.41} }, zones={ "The Hinterlands" } }, -- passed on
     [2957] = { name="Elder Plainstrider", family="Tallstrider", levelMin=8, levelMax=9, speed=2, speedSource="tame", teaches={ {"Cower", 1} }, teachesSource="tame", spots={ {"Mulgore", 55.31, 69.3} }, zones={ "Mulgore" } },
     [2960] = { name="Prairie Wolf Alpha", family="Wolf", levelMin=9, levelMax=10, speed=1.4, speedSource="tame", teaches={ {"Bite", 2}, {"Faster Attack", 4} }, teachesSource="tame", spots={ {"Mulgore", 37.6, 15.47} }, zones={ "Mulgore" } },

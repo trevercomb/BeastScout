@@ -12,4 +12,5 @@
     [5286] = { name="Longtooth Runner", family="Wolf", levelMin=40, levelMax=41, speed=2, speedSource="tame", teaches={ {"Bite", 6}, {"Dash", 2}, {"Furious Howl", 3} }, teachesSource="tame", spots={ {"Feralas", 71.82, 40.75} }, zones={ "Feralas" } },
     [5422] = { name="Scorpid Hunter", family="Scorpid", levelMin=40, levelMax=41, speed=2, speedSource="tame", teaches={ {"Claw", 6}, {"Scorpid Poison", 3} }, teachesSource="tame", spots={ {"Tanaris", 53.97, 32.23} }, zones={ "Tanaris" } },
     [5425] = { name="Starving Blisterpaw", family="Hyena", levelMin=41, levelMax=42, speed=2, speedSource="tame", teaches={ {"Dash", 2} }, teachesSource="tame", spots={ {"Tanaris", 54.8, 30.16} }, zones={ "Tanaris" } },
+    [250927] = { name="Ursera Ventarrosombra", family="Bear", levelMin=10, levelMax=11, speed=2, speedSource="tame", teaches={ {"Claw", 2} }, teachesSource="tame", spots={ {"Zephras Isle", 59.91, 33.94} }, zones={ "Zephras Isle" } }, -- passed on
     [258522] = { name="Sootfur", family="Wolf", levelMin=38, levelMax=38, speed=2, speedSource="tame", teaches={ {"Bite", 5} }, teachesSource="tame", spots={ {"Riverglades", 55.12, 85.09} }, zones={ "Riverglades" } },
