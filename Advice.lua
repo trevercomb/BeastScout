@@ -188,6 +188,37 @@ function ns.IgnoreCommand(rest)
     BeastScoutDB.ignore[key] = next(list) and list or nil
 end
 
+-- find hidden: every skill hidden for any of your pets, with a Show button
+-- (the row's forget) that brings it back. The pet needn't be out.
+local function SearchHidden()
+    local rows = {}
+    for key, list in pairs(BeastScoutDB.ignore or {}) do
+        local name, family = key:match("^(.*)|([^|]*)$")
+        name = name or key
+        for ability in pairs(list) do
+            rows[#rows + 1] = {
+                text = ability .. ": hidden for " .. name .. (family and family ~= "nil" and (" (" .. family .. ")") or ""),
+                pet = name, ability = ability,
+                forget = function()
+                    list[ability] = nil
+                    if not next(list) then BeastScoutDB.ignore[key] = nil end
+                end,
+                forgetLabel = "Show", forgetTip = "Suggest " .. ability .. " for " .. name .. " again",
+            }
+        end
+    end
+    if #rows == 0 then
+        return { title = "no skills are hidden for your pets", rows = {}, none = true,
+            note = "Hide on an Upgrades for my pet row (or /beastscout ignore <skill>) stops suggesting one." }
+    end
+    table.sort(rows, function(a, b)
+        if a.pet ~= b.pet then return a.pet < b.pet end
+        return a.ability < b.ability
+    end)
+    return { title = "skills hidden from your pets' upgrades", rows = rows,
+        note = "Show suggests it again for that pet." }
+end
+
 -- Your summoned pet first, then every other pet you've had out in the last
 -- PET_SEEN_DAYS (BeastScoutDB.pets), as { known, name, family, level }. A pet
 -- you abandoned or never call stays in My pets, but stops getting upgrade
@@ -1148,6 +1179,7 @@ local function SearchUpgrades(limit)
     return {
         title = "best upgrades for " .. who .. " (pet level " .. (pet.level or "?") .. "), by skill, closest first",
         rows = rows,
+        hidden = #IgnoredNames(pet) > 0, -- the window shows its Hidden button
         note = "Greyed: " .. who .. " is too young to learn it yet."
             .. (#IgnoredNames(pet) > 0 and (" Not suggested for " .. who .. ": " .. table.concat(IgnoredNames(pet), ", ")
                 .. " (/beastscout ignore).") or "")
@@ -1448,6 +1480,8 @@ function ns.Search(query, limit)
         result = SearchZone(limit)
     elseif q == "wishlist" or q == "wishes" or q == "wish" then
         result = SearchWishlist()
+    elseif q == "hidden" or q == "ignored" then
+        result = SearchHidden()
     elseif q == "food" or q == "vendors" or q == "food vendors" then
         result = SearchFood(limit)
     elseif q == "stats" then

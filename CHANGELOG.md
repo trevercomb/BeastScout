@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## 0.14.2
+
+- New: a **Hidden** button on the Upgrades for my pet screen, shown once you've hidden a skill, lists every pet's hidden skills with a **Show** button to bring each one back. Your pet doesn't need to be out. `/beastscout find hidden` opens the same list.
+
 ## 0.14.1
 
 - New: `/beastscout ignore cower` stops suggesting a skill for the pet you have out, such as Cower on a tank, in tooltips, the zone list and the upgrades list. Ignore it again to bring it back; `/beastscout ignore` lists what that pet ignores. Each pet keeps its own list. In the window, **Hide** on an Upgrades for my pet row does the same.

@@ -429,7 +429,7 @@ SlashCmdList.BEASTSCOUT = function(msg)
     print("  /beastscout find rares - rare tameable beasts seen   /beastscout alert - turn the rare beast alert (alert test: try it on your target) "
         .. (ns.RareAlertOn() and "off" or "on"))
     print("  /beastscout wish - add your target (or wish <name>) to your wishlist; its nameplate rings the rare alert   /beastscout wishlist - list them")
-    print("  /beastscout ignore cower - stop suggesting a skill for your summoned pet (again: bring it back)   /beastscout ignore - list them")
+    print("  /beastscout ignore cower - stop suggesting a skill for your summoned pet (again: bring it back)   /beastscout find hidden - all pets' hidden skills")
     print("  /beastscout forget 2 - remove row 2 of the last stats or wishlist list (e.g. a pet you abandoned)")
     print("  /beastscout sharing - turn in-game sharing " .. (ns.SharingOn() and "off" or "on")
         .. "   /beastscout share - send everything you've recorded now")

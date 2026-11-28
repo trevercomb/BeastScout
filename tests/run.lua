@@ -1101,7 +1101,31 @@ ns.ToggleUI("bite 2")
 local anyHide = false
 for _, row in ipairs(uwin.rows) do if row._shown and row.hide._shown then anyHide = true end end
 check("hide button: not on other lists", not anyHide)
-SlashCmdList.BEASTSCOUT("ignore cower")
+check("hidden button: not on other lists", not uwin.hidden._shown)
+
+-- Hidden skills: a list with a Show button, reached from the Upgrades screen.
+ns.ToggleUI("upgrades")
+check("hidden button: on Upgrades when the pet has hidden skills", uwin.hidden._shown)
+uwin.hidden._scripts.OnClick(uwin.hidden)
+check("hidden list: titled", uwin.title._text:find("Skills hidden from your pets' upgrades", 1, true), uwin.title._text)
+check("hidden list: names skill, pet and family", uwin.rows[1]._shown and uwin.rows[1].data.text == "Cower: hidden for River (Bear)", uwin.rows[1].data and uwin.rows[1].data.text)
+check("hidden list: button says Show", uwin.rows[1].way._shown and uwin.rows[1].way._text == "Show", uwin.rows[1].way._text)
+check("hidden list: Show tooltip", uwin.rows[1].data.forgetTip == "Suggest Cower for River again")
+check("hidden list: no Hidden button on itself", not uwin.hidden._shown)
+-- Another pet's hidden skill is listed too, without summoning it.
+BeastScoutDB.ignore[ns.PetKey("Shal'ma", "Cat")] = { Bite = true }
+local hres = ns.Search("hidden")
+check("hidden list: every pet, sorted by pet", #hres.rows == 2 and hres.rows[1].pet == "River" and hres.rows[2].text == "Bite: hidden for Shal'ma (Cat)",
+    hres.rows[2] and hres.rows[2].text)
+hres.rows[2].forget()
+check("hidden list: Show on another pet works without it out", BeastScoutDB.ignore[ns.PetKey("Shal'ma", "Cat")] == nil)
+ns.ToggleUI("hidden")
+uwin.rows[1].way._scripts.OnClick(uwin.rows[1].way)
+check("hidden list: Show brings the skill back", not ns.Ignored({ name = "River", family = "Bear" }, "Cower"))
+check("hidden list: refreshes to a plain empty answer", uwin.title._text:find("No skills are hidden", 1, true) and not uwin.rows[1]._shown, uwin.title._text)
+ns.ToggleUI("upgrades")
+check("hidden button: gone once nothing is hidden", not uwin.hidden._shown)
+check("hidden: 'ignored' works as a search too", ns.Search("ignored").none == true)
 uwin:Hide()
 
 -- At pet level 8 Bite 2 becomes "train it" and comes first.

@@ -182,6 +182,9 @@ end
 local function Show(result)
     local f = frame
     for _, row in ipairs(f.rows) do row:Hide() end
+    -- Hidden: only on an upgrades list whose pet has skills hidden.
+    f.hidden:SetShown(result.hidden == true)
+    f.note:SetWidth(WIDTH - 36 - (result.hidden and 90 or 0))
     if result.error then
         f.title:SetText(result.error)
         Color(f.title, "BAD")
@@ -196,9 +199,9 @@ local function Show(result)
         row.full = i .. ". " .. data.text
         row.text:SetText(row.full)
         Color(row.text, data.grey and "OFF" or "VALUE")
-        -- One button per row: Remove for pet stats, Go for a known spot.
+        -- One button per row: Remove for pet stats (Show for a hidden skill), Go for a known spot.
         row.data = data
-        SetLabel(row.way, data.forget and "Remove" or "Go")
+        SetLabel(row.way, data.forget and (data.forgetLabel or "Remove") or "Go")
         row.way:SetWidth(data.forget and 70 or 40)
         local way = data.forget ~= nil or data.spot ~= nil
         row.way:SetShown(way)
@@ -364,6 +367,17 @@ local function Make()
     note:SetPoint("BOTTOMLEFT", 18, 40)
     note:SetWidth(WIDTH - 36)
     note:SetJustifyH("LEFT")
+    local hidden = Button(f, "Hidden", 80)
+    f.hidden = hidden
+    hidden:SetPoint("BOTTOMRIGHT", -14, 38)
+    hidden:SetScript("OnClick", function() Run("hidden") end)
+    hidden:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Skills you've hidden, with a button to show each again")
+        GameTooltip:Show()
+    end)
+    hidden:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    hidden:Hide()
 
     local footer = Text(f, "tiny", "GameFontDisableSmall")
     f.footer = footer
