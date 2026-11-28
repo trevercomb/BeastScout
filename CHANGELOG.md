@@ -3,6 +3,8 @@
 ## 0.14.1
 
 - New: `/beastscout ignore cower` stops suggesting a skill for the pet you have out, such as Cower on a tank, in tooltips, the zone list and the upgrades list. Ignore it again to bring it back; `/beastscout ignore` lists what that pet ignores. Each pet keeps its own list. In the window, **Hide** on an Upgrades for my pet row does the same.
+- New from players' tames: Sawtooth Snapper (Bite 6), Drywallow Snapper (Bite 5), Loch Crocolisk (Bite 2, Dismember 1), Strigid Hunter (Claw 2), Foreststrider (Dust Cloud 1) and Mesa Buzzard (Dive 1).
+- Hunters like you have now shared skills and speeds for 130 beasts (9 the Handbook never had), plus spawn points for 46 more.
 
 ## 0.14.0
 
