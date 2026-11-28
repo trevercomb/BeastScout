@@ -2,3 +2,4 @@
 -- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-9945e5ee7f4b
     [2163] = { name="Thistle Bear", family="Bear", levelMin=11, levelMax=12, speed=2, speedSource="tame", teaches={ {"Claw", 2} }, teachesSource="tame", spots={ {"Darkshore", 43.08, 41.95} }, zones={ "Darkshore" } },
+    [3809] = { name="Ashenvale Bear", family="Bear", levelMin=21, levelMax=22, speed=2, speedSource="tame", teaches={ {"Claw", 3} }, teachesSource="tame", spots={ {"Ashenvale", 41.67, 57.5} }, zones={ "Ashenvale" } },
