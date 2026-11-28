@@ -3,6 +3,8 @@
 ## 0.14.2
 
 - New: a **Hidden** button on the Upgrades for my pet screen, shown once you've hidden a skill, lists every pet's hidden skills with a **Show** button to bring each one back. Your pet doesn't need to be out. `/beastscout find hidden` opens the same list.
+- New spawn points from players: Dread Swoop and Carrion Horror, and more players confirming Starving and Feral Mountain Lion, The Rake, Strigid Hunter, Drywallow Snapper and Loch Crocolisk.
+- Hunters like you have now shared skills and speeds for 130 beasts (9 the Handbook never had), plus spawn points for 48 more.
 
 ## 0.14.1
 
