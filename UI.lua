@@ -200,7 +200,13 @@ local function Show(result)
         row.data = data
         SetLabel(row.way, data.forget and "Remove" or "Go")
         row.way:SetWidth(data.forget and 70 or 40)
-        row.way:SetShown(data.forget ~= nil or data.spot ~= nil)
+        local way = data.forget ~= nil or data.spot ~= nil
+        row.way:SetShown(way)
+        -- Upgrade rows also get Hide, left of Go when there's one.
+        row.hide:ClearAllPoints()
+        if way then row.hide:SetPoint("RIGHT", row.way, "LEFT", -4, 0) else row.hide:SetPoint("RIGHT") end
+        row.hide:SetShown(data.ignore ~= nil)
+        row.text:SetWidth(WIDTH - 36 - 50 - (data.ignore and 54 or 0))
         row:Show()
     end
     f.note:SetText(result.note or "")
@@ -322,6 +328,24 @@ local function Make()
         end)
         way:SetScript("OnLeave", function() GameTooltip:Hide() end)
         row.way = way
+        local hide = Button(row, "Hide", 50, 18)
+        hide:SetPoint("RIGHT", way, "LEFT", -4, 0)
+        hide:SetScript("OnClick", function()
+            local data = row.data
+            if data and data.ignore then
+                ns.IgnoreCommand(data.ignore:lower())
+                Run(frame.search:GetText())
+            end
+        end)
+        hide:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(row.data and row.data.ignoreTip or "Don't suggest this skill")
+            GameTooltip:AddLine("/beastscout ignore brings it back", 1, 1, 1)
+            GameTooltip:Show()
+        end)
+        hide:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        hide:Hide()
+        row.hide = hide
         -- Full text on hover, only when the row is cut off.
         row:SetScript("OnEnter", function(self)
             if not (self.text.IsTruncated and self.text:IsTruncated()) then return end

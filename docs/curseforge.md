@@ -30,6 +30,7 @@ Type **/beastscout** or click the minimap button:
 - **Fastest:** the fastest beasts you can tame, any family (or *fast cat*, *fast wolf*...).
 - **Tank:** tank families ranked by health and armor, with the closest one you can tame. Forever's bonuses aren't published, so every BeastScout player's pets are measured and shared to work them out.
 - **This zone:** beasts in your zone that would teach any of your pets something new. BeastScout also lists them by itself when you arrive in a zone (**/beastscout zone auto** turns that off). Pets you haven't had out for 30 days are left out.
+- **Ignore a skill:** **/beastscout ignore cower** stops suggesting a skill for the pet you have out (Cower on a tank, say); ignore it again to bring it back. Each pet keeps its own list, and **Hide** on an Upgrades for my pet row does the same.
 - **Search** a skill (*bite 2*), a family (*cat*), a beast's name (*mystmane*, or just *shal*), and more.
 - **Go** puts a waypoint on your map; it clears when you get there. Beasts above your level are hidden.
 - **Daylight UI** users get the window in Daylight UI's look.
@@ -51,7 +52,7 @@ Built-in data: beast data from **Hunter's Handbook** by Wood (GPLv3), family abi
 
 ## Commands
 
-/beastscout (window) · /beastscout find &lt;skill, family, name, fast, tank, upgrades, rares&gt; · /beastscout zone · /beastscout wish · /beastscout wishlist · /beastscout vendors · /beastscout alert · /beastscout way &lt;number, or zone x y, or x y&gt; · /beastscout way clear · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
+/beastscout (window) · /beastscout find &lt;skill, family, name, fast, tank, upgrades, rares&gt; · /beastscout zone · /beastscout ignore &lt;skill&gt; · /beastscout wish · /beastscout wishlist · /beastscout vendors · /beastscout alert · /beastscout way &lt;number, or zone x y, or x y&gt; · /beastscout way clear · /beastscout export · /beastscout sharing · /beastscout stats · /beastscout minimap · /beastscout help
 
 Short form: **/bs** works for every command (/bs find tank).
 

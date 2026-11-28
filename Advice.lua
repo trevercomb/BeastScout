@@ -83,7 +83,7 @@ function ns.UpgradeOptions(teaches, pet)
     for _, t in ipairs(teaches or {}) do
         local ability, rank = t[1], t[2]
         local has = pet.known[ability] or 0
-        if not NEVER[ability] and rank > has and CanLearn(pet.family, ability) then
+        if not NEVER[ability] and rank > has and CanLearn(pet.family, ability) and not ns.Ignored(pet, ability) then
             local needs, cost = RankNeeds(ability, rank)
             out[#out + 1] = { ability = ability, rank = rank, has = has, cost = cost, needs = needs,
                 learnable = not needs or not pet.level or pet.level >= needs,
@@ -116,6 +116,76 @@ function ns.UpgradesFor(teaches, pet)
         if not o.trainable then out[#out + 1] = ns.DescribeUpgrade(o) end
     end
     return out, p and p.name
+end
+
+-- Skills you don't want suggested for a pet (Cower on a tank):
+-- BeastScoutDB.ignore[petKey] = { [ability] = true }. Every upgrade list
+-- skips them; /beastscout ignore <skill> toggles one for your summoned pet.
+local function IgnoredFor(pet)
+    local all = BeastScoutDB.ignore
+    return all and pet and pet.name and all[ns.PetKey(pet.name, pet.family)]
+end
+
+function ns.Ignored(pet, ability)
+    local list = IgnoredFor(pet)
+    return list and list[ability] or false
+end
+
+local function IgnoredNames(pet)
+    local names = {}
+    for ability in pairs(IgnoredFor(pet) or {}) do names[#names + 1] = ability end
+    table.sort(names)
+    return names
+end
+
+function ns.IgnoreCommand(rest)
+    rest = (rest or ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
+    local ok, pet = ReadPet()
+    if not ok or not pet.name then
+        print(HEADER .. ": summon the pet first; ignored skills are kept for each pet.")
+        return
+    end
+    if rest == "" then
+        local names = IgnoredNames(pet)
+        if #names == 0 then
+            print(HEADER .. ": no skills ignored for " .. pet.name .. ". /beastscout ignore cower stops suggesting Cower for it.")
+        else
+            print(HEADER .. ": not suggested for " .. pet.name .. ": " .. table.concat(names, ", ")
+                .. ". /beastscout ignore <skill> again brings one back.")
+        end
+        return
+    end
+    local ability
+    for _, a in ipairs(ns.TAME_ABILITIES) do
+        if a:lower() == rest then ability = a break end
+    end
+    if not ability then
+        local matches = {}
+        for _, a in ipairs(ns.TAME_ABILITIES) do
+            if a:lower():find(rest, 1, true) == 1 then matches[#matches + 1] = a end
+        end
+        if #matches ~= 1 then
+            print(HEADER .. ": " .. (#matches == 0 and ("no pet skill called \"" .. rest .. "\"")
+                or ("\"" .. rest .. "\" could be " .. table.concat(matches, " or "))) .. ".")
+            return
+        end
+        ability = matches[1]
+    end
+    if NEVER[ability] then
+        print(HEADER .. ": " .. ability .. " comes with a tame and is never suggested as an upgrade.")
+        return
+    end
+    BeastScoutDB.ignore = BeastScoutDB.ignore or {}
+    local key = ns.PetKey(pet.name, pet.family)
+    local list = BeastScoutDB.ignore[key] or {}
+    if list[ability] then
+        list[ability] = nil
+        print(HEADER .. ": " .. ability .. " is suggested for " .. pet.name .. " again.")
+    else
+        list[ability] = true
+        print(HEADER .. ": " .. ability .. " won't be suggested for " .. pet.name .. ". Ignore it again to bring it back.")
+    end
+    BeastScoutDB.ignore[key] = next(list) and list or nil
 end
 
 -- Your summoned pet first, then every other pet you've had out in the last
@@ -964,7 +1034,7 @@ local function SearchUpgrades(limit)
     local train = {} -- ability -> rows
     for _, ability in ipairs(ns.TAME_ABILITIES) do
         local top, has = ns.TrainerRank(ability), pet.known[ability] or 0
-        if top > has and not NEVER[ability] and CanLearn(pet.family, ability) then
+        if top > has and not NEVER[ability] and CanLearn(pet.family, ability) and not ns.Ignored(pet, ability) then
             local options = ns.UpgradeOptions({ { ability, top } }, pet)
             -- Only ranks the window actually lists (knowing Bite 2 doesn't mean
             -- you can teach Bite 1).
@@ -1070,6 +1140,8 @@ local function SearchUpgrades(limit)
     local rows = {}
     for _, g in ipairs(groups) do
         for _, row in ipairs(g.rows) do
+            -- The window's Hide button: stop suggesting this skill for this pet.
+            row.ignore, row.ignoreTip = g.ability, "Don't suggest " .. g.ability .. " for " .. who
             if #rows < limit then rows[#rows + 1] = row end
         end
     end
@@ -1077,6 +1149,8 @@ local function SearchUpgrades(limit)
         title = "best upgrades for " .. who .. " (pet level " .. (pet.level or "?") .. "), by skill, closest first",
         rows = rows,
         note = "Greyed: " .. who .. " is too young to learn it yet."
+            .. (#IgnoredNames(pet) > 0 and (" Not suggested for " .. who .. ": " .. table.concat(IgnoredNames(pet), ", ")
+                .. " (/beastscout ignore).") or "")
             .. (BeastScoutDB.trainer and "" or " Open Beast Training once so BeastScout knows what you can already teach."),
     }
 end

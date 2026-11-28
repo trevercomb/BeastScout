@@ -1035,6 +1035,75 @@ for i, row in ipairs(ur.rows) do
 end
 check("upgrades: usable Bite 1 rows before the greyed Bite 2 row", bite1 and bite2 and bite1 < bite2, ut)
 
+-- Ignoring a skill for one pet: Cower on River the tank.
+local function lastPrint() return printed[#printed] or "" end
+local function rowsText(res)
+    local t = {}
+    for _, row in ipairs(res.rows or {}) do t[#t + 1] = row.text end
+    return table.concat(t, " | ")
+end
+SlashCmdList.BEASTSCOUT("ignore")
+check("ignore: none yet", lastPrint():find("no skills ignored for River", 1, true), lastPrint())
+SlashCmdList.BEASTSCOUT("ignore cower")
+check("ignore: confirms", lastPrint():find("Cower won't be suggested for River", 1, true), lastPrint())
+check("ignore: stored per pet", BeastScoutDB.ignore[ns.PetKey("River", "Bear")].Cower == true)
+ur = ns.Search("upgrades", 30)
+check("ignore: Cower gone from upgrades", not rowsText(ur):find("Cower", 1, true), rowsText(ur))
+check("ignore: other skills still listed", rowsText(ur):find("Bite 1 (new, 1 TP): ", 1, true), rowsText(ur))
+check("ignore: upgrades note names it", ur.note:find("Not suggested for River: Cower", 1, true), ur.note)
+check("ignore: tooltip skips it", #ns.UpgradesFor({ { "Cower", 1 } }) == 0)
+local otherPet = { known = {}, name = "Shal'ma", family = "Bear", level = 7 }
+check("ignore: another pet of the same family still gets it", #ns.UpgradesFor({ { "Cower", 1 } }, otherPet) == 1)
+SlashCmdList.BEASTSCOUT("ignore claw")
+ur = ns.Search("upgrades", 30)
+check("ignore: also hides Beast Training rows", not rowsText(ur):find("Claw", 1, true), rowsText(ur))
+SlashCmdList.BEASTSCOUT("ignore")
+check("ignore: lists them", lastPrint():find("not suggested for River: Claw, Cower", 1, true), lastPrint())
+SlashCmdList.BEASTSCOUT("ignore co")
+check("ignore: a prefix works", lastPrint():find("Cower is suggested for River again", 1, true), lastPrint())
+SlashCmdList.BEASTSCOUT("ignore CLAW")
+check("ignore: toggling the last one clears the pet", BeastScoutDB.ignore[ns.PetKey("River", "Bear")] == nil)
+SlashCmdList.BEASTSCOUT("ignore faster attack")
+check("ignore: Faster Attack is never suggested anyway", lastPrint():find("never suggested", 1, true), lastPrint())
+SlashCmdList.BEASTSCOUT("ignore nonsense")
+check("ignore: unknown skill", lastPrint():find("no pet skill called \"nonsense\"", 1, true), lastPrint())
+ur = ns.Search("upgrades", 30)
+check("ignore: Cower back after un-ignoring", rowsText(ur):find("Cower 1 (new, 8 TP): ", 1, true), rowsText(ur))
+check("ignore: no note when nothing's ignored", not ur.note:find("Not suggested", 1, true), ur.note)
+local savedPet = units.pet
+units.pet = nil
+SlashCmdList.BEASTSCOUT("ignore cower")
+check("ignore: needs a pet", lastPrint():find("summon the pet first", 1, true), lastPrint())
+units.pet = savedPet
+
+-- The window's Hide button on upgrade rows.
+ns.ToggleUI("upgrades")
+local uwin = _G.BeastScoutFrame
+local cowerRow
+for _, row in ipairs(uwin.rows) do
+    if row._shown and row.data.text:find("^Cower 1") then cowerRow = row break end
+end
+check("hide button: on upgrade rows", cowerRow and cowerRow.hide._shown, cowerRow and cowerRow.data.text)
+check("hide button: tooltip names skill and pet", cowerRow and cowerRow.data.ignoreTip == "Don't suggest Cower for River")
+local trainRow
+for _, row in ipairs(uwin.rows) do
+    if row._shown and row.data.text:find("at Beast Training", 1, true) then trainRow = row break end
+end
+check("hide button: Beast Training rows too (no Go button)", trainRow and trainRow.hide._shown and not trainRow.way._shown)
+cowerRow.hide._scripts.OnClick(cowerRow.hide)
+check("hide button: ignores the skill", ns.Ignored({ name = "River", family = "Bear" }, "Cower"))
+local stillCower = false
+for _, row in ipairs(uwin.rows) do
+    if row._shown and row.data.text:find("Cower", 1, true) then stillCower = true end
+end
+check("hide button: list refreshes without it", not stillCower and uwin.title._text:find("Best upgrades for River", 1, true), uwin.title._text)
+ns.ToggleUI("bite 2")
+local anyHide = false
+for _, row in ipairs(uwin.rows) do if row._shown and row.hide._shown then anyHide = true end end
+check("hide button: not on other lists", not anyHide)
+SlashCmdList.BEASTSCOUT("ignore cower")
+uwin:Hide()
+
 -- At pet level 8 Bite 2 becomes "train it" and comes first.
 units.pet.level = 8
 ur = ns.Search("upgrades", 30)

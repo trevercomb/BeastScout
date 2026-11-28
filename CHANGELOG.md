@@ -1,5 +1,9 @@
 # BeastScout changelog
 
+## 0.14.1
+
+- New: `/beastscout ignore cower` stops suggesting a skill for the pet you have out, such as Cower on a tank, in tooltips, the zone list and the upgrades list. Ignore it again to bring it back; `/beastscout ignore` lists what that pet ignores. Each pet keeps its own list. In the window, **Hide** on an Upgrades for my pet row does the same.
+
 ## 0.14.0
 
 - New: arriving in a zone lists the beasts there that would teach any of your pets a rank it can't already get at Beast Training, closest first, with waypoints. Only the best rank of each skill in the zone is shown, and ranks your pets are too young for are greyed. It's shown once per zone each session; `/beastscout zone` (or **This zone** in the window) shows it any time, and `/beastscout zone auto` turns the arrival list off.
