@@ -1,7 +1,6 @@
 -- Shared in game by another BeastScout player, synced by tools/sync_local.py.
 -- Only beasts at least two players agreed on. Kept until that player reports again.
 -- author: p-89b72ae020aa
-    [1693] = { name="Loch Crocolisk", family="Crocolisk", levelMin=14, levelMax=15, speed=2, speedSource="tame", teaches={ {"Bite", 2}, {"Dismember", 1} }, teachesSource="tame", spots={ {"Loch Modan", 59.96, 22.44} }, zones={ "Loch Modan" } }, -- passed on
     [2322] = { name="Foreststrider", family="Tallstrider", levelMin=14, levelMax=16, speed=2, speedSource="tame", teaches={ {"Dust Cloud", 1} }, teachesSource="tame", spots={ {"Darkshore", 52.51, 34.91} }, zones={ "Darkshore" } }, -- passed on
     [2349] = { name="Trepamusgo gigante", family="Spider", levelMin=24, levelMax=25, speed=2, speedSource="tame", teaches={ {"Bite", 4}, {"Web", 2} }, teachesSource="tame", spots={ {"Silverpine Forest", 68.15, 48.32} }, zones={ "Silverpine Forest" } },
     [2384] = { name="León de montaña famélico", family="Cat", levelMin=23, levelMax=24, speed=1.2, speedSource="tame", teaches={ {"Cower", 2}, {"Faster Attack", 6} }, teachesSource="tame", spots={ {"Hillsbrad Foothills", 40.14, 36.51} }, zones={ "Hillsbrad Foothills" } },
